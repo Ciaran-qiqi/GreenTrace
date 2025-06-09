@@ -3,24 +3,22 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import "../src/CarbonToken.sol";
+import "../src/GreenTrace.sol";
 
 /**
  * @title CarbonToken 测试用例
- * @dev 覆盖铸造、销毁、权限等核心逻辑
+ * @dev 只测试初始分配、转账、GreenTrace 权限相关逻辑
  * 
- * 测试用例包括：
- * 1. 初始供应量测试
- * 2. 转账功能测试
- * 3. 铸造功能测试
- * 4. 销毁功能测试
- * 5. 权限控制测试
- * 6. 错误处理测试
+ * 业务逻辑说明：
+ * 1. CarbonToken 只能由 GreenTrace 合约铸造，不能随意铸造和销毁。
+ * 2. 只能测试初始分配、转账、GreenTrace 权限。
  */
 contract CarbonTokenTest is Test {
     CarbonToken public carbonToken;    // 碳币合约实例
     address public owner;              // 合约所有者
     address public user1;              // 测试用户1
     address public user2;              // 测试用户2
+    address public greenTrace;         // GreenTrace合约地址
     uint256 public constant INITIAL_SUPPLY = 1000000 ether;  // 初始供应量
 
     /**
@@ -31,6 +29,7 @@ contract CarbonTokenTest is Test {
         owner = address(this);
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
+        greenTrace = makeAddr("greenTrace");
         carbonToken = new CarbonToken(INITIAL_SUPPLY);
     }
 
@@ -55,46 +54,40 @@ contract CarbonTokenTest is Test {
     }
 
     /**
-     * @dev 测试铸造功能
-     * @notice 验证合约所有者是否可以铸造新代币
+     * @dev 测试只有合约所有者可以设置 GreenTrace 地址
      */
-    function test_Mint() public {
-        uint256 amount = 1000 ether;
-        carbonToken.mint(user1, amount);
-        assertEq(carbonToken.balanceOf(user1), amount);
-        assertEq(carbonToken.totalSupply(), INITIAL_SUPPLY + amount);
+    function test_SetGreenTrace() public {
+        carbonToken.setGreenTrace(greenTrace);
+        assertEq(carbonToken.greenTrace(), greenTrace);
     }
 
     /**
-     * @dev 测试销毁功能
-     * @notice 验证代币持有者是否可以销毁自己的代币
+     * @dev 测试非合约所有者设置 GreenTrace 地址会失败
      */
-    function test_Burn() public {
-        uint256 amount = 100 ether;
-        carbonToken.transfer(user1, amount);
-        vm.prank(user1);
-        carbonToken.burn(amount);
-        assertEq(carbonToken.balanceOf(user1), 0);
-        assertEq(carbonToken.totalSupply(), INITIAL_SUPPLY - amount);
-    }
-
-    /**
-     * @dev 测试非所有者铸造失败
-     * @notice 验证非合约所有者无法铸造新代币
-     */
-    function test_RevertWhen_MintNotOwner() public {
+    function test_RevertWhen_SetGreenTraceNotOwner() public {
         vm.prank(user1);
         vm.expectRevert("Ownable: caller is not the owner");
+        carbonToken.setGreenTrace(greenTrace);
+    }
+
+    /**
+     * @dev 测试只有 GreenTrace 合约可以铸造新代币
+     */
+    function test_RevertWhen_MintNotGreenTrace() public {
+        carbonToken.setGreenTrace(greenTrace);
+        vm.prank(user1);
+        vm.expectRevert("Only GreenTrace can mint");
         carbonToken.mint(user2, 100 ether);
     }
 
     /**
-     * @dev 测试余额不足销毁失败
-     * @notice 验证余额不足时无法销毁代币
+     * @dev 测试 GreenTrace 合约可以正常铸造新代币
      */
-    function test_RevertWhen_BurnInsufficientBalance() public {
-        vm.prank(user1);
-        vm.expectRevert("ERC20: burn amount exceeds balance");
-        carbonToken.burn(100 ether);
+    function test_MintByGreenTrace() public {
+        carbonToken.setGreenTrace(greenTrace);
+        vm.prank(greenTrace);
+        carbonToken.mint(user2, 123 ether);
+        assertEq(carbonToken.balanceOf(user2), 123 ether);
+        assertEq(carbonToken.totalSupply(), INITIAL_SUPPLY + 123 ether);
     }
 } 

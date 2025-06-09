@@ -68,6 +68,10 @@ contract GreenTrace is Ownable, ReentrancyGuard {
     constructor(address _carbonToken, address _greenTalesNFT) Ownable() {
         carbonToken = CarbonToken(_carbonToken);
         greenTalesNFT = GreenTalesNFT(_greenTalesNFT);
+        
+        // carbonToken.setGreenTrace(address(this));
+        // 在 Solidity 的构造函数里，address(this) 代表的是刚刚部署出来但还没完全初始化的合约地址。
+        // so 构造函数里不能直接调用 setGreenTrace，因为此时 GreenTrace 还不是 CarbonToken 的 owner，权限校验会失败
     }
     
     /**
@@ -157,7 +161,11 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      * @dev 兑换NFT为碳币
      * @param _tokenId NFT ID
      * @notice NFT必须已经通过审计
-     * @notice 会销毁NFT并分配相关费用
+     * @notice 会销毁NFT并铸造对应数量的碳币
+     * @notice 碳币分配：
+     *         1. 系统手续费（1%）给系统钱包
+     *         2. 审计费用（4%）给审计者
+     *         3. 剩余数量（95%）给NFT持有者
      */
     function exchangeNFT(uint256 _tokenId) external nonReentrant {
         require(greenTalesNFT.ownerOf(_tokenId) == msg.sender, "Not NFT owner");
@@ -171,16 +179,13 @@ contract GreenTrace is Ownable, ReentrancyGuard {
         uint256 auditFee = calculateAuditFee(carbonValue);
         uint256 returnAmount = calculateReturnAmount(carbonValue);
         
-        // 铸造碳币
-        carbonToken.mint(address(this), carbonValue);
-        
-        // 分配费用
-        carbonToken.safeTransfer(owner(), systemFee);  // 系统手续费
-        carbonToken.safeTransfer(auditor, auditFee);   // 审计费用
-        carbonToken.safeTransfer(msg.sender, returnAmount);  // 返还给NFT持有者
-        
         // 销毁NFT
         greenTalesNFT.burn(_tokenId);
+        
+        // 铸造碳币并分配
+        carbonToken.mint(owner(), systemFee);      // 系统手续费
+        carbonToken.mint(auditor, auditFee);       // 审计费用
+        carbonToken.mint(msg.sender, returnAmount); // 返还给NFT持有者
         
         emit NFTExchanged(_tokenId, msg.sender, carbonValue);
     }

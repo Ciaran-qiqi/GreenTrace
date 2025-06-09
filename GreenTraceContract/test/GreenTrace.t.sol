@@ -31,6 +31,7 @@ contract GreenTraceTest is Test {
     /**
      * @dev 测试环境设置
      * @notice 在每个测试用例执行前运行，初始化合约和用户
+     * @notice 确保 CarbonToken 的 owner 是当前测试合约，先 setGreenTrace 再 transferOwnership
      */
     function setUp() public {
         owner = address(this);
@@ -38,10 +39,15 @@ contract GreenTraceTest is Test {
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
 
+        // 先部署 CarbonToken，此时 owner 是当前测试合约
         carbonToken = new CarbonToken(INITIAL_SUPPLY);
         nft = new GreenTalesNFT();
+        
+        // 部署 GreenTrace 合约
         greenTrace = new GreenTrace(address(carbonToken), address(nft));
 
+        // 先设置 GreenTrace 地址，再转移所有权
+        carbonToken.setGreenTrace(address(greenTrace));
         carbonToken.transferOwnership(address(greenTrace));
         nft.setMinter(address(greenTrace));
         greenTrace.addAuditor(auditor);

@@ -25,7 +25,8 @@ contract DeployScript is Script {
         GreenTalesAuction auction = new GreenTalesAuction(address(carbonToken), address(greenTalesNFT));
 
         // 5. 设置权限
-        carbonToken.transferOwnership(address(greenTrace));  // 将 CarbonToken 的所有权转给主合约
+        carbonToken.setGreenTrace(address(greenTrace));  // 先设置 GreenTrace 地址
+        carbonToken.transferOwnership(address(greenTrace));  // 再将 CarbonToken 的所有权转给主合约
         greenTalesNFT.setMinter(address(greenTrace));       // 设置主合约为 NFT 的铸造者
 
         vm.stopBroadcast();
