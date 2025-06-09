@@ -50,6 +50,10 @@ contract GreenTraceTest is Test {
         carbonToken.setGreenTrace(address(greenTrace));
         carbonToken.transferOwnership(address(greenTrace));
         nft.setMinter(address(greenTrace));
+        
+        // 初始化 GreenTrace
+        greenTrace.initialize();
+        
         greenTrace.addAuditor(auditor);
     }
 

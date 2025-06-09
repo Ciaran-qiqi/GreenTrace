@@ -28,6 +28,14 @@ contract DeployScript is Script {
         carbonToken.setGreenTrace(address(greenTrace));  // 先设置 GreenTrace 地址
         carbonToken.transferOwnership(address(greenTrace));  // 再将 CarbonToken 的所有权转给主合约
         greenTalesNFT.setMinter(address(greenTrace));       // 设置主合约为 NFT 的铸造者
+        
+        // 6. 初始化 GreenTrace
+        greenTrace.initialize();
+        
+        // 7. 验证初始化
+        require(greenTrace.initialized(), "GreenTrace initialization failed");
+        require(carbonToken.owner() == address(greenTrace), "CarbonToken ownership transfer failed");
+        require(greenTalesNFT.minter() == address(greenTrace), "GreenTalesNFT minter setting failed");
 
         vm.stopBroadcast();
     }

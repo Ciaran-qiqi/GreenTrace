@@ -24,6 +24,7 @@ contract GreenTrace is Ownable, ReentrancyGuard {
     // 合约状态变量
     CarbonToken public carbonToken;    // 碳币合约
     GreenTalesNFT public greenTalesNFT;  // NFT合约
+    bool public initialized;           // 初始化状态
     
     // 费用比例常量
     uint256 public constant SYSTEM_FEE_RATE = 100;  // 1%
@@ -68,10 +69,28 @@ contract GreenTrace is Ownable, ReentrancyGuard {
     constructor(address _carbonToken, address _greenTalesNFT) Ownable() {
         carbonToken = CarbonToken(_carbonToken);
         greenTalesNFT = GreenTalesNFT(_greenTalesNFT);
+    }
+
+    /**
+     * @dev 初始化函数
+     * @notice 必须在部署后调用此函数完成初始化
+     * @notice 只有合约所有者可以调用此函数
+     */
+    function initialize() external onlyOwner {
+        require(!initialized, "Already initialized");
+        require(address(carbonToken) != address(0), "CarbonToken not set");
+        require(address(greenTalesNFT) != address(0), "GreenTalesNFT not set");
         
-        // carbonToken.setGreenTrace(address(this));
-        // 在 Solidity 的构造函数里，address(this) 代表的是刚刚部署出来但还没完全初始化的合约地址。
-        // so 构造函数里不能直接调用 setGreenTrace，因为此时 GreenTrace 还不是 CarbonToken 的 owner，权限校验会失败
+        initialized = true;
+    }
+
+    /**
+     * @dev 初始化检查修饰器
+     * @notice 确保合约已经完成初始化
+     */
+    modifier whenInitialized() {
+        require(initialized, "Not initialized");
+        _;
     }
     
     /**
@@ -79,7 +98,7 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      * @param _auditor 审计人员地址
      * @notice 只有合约所有者可以调用此函数
      */
-    function addAuditor(address _auditor) external onlyOwner {
+    function addAuditor(address _auditor) external onlyOwner whenInitialized {
         auditors[_auditor] = true;
         emit AuditorAdded(_auditor);
     }
@@ -89,7 +108,7 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      * @param _auditor 审计人员地址
      * @notice 只有合约所有者可以调用此函数
      */
-    function removeAuditor(address _auditor) external onlyOwner {
+    function removeAuditor(address _auditor) external onlyOwner whenInitialized {
         auditors[_auditor] = false;
         emit AuditorRemoved(_auditor);
     }
@@ -100,7 +119,7 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      * @param _carbonValue 碳价值
      * @notice 只有授权的审计人员可以调用此函数
      */
-    function submitAudit(uint256 _tokenId, uint256 _carbonValue) external {
+    function submitAudit(uint256 _tokenId, uint256 _carbonValue) external whenInitialized {
         require(auditors[msg.sender], "Not authorized auditor");
         require(audits[_tokenId].status == AuditStatus.Pending, "Audit already exists");
         
@@ -121,7 +140,7 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      * @param _status 审计状态
      * @notice 只有合约所有者可以调用此函数
      */
-    function completeAudit(uint256 _tokenId, AuditStatus _status) external onlyOwner {
+    function completeAudit(uint256 _tokenId, AuditStatus _status) external onlyOwner whenInitialized {
         require(audits[_tokenId].status == AuditStatus.Pending, "Audit not pending");
         audits[_tokenId].status = _status;
         emit AuditCompleted(_tokenId, _status);
@@ -167,7 +186,7 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      *         2. 审计费用（4%）给审计者
      *         3. 剩余数量（95%）给NFT持有者
      */
-    function exchangeNFT(uint256 _tokenId) external nonReentrant {
+    function exchangeNFT(uint256 _tokenId) external nonReentrant whenInitialized {
         require(greenTalesNFT.ownerOf(_tokenId) == msg.sender, "Not NFT owner");
         require(audits[_tokenId].status == AuditStatus.Approved, "Audit not approved");
         
