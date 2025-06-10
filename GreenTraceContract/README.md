@@ -9,42 +9,6 @@ GreenTrace 是一个基于区块链的碳减排项目，旨在通过 NFT 和碳�
 - **GreenTrace**：主合约，负责碳减排项目的审计、NFT 兑换和费用分配。
 - **GreenTalesAuction**：拍卖合约，支持需求征集和供应拍卖，用于碳减排项目的交易。
 
-这是一个名为 GreenTrace 的智能合约项目，主要包含以下内容：
-
-1. 主要合约文件（在 src 目录下）：
-
-* GreenTrace.sol - 主合约文件
-* CarbonToken.sol - 碳代币合约
-* GreenTalesNFT.sol - NFT 合约
-* GreenTalesAuction.sol - 拍卖合约
-
-1. 对应的测试文件（在 test 目录下）：
-
-* GreenTrace.t.sol
-* CarbonToken.t.sol
-* GreenTalesNFT.t.sol
-* GreenTalesAuction.t.sol
-
-1. 项目配置文件：
-
-* foundry.toml - Foundry 框架配置文件
-* .gitignore - Git 忽略文件配置
-* .gitmodules - Git 子模块配置
-
-1. 文档文件：
-
-* README.md - 项目说明文档
-* Programming\_Plan.md - 编程计划文档
-
-1. 其他目录：
-
-* cache/ - Foundry 缓存目录
-* out/ - 编译输出目录
-* script/ - 部署脚本目录
-* lib/ - 依赖库目录
-* .wake/ - Wake 工具配置目录
-* .vscode/ - VS Code 配置目录
-* .github/ - GitHub 配置目录
 
 ## 主要功能
 
