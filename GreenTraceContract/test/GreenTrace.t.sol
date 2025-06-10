@@ -41,15 +41,19 @@ contract GreenTraceTest is Test {
 
         // 先部署 CarbonToken，此时 owner 是当前测试合约
         carbonToken = new CarbonToken(INITIAL_SUPPLY);
-        nft = new GreenTalesNFT();
         
-        // 部署 GreenTrace 合约
-        greenTrace = new GreenTrace(address(carbonToken), address(nft));
+        // 部署 GreenTrace 合约，先不设置 NFT 地址
+        greenTrace = new GreenTrace(address(carbonToken), address(0));
+        
+        // 部署 NFT 合约，设置 GreenTrace 为 minter
+        nft = new GreenTalesNFT(address(greenTrace));
+        
+        // 设置 GreenTrace 的 NFT 地址
+        greenTrace.setNFTContract(address(nft));
 
-        // 先设置 GreenTrace 地址，再转移所有权
+        // 设置 CarbonToken 的权限
         carbonToken.setGreenTrace(address(greenTrace));
         carbonToken.transferOwnership(address(greenTrace));
-        nft.setMinter(address(greenTrace));
         
         // 初始化 GreenTrace
         greenTrace.initialize();
@@ -87,7 +91,7 @@ contract GreenTraceTest is Test {
      */
     function test_SubmitAudit() public {
         vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, "ipfs://Qm...");
+        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
 
         vm.prank(auditor);
         greenTrace.submitAudit(tokenId, 800);
@@ -105,7 +109,7 @@ contract GreenTraceTest is Test {
      */
     function test_CompleteAudit() public {
         vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, "ipfs://Qm...");
+        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
 
         vm.prank(auditor);
         greenTrace.submitAudit(tokenId, 800);
@@ -122,7 +126,7 @@ contract GreenTraceTest is Test {
     function test_ExchangeNFT() public {
         // 由 GreenTrace 合约铸造 NFT 给 user1
         vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, "ipfs://Qm...");
+        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
 
         // 由 auditor 提交审计结果
         vm.prank(auditor);
@@ -134,11 +138,11 @@ contract GreenTraceTest is Test {
         // 记录 user1 的初始余额
         uint256 initialBalance = carbonToken.balanceOf(user1);
 
-        // 由 user1 授权 GreenTrace 合约销毁 NFT（关键修复步骤）
+        // 由 user1 授权 GreenTrace 合约销毁 NFT
         vm.prank(user1);
         nft.approve(address(greenTrace), tokenId);
 
-        // 由 user1 调用 exchangeNFT，将 NFT 兑换为碳币
+        // 由 user1 调用 exchangeNFT，将 NFT 兑换为碳币（合约内部会自动转移和销毁NFT）
         vm.prank(user1);
         greenTrace.exchangeNFT(tokenId);
 
@@ -181,7 +185,7 @@ contract GreenTraceTest is Test {
      */
     function test_RevertWhen_ExchangeNFTNotApproved() public {
         vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, "ipfs://Qm...");
+        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
 
         vm.prank(user1);
         vm.expectRevert("Audit not approved");

@@ -229,12 +229,16 @@ contract GreenTalesAuction is Ownable, ReentrancyGuard {
         // 让中标者支付剩余金额
         carbonToken.safeTransferFrom(winningBid.bidder, address(this), remainingAmount);
         
-        // 铸造NFT，使用metadataURI
+        // 添加检查：确保碳币转移成功
+        require(carbonToken.balanceOf(address(this)) >= totalAmount, "Insufficient carbon token balance");
+        
+        // 铸造NFT，使用metadataURI，设置初始价格为中标价格
         uint256 tokenId = greenTalesNFT.mint(
             winningBid.bidder,
             "Green Story",  // 故事标题
             "A green story about carbon reduction",  // 故事详情
             auction.expectedCarbon,
+            winningBid.amount,  // 设置初始价格为中标价格
             auction.metadataURI
         );
         

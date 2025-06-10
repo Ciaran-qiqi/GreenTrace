@@ -6,6 +6,7 @@ import "./GreenTalesNFT.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
 /**
  * @title GreenTrace
@@ -18,7 +19,7 @@ import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
  * 3. 费用计算：计算系统手续费和审计费用
  * 4. 权限控制：管理审计人员白名单
  */
-contract GreenTrace is Ownable, ReentrancyGuard {
+contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for CarbonToken;
     
     // 合约状态变量
@@ -64,10 +65,22 @@ contract GreenTrace is Ownable, ReentrancyGuard {
     /**
      * @dev 构造函数
      * @param _carbonToken 碳币合约地址
-     * @param _greenTalesNFT NFT合约地址
+     * @param _greenTalesNFT NFT合约地址（可以为0地址，后续设置）
      */
     constructor(address _carbonToken, address _greenTalesNFT) Ownable() {
         carbonToken = CarbonToken(_carbonToken);
+        if (_greenTalesNFT != address(0)) {
+            greenTalesNFT = GreenTalesNFT(_greenTalesNFT);
+        }
+    }
+
+    /**
+     * @dev 设置NFT合约地址
+     * @param _greenTalesNFT NFT合约地址
+     * @notice 只有合约所有者可以调用此函数
+     */
+    function setNFTContract(address _greenTalesNFT) external onlyOwner {
+        require(_greenTalesNFT != address(0), "Invalid NFT contract address");
         greenTalesNFT = GreenTalesNFT(_greenTalesNFT);
     }
 
@@ -187,25 +200,49 @@ contract GreenTrace is Ownable, ReentrancyGuard {
      *         3. 剩余数量（95%）给NFT持有者
      */
     function exchangeNFT(uint256 _tokenId) external nonReentrant whenInitialized {
+        // 检查调用者是否为NFT持有者
         require(greenTalesNFT.ownerOf(_tokenId) == msg.sender, "Not NFT owner");
+        // 检查NFT是否已通过审计
         require(audits[_tokenId].status == AuditStatus.Approved, "Audit not approved");
-        
+        // 检查合约是否已被授权操作该NFT
+        require(greenTalesNFT.getApproved(_tokenId) == address(this) || greenTalesNFT.isApprovedForAll(msg.sender, address(this)), "Contract not approved");
+
         uint256 carbonValue = audits[_tokenId].carbonValue;
         address auditor = audits[_tokenId].auditor;
-        
+
         // 计算费用
         uint256 systemFee = calculateSystemFee(carbonValue);
         uint256 auditFee = calculateAuditFee(carbonValue);
         uint256 returnAmount = calculateReturnAmount(carbonValue);
-        
+
+        // 合约主动转移NFT到自己名下，确保后续销毁安全
+        greenTalesNFT.safeTransferFrom(msg.sender, address(this), _tokenId);
+
+        // 再次检查NFT所有权
+        require(greenTalesNFT.ownerOf(_tokenId) == address(this), "NFT transfer failed");
+
         // 销毁NFT
         greenTalesNFT.burn(_tokenId);
-        
+
         // 铸造碳币并分配
         carbonToken.mint(owner(), systemFee);      // 系统手续费
         carbonToken.mint(auditor, auditFee);       // 审计费用
         carbonToken.mint(msg.sender, returnAmount); // 返还给NFT持有者
-        
+
         emit NFTExchanged(_tokenId, msg.sender, carbonValue);
+    }
+
+    /**
+     * @dev 实现 IERC721Receiver 接口，允许本合约安全接收 NFT
+     * @notice 这样 NFT safeTransferFrom 到本合约不会 revert
+     * @param operator 操作人地址
+     * @param from NFT 发送者地址
+     * @param tokenId NFT ID
+     * @param data 附加数据
+     * @return 返回 IERC721Receiver 接口的 selector，表示接收成功
+     */
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external pure override returns (bytes4) {
+        // 返回 IERC721Receiver 接口的 selector，表示接收成功
+        return IERC721Receiver.onERC721Received.selector;
     }
 } 

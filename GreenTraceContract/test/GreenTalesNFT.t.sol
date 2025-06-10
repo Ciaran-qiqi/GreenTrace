@@ -32,8 +32,7 @@ contract GreenTalesNFTTest is Test {
         minter = makeAddr("minter");
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
-        nft = new GreenTalesNFT();
-        nft.setMinter(minter);
+        nft = new GreenTalesNFT(minter);  // 在测试环境中，我们使用测试合约作为 minter
     }
 
     /**
@@ -57,7 +56,7 @@ contract GreenTalesNFTTest is Test {
         string memory tokenURI = "ipfs://Qm...";
 
         vm.prank(minter);
-        uint256 tokenId = nft.mint(user1, title, detail, carbonReduction, tokenURI);
+        uint256 tokenId = nft.mint(user1, title, detail, carbonReduction, 100 ether, tokenURI);
 
         assertEq(tokenId, 0);
         assertEq(nft.ownerOf(tokenId), user1);
@@ -75,7 +74,7 @@ contract GreenTalesNFTTest is Test {
      */
     function test_Burn() public {
         vm.prank(minter);
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, "ipfs://Qm...");
+        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
 
         vm.prank(user1);
         nft.burn(tokenId);
@@ -91,7 +90,7 @@ contract GreenTalesNFTTest is Test {
     function test_RevertWhen_MintNotMinter() public {
         vm.prank(user1);
         vm.expectRevert("Not authorized");
-        nft.mint(user2, "Title", "Detail", 1000, "ipfs://Qm...");
+        nft.mint(user2, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
     }
 
     /**
@@ -100,7 +99,7 @@ contract GreenTalesNFTTest is Test {
      */
     function test_RevertWhen_BurnNotOwner() public {
         vm.prank(minter);
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, "ipfs://Qm...");
+        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
 
         vm.prank(user2);
         vm.expectRevert("Not owner nor approved"); 
