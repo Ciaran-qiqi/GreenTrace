@@ -46,7 +46,7 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
         // 部署 GreenTrace 合约，先不设置 NFT 地址
         greenTrace = new GreenTrace(address(carbonToken), address(0));
         
-        // 部署 NFT 合约，设置 GreenTrace 为 minter
+        // 部署 NFT 合约，设置 GreenTrace 为调用者
         nft = new GreenTalesNFT(address(greenTrace));
         
         // 设置 GreenTrace 的 NFT 地址
@@ -57,7 +57,8 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
             address(nft),
             address(carbonToken),
             250,  // 平台手续费率 2.5%
-            address(greenTrace)  // 手续费接收地址设置为GreenTrace合约
+            address(greenTrace),  // 手续费接收地址设置为GreenTrace合约
+            address(greenTrace)   // 添加 GreenTrace 地址
         );
         
         // 为用户分配足够的代币
@@ -74,11 +75,8 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
         // 初始化市场合约
         market.initialize();
 
-        // 在测试环境中，将 minter 设置为测试合约
-        nft.setMinter(address(this));
-        
-        // 添加市场合约为额外的 minter
-        nft.addMinter(address(market));
+        // 添加市场合约到 GreenTrace 白名单
+        greenTrace.addBusinessContract(address(market));
     }
 
     /**
@@ -98,8 +96,16 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
      * @notice 验证用户是否可以正确挂单NFT
      */
     function test_ListNFT() public {
-        // 先铸造一个NFT给user1
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+        // 在测试环境中直接铸造 NFT
+        vm.prank(address(market));
+        uint256 tokenId = greenTrace.mintNFTByBusiness(
+            user1,
+            "Title",
+            "Detail",
+            1000,
+            100 ether,
+            "ipfs://Qm..."
+        );
         
         // user1授权市场合约使用NFT
         vm.prank(user1);
@@ -121,8 +127,16 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
      * @notice 验证用户是否可以正确购买已挂单的NFT
      */
     function test_BuyNFT() public {
-        // 先铸造一个NFT给user1
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+        // 在测试环境中直接铸造 NFT
+        vm.prank(address(market));
+        uint256 tokenId = greenTrace.mintNFTByBusiness(
+            user1,
+            "Title",
+            "Detail",
+            1000,
+            100 ether,
+            "ipfs://Qm..."
+        );
         
         // user1授权市场合约使用NFT
         vm.prank(user1);
@@ -152,8 +166,16 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
      * @notice 验证用户是否可以正确取消已挂单的NFT
      */
     function test_CancelListing() public {
-        // 先铸造一个NFT给user1
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+        // 在测试环境中直接铸造 NFT
+        vm.prank(address(market));
+        uint256 tokenId = greenTrace.mintNFTByBusiness(
+            user1,
+            "Title",
+            "Detail",
+            1000,
+            100 ether,
+            "ipfs://Qm..."
+        );
         
         // user1授权市场合约使用NFT
         vm.prank(user1);
@@ -180,8 +202,16 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
      * @notice 验证非NFT所有者无法挂单
      */
     function test_RevertWhen_ListNFTNotOwner() public {
-        // 先铸造一个NFT给user1
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+        // 在测试环境中直接铸造 NFT
+        vm.prank(address(market));
+        uint256 tokenId = greenTrace.mintNFTByBusiness(
+            user1,
+            "Title",
+            "Detail",
+            1000,
+            100 ether,
+            "ipfs://Qm..."
+        );
         
         // user2尝试挂单
         vm.prank(user2);
@@ -194,8 +224,16 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
      * @notice 验证用户无法购买自己挂单的NFT
      */
     function test_RevertWhen_BuyOwnNFT() public {
-        // 先铸造一个NFT给user1
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+        // 在测试环境中直接铸造 NFT
+        vm.prank(address(market));
+        uint256 tokenId = greenTrace.mintNFTByBusiness(
+            user1,
+            "Title",
+            "Detail",
+            1000,
+            100 ether,
+            "ipfs://Qm..."
+        );
         
         // user1授权市场合约使用NFT
         vm.prank(user1);

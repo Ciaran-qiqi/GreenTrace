@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "./CarbonToken.sol";
 import "./GreenTalesNFT.sol";
+import "./GreenTrace.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -25,6 +26,7 @@ contract GreenTalesAuction is Ownable, ReentrancyGuard {
     // 合约状态变量
     CarbonToken public carbonToken;    // 碳币合约
     GreenTalesNFT public greenTalesNFT;  // NFT合约
+    GreenTrace public greenTrace;      // GreenTrace合约
     
     // 拍卖类型枚举
     enum AuctionType { Demand, Supply }  // 需求征集、供应拍卖
@@ -95,10 +97,16 @@ contract GreenTalesAuction is Ownable, ReentrancyGuard {
      * @dev 构造函数
      * @param _carbonToken 碳币合约地址
      * @param _greenTalesNFT NFT合约地址
+     * @param _greenTrace GreenTrace合约地址
      */
-    constructor(address _carbonToken, address _greenTalesNFT) Ownable() {
+    constructor(
+        address _carbonToken, 
+        address _greenTalesNFT,
+        address _greenTrace
+    ) Ownable() {
         carbonToken = CarbonToken(_carbonToken);
         greenTalesNFT = GreenTalesNFT(_greenTalesNFT);
+        greenTrace = GreenTrace(_greenTrace);
     }
     
     /**
@@ -209,44 +217,47 @@ contract GreenTalesAuction is Ownable, ReentrancyGuard {
     /**
      * @dev 完成拍卖
      * @param _auctionId 拍卖ID
-     * @param _winnerIndex 获胜者索引
-     * @notice 只有合约所有者可以调用此函数
-     * @notice 会铸造NFT给获胜者，并处理资金转移
+     * @notice 只有拍卖创建者可以调用此函数
+     * @notice 拍卖必须已经结束
+     * @notice 如果有出价，将铸造NFT并转移给出价最高者
      */
-    function completeAuction(uint256 _auctionId, uint256 _winnerIndex) external onlyOwner {
+    function completeAuction(uint256 _auctionId) external nonReentrant {
         Auction storage auction = auctions[_auctionId];
-        require(auction.status == AuctionStatus.Active, "Auction not active");
+        require(msg.sender == auction.creator, "Not auction creator");
         require(block.timestamp >= auction.endTime, "Auction not ended");
-        require(_winnerIndex < bids[_auctionId].length, "Invalid winner index");
-        
-        Bid memory winningBid = bids[_auctionId][_winnerIndex];
+        require(auction.status == AuctionStatus.Active, "Auction not active");
+
+        // 找到最高出价
+        Bid[] storage auctionBids = bids[_auctionId];
+        require(auctionBids.length > 0, "No bids");
+
+        uint256 highestBidIndex = 0;
+        uint256 highestBidAmount = 0;
+
+        for (uint256 i = 0; i < auctionBids.length; i++) {
+            if (auctionBids[i].amount > highestBidAmount) {
+                highestBidAmount = auctionBids[i].amount;
+                highestBidIndex = i;
+            }
+        }
+
+        // 更新拍卖状态
         auction.status = AuctionStatus.Completed;
-        
-        // 计算中标者需要支付的剩余金额
-        uint256 totalAmount = winningBid.amount;
-        uint256 remainingAmount = totalAmount - deposits[_auctionId];
-        
-        // 让中标者支付剩余金额
-        carbonToken.safeTransferFrom(winningBid.bidder, address(this), remainingAmount);
-        
-        // 添加检查：确保碳币转移成功
-        require(carbonToken.balanceOf(address(this)) >= totalAmount, "Insufficient carbon token balance");
-        
-        // 铸造NFT，使用metadataURI，设置初始价格为中标价格
-        uint256 tokenId = greenTalesNFT.mint(
-            winningBid.bidder,
+
+        // 转移碳币给卖家
+        carbonToken.safeTransfer(auction.creator, highestBidAmount);
+
+        // 通过 GreenTrace 铸造 NFT
+        greenTrace.mintNFTByBusiness(
+            auctionBids[highestBidIndex].bidder,
             "Green Story",  // 故事标题
             "A green story about carbon reduction",  // 故事详情
             auction.expectedCarbon,
-            winningBid.amount,  // 设置初始价格为中标价格
+            highestBidAmount,  // 设置初始价格为最高出价
             auction.metadataURI
         );
-        
-        // 转移资金给创建者
-        carbonToken.safeTransfer(auction.creator, totalAmount);
-        
-        emit AuctionCompleted(_auctionId, winningBid.bidder, winningBid.amount);
-        emit NFTMinted(_auctionId, tokenId, winningBid.bidder);
+
+        emit AuctionCompleted(_auctionId, auctionBids[highestBidIndex].bidder, highestBidAmount);
     }
     
     /**

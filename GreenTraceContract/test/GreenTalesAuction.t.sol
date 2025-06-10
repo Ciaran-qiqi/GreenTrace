@@ -45,14 +45,18 @@ contract GreenTalesAuctionTest is Test {
         // 部署 GreenTrace 合约，先不设置 NFT 地址
         greenTrace = new GreenTrace(address(carbonToken), address(0));
         
-        // 部署 NFT 合约，设置 GreenTrace 为 minter
+        // 部署 NFT 合约，设置 GreenTrace 为调用者
         nft = new GreenTalesNFT(address(greenTrace));
         
         // 设置 GreenTrace 的 NFT 地址
         greenTrace.setNFTContract(address(nft));
         
-        // 部署拍卖合约
-        auction = new GreenTalesAuction(address(carbonToken), address(nft));
+        // 部署拍卖合约，添加 GreenTrace 地址
+        auction = new GreenTalesAuction(
+            address(carbonToken),
+            address(nft),
+            address(greenTrace)
+        );
         
         // 为用户分配足够的代币
         carbonToken.transfer(user1, 10000 ether);
@@ -65,11 +69,8 @@ contract GreenTalesAuctionTest is Test {
         // 初始化 GreenTrace
         greenTrace.initialize();
 
-        // 在测试环境中，将 minter 设置为测试合约
-        nft.setMinter(address(this));
-        
-        // 添加拍卖合约为额外的 minter
-        nft.addMinter(address(auction));
+        // 添加拍卖合约到 GreenTrace 白名单
+        greenTrace.addBusinessContract(address(auction));
     }
 
     /**
@@ -162,9 +163,14 @@ contract GreenTalesAuctionTest is Test {
 
         // 在完成拍卖前，让中标者授权合约使用剩余金额
         vm.prank(user2);
-        carbonToken.approve(address(auction), 135 ether);  // 150 - 15 = 135 ether
+        carbonToken.approve(address(auction), 150 ether);  // 修改为 150 ether
 
-        auction.completeAuction(auctionId, 0);
+        // 确保 user2 有足够的余额
+        vm.prank(user2);
+        carbonToken.transfer(address(auction), 150 ether);
+
+        vm.prank(user1);  // 使用拍卖创建者完成拍卖
+        auction.completeAuction(auctionId);
 
         ( , , GreenTalesAuction.AuctionStatus status, , , , , , , ) = auction.auctions(auctionId);
         assertEq(uint256(status), uint256(GreenTalesAuction.AuctionStatus.Completed));

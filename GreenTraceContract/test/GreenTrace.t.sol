@@ -45,7 +45,7 @@ contract GreenTraceTest is Test {
         // 部署 GreenTrace 合约，先不设置 NFT 地址
         greenTrace = new GreenTrace(address(carbonToken), address(0));
         
-        // 部署 NFT 合约，设置 GreenTrace 为 minter
+        // 部署 NFT 合约，设置 GreenTrace 为调用者
         nft = new GreenTalesNFT(address(greenTrace));
         
         // 设置 GreenTrace 的 NFT 地址

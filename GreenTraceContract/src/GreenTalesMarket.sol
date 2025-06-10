@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "./GreenTalesNFT.sol";
 import "./CarbonToken.sol";
+import "./GreenTrace.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
@@ -27,6 +28,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     // 合约状态变量
     GreenTalesNFT public nftContract;     // NFT合约
     CarbonToken public carbonToken;        // 碳币合约
+    GreenTrace public greenTrace;          // GreenTrace合约
     uint256 public platformFeeRate;        // 平台手续费率（基点，1基点 = 0.01%）
     address public feeCollector;           // 手续费接收地址
     bool public initialized;               // 初始化状态
@@ -65,17 +67,20 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @param _carbonToken 碳币合约地址
      * @param _platformFeeRate 平台手续费率（基点）
      * @param _feeCollector 手续费接收地址
+     * @param _greenTrace GreenTrace合约地址
      */
     constructor(
         address _nftContract,
         address _carbonToken,
         uint256 _platformFeeRate,
-        address _feeCollector
+        address _feeCollector,
+        address _greenTrace
     ) Ownable() {
         nftContract = GreenTalesNFT(_nftContract);
         carbonToken = CarbonToken(_carbonToken);
         platformFeeRate = _platformFeeRate;
         feeCollector = _feeCollector;
+        greenTrace = GreenTrace(_greenTrace);
     }
 
     /**
@@ -146,6 +151,8 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     /**
      * @dev 购买NFT
      * @param _tokenId NFT ID
+     * @notice 购买者需要支付足够的碳币
+     * @notice 购买成功后，NFT将转移给购买者
      */
     function buyNFT(uint256 _tokenId) external nonReentrant whenInitialized {
         Listing storage listing = listings[_tokenId];
@@ -172,8 +179,8 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
         }));
         lastTradePrice[_tokenId] = price;
 
-        // 更新NFT的最后成交价格
-        nftContract.updateLastPrice(_tokenId, price);
+        // 通过 GreenTrace 更新 NFT 价格
+        greenTrace.updateNFTPriceByBusiness(_tokenId, price);
 
         // 清除挂单信息
         delete listings[_tokenId];

@@ -19,12 +19,10 @@ import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 contract GreenTalesNFT is ERC721URIStorage, Ownable {
     // 下一个要铸造的NFT ID
     uint256 public nextTokenId;
-    // 授权铸造者地址
-    address public minter;
     // GreenTrace合约地址
     address public greenTrace;
-    // 额外的 minter 映射
-    mapping(address => bool) public additionalMinters;
+    // 是否为测试环境
+    bool public isTestEnvironment;
 
     /**
      * @dev 故事元数据结构
@@ -50,63 +48,37 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     // 事件定义
     event Minted(address indexed to, uint256 indexed tokenId, string storyTitle);
     event Burned(uint256 indexed tokenId);
-    event MinterChanged(address indexed newMinter);
     event PriceUpdated(uint256 indexed tokenId, uint256 price, bool isInitial);
-
-    /**
-     * @dev 仅铸造者修饰器
-     * @notice 确保只有授权的铸造者可以调用特定函数
-     */
-    modifier onlyMinter() {
-        require(msg.sender == minter || additionalMinters[msg.sender], "Not authorized");
-        _;
-    }
 
     /**
      * @dev 构造函数
      * @param _greenTrace GreenTrace合约地址
      * @notice 初始化NFT名称和符号，并设置GreenTrace为铸造者
+     * @notice 自动检测部署环境，在测试网络（Goerli/Sepolia/Local）上启用测试模式
      */
-    constructor(address _greenTrace) ERC721("GreenTales NFT", "GTN") {
+    constructor(address _greenTrace) ERC721("GreenTales", "GT") {
         require(_greenTrace != address(0), "Invalid GreenTrace address");
         greenTrace = _greenTrace;
-        minter = _greenTrace;
+        // 通过检查链ID来判断是否为测试环境
+        // 1: Ethereum Mainnet
+        // 5: Goerli Testnet
+        // 11155111: Sepolia Testnet
+        // 31337: Hardhat/Foundry Local Network
+        uint256 chainId = block.chainid;
+        isTestEnvironment = (chainId == 5 || chainId == 11155111 || chainId == 31337);
     }
 
     /**
-     * @dev 设置铸造者地址
-     * @param _minter 新的铸造者地址
-     * @notice 只有合约所有者可以调用此函数
-     * @notice 主要用于测试环境，生产环境默认使用GreenTrace
-     * @notice 【安全提示】生产环境请勿将业务合约（如Auction/Market）设置为minter，仅允许主合约GreenTrace为minter
+     * @dev 只有主合约（GreenTrace）可以调用的修饰符
+     * @notice 测试环境下允许测试合约直接调用
      */
-    function setMinter(address _minter) external onlyOwner {
-        minter = _minter;
-        emit MinterChanged(_minter);
-    }
-
-    /**
-     * @dev 添加额外的铸造者
-     * @param _minter 要添加的铸造者地址
-     * @notice 只有合约所有者可以调用此函数
-     * @notice 仅用于测试环境，方便业务合约直接调用mint/updateLastPrice
-     * @notice 【安全提示】生产环境请勿授权业务合约（如Auction/Market）为minter，仅允许主合约GreenTrace为minter
-     */
-    function addMinter(address _minter) external onlyOwner {
-        additionalMinters[_minter] = true;
-        emit MinterChanged(_minter);
-    }
-
-    /**
-     * @dev 移除额外的铸造者
-     * @param _minter 要移除的铸造者地址
-     * @notice 只有合约所有者可以调用此函数
-     * @notice 仅用于测试环境，生产环境下无需调用
-     * @notice 【安全提示】生产环境请勿授权业务合约（如Auction/Market）为minter，仅允许主合约GreenTrace为minter
-     */
-    function removeMinter(address _minter) external onlyOwner {
-        additionalMinters[_minter] = false;
-        emit MinterChanged(address(0));
+    modifier onlyGreenTrace() {
+        if (isTestEnvironment) {
+            require(msg.sender == greenTrace || msg.sender == owner(), "Not authorized: Only GreenTrace or test owner");
+        } else {
+            require(msg.sender == greenTrace, "Not authorized: Only GreenTrace can call");
+        }
+        _;
     }
 
     /**
@@ -118,7 +90,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
      * @param initialPrice 初次成交价格
      * @param tokenURI NFT元数据URI
      * @return tokenId 新铸造的NFT ID
-     * @notice 只有授权的铸造者可以调用此函数
+     * @notice 只有主合约（GreenTrace）可以调用
      */
     function mint(
         address to,
@@ -127,7 +99,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
         uint256 carbonReduction,
         uint256 initialPrice,
         string memory tokenURI
-    ) external onlyMinter returns (uint256) {
+    ) external onlyGreenTrace returns (uint256) {
         uint256 tokenId = nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
@@ -148,9 +120,9 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
      * @dev 更新NFT的最后成交价格
      * @param tokenId NFT ID
      * @param newPrice 新的成交价格
-     * @notice 只有授权的铸造者可以调用此函数
+     * @notice 只有主合约（GreenTrace）可以调用
      */
-    function updateLastPrice(uint256 tokenId, uint256 newPrice) external onlyMinter {
+    function updateLastPrice(uint256 tokenId, uint256 newPrice) external onlyGreenTrace {
         require(_exists(tokenId), "Token does not exist");
         storyMetas[tokenId].lastPrice = newPrice;
         emit PriceUpdated(tokenId, newPrice, false);
