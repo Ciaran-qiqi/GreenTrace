@@ -41,7 +41,9 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
         user2 = makeAddr("user2");
         
         // 部署合约
-        carbonToken = new CarbonToken(INITIAL_SUPPLY);
+        CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](1);
+        initialBalances[0] = CarbonToken.InitialBalance(owner, INITIAL_SUPPLY);
+        carbonToken = new CarbonToken(initialBalances);
         
         // 部署 GreenTrace 合约，先不设置 NFT 地址
         greenTrace = new GreenTrace(address(carbonToken), address(0));
@@ -72,9 +74,6 @@ contract GreenTalesMarketTest is Test, IERC721Receiver {
         // 初始化 GreenTrace
         greenTrace.initialize();
         
-        // 初始化市场合约
-        market.initialize();
-
         // 添加市场合约到 GreenTrace 白名单
         greenTrace.addBusinessContract(address(market));
     }

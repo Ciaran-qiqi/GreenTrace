@@ -29,13 +29,26 @@ contract CarbonToken is ERC20, Ownable {
     // GreenTrace合约地址
     address public greenTrace;
 
+    // 事件定义
+    event GreenTraceUpdated(address indexed oldAddress, address indexed newAddress);
+    event TokensMinted(address indexed to, uint256 amount, uint256 timestamp);
+
+    // 初始分配结构体
+    struct InitialBalance {
+        address to;
+        uint256 amount;
+    }
+
     /**
      * @dev 构造函数
-     * @param initialSupply 初始供应量，部署时一次性铸造
-     * @notice 部署时会将所有初始代币铸造给合约部署者，用于系统运营
+     * @param initialBalances 初始分配数组，部署时一次性铸造给多个地址
+     * @notice 部署时会将所有初始代币铸造给指定账户，用于系统运营和测试
      */
-    constructor(uint256 initialSupply) ERC20("Carbon Token", "CARB") {
-        _mint(msg.sender, initialSupply);
+    constructor(InitialBalance[] memory initialBalances) ERC20("Carbon Token", "CARB") {
+        for (uint i = 0; i < initialBalances.length; i++) {
+            _mint(initialBalances[i].to, initialBalances[i].amount);
+            emit TokensMinted(initialBalances[i].to, initialBalances[i].amount, block.timestamp);
+        }
     }
 
     /**
@@ -44,7 +57,9 @@ contract CarbonToken is ERC20, Ownable {
      * @notice 只有合约所有者可以调用此函数（所以很多情况下要先设置地址才能调用）
      */
     function setGreenTrace(address _greenTrace) external onlyOwner {
+        address oldAddress = greenTrace;
         greenTrace = _greenTrace;
+        emit GreenTraceUpdated(oldAddress, _greenTrace);
     }
 
     /**
@@ -57,5 +72,6 @@ contract CarbonToken is ERC20, Ownable {
     function mint(address to, uint256 amount) external {
         require(msg.sender == greenTrace, "Only GreenTrace can mint");
         _mint(to, amount);
+        emit TokensMinted(to, amount, block.timestamp);
     }
 } 

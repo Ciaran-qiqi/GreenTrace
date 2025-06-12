@@ -67,6 +67,19 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     event BusinessContractRemoved(address indexed contractAddress);
     event NFTMintedByBusiness(uint256 indexed tokenId, address indexed recipient, string title, uint256 carbonReduction);
     event NFTPriceUpdatedByBusiness(uint256 indexed tokenId, uint256 newPrice);
+    event ContractInitialized(
+        address indexed carbonToken,
+        address indexed greenTalesNFT,
+        uint256 timestamp
+    );
+    event FeeDistribution(
+        uint256 indexed tokenId,
+        uint256 totalAmount,
+        uint256 systemFee,
+        uint256 auditFee,
+        uint256 returnAmount,
+        uint256 timestamp
+    );
     
     /**
      * @dev 构造函数
@@ -103,6 +116,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         require(address(greenTalesNFT) != address(0), "GreenTalesNFT not set");
         
         initialized = true;
+        emit ContractInitialized(address(carbonToken), address(greenTalesNFT), block.timestamp);
     }
 
     /**
@@ -238,6 +252,14 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         carbonToken.mint(msg.sender, returnAmount); // 返还给NFT持有者
 
         emit NFTExchanged(_tokenId, msg.sender, carbonValue);
+        emit FeeDistribution(
+            _tokenId,
+            carbonValue,
+            systemFee,
+            auditFee,
+            returnAmount,
+            block.timestamp
+        );
     }
 
     /**

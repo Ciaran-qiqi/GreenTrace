@@ -30,7 +30,6 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     GreenTrace public greenTrace;          // GreenTrace合约
     uint256 public platformFeeRate;        // 平台手续费率（基点，1基点 = 0.01%）
     address public feeCollector;           // 手续费接收地址
-    bool public initialized;               // 初始化状态
 
     // 挂单信息结构体
     struct Listing {
@@ -54,9 +53,33 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     mapping(uint256 => uint256) public lastTradePrice;        // NFT ID => 最后成交价格
 
     // 事件定义
-    event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price);
-    event NFTSold(uint256 indexed tokenId, address indexed seller, address indexed buyer, uint256 price);
-    event ListingCancelled(uint256 indexed tokenId, address indexed seller);
+    event NFTListed(
+        uint256 indexed tokenId,
+        address indexed seller,
+        uint256 price,
+        uint256 timestamp
+    );
+    event NFTSold(
+        uint256 indexed tokenId,
+        address indexed seller,
+        address indexed buyer,
+        uint256 price,
+        uint256 platformFee,
+        uint256 sellerAmount,
+        uint256 timestamp
+    );
+    event ListingCancelled(
+        uint256 indexed tokenId,
+        address indexed seller,
+        uint256 timestamp
+    );
+    event PriceUpdated(
+        uint256 indexed tokenId,
+        address indexed seller,
+        uint256 oldPrice,
+        uint256 newPrice,
+        uint256 timestamp
+    );
     event PlatformFeeRateUpdated(uint256 newRate);
     event FeeCollectorUpdated(address newCollector);
 
@@ -83,27 +106,6 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 初始化函数
-     * @notice 必须在部署后调用此函数完成初始化
-     */
-    function initialize() external onlyOwner {
-        require(!initialized, "Already initialized");
-        require(address(nftContract) != address(0), "NFT contract not set");
-        require(address(carbonToken) != address(0), "CarbonToken not set");
-        require(feeCollector != address(0), "Fee collector not set");
-        
-        initialized = true;
-    }
-
-    /**
-     * @dev 初始化检查修饰器
-     */
-    modifier whenInitialized() {
-        require(initialized, "Not initialized");
-        _;
-    }
-
-    /**
      * @dev 更新平台手续费率
      * @param _newRate 新的手续费率（基点）
      */
@@ -118,7 +120,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @param _newCollector 新的接收地址
      */
     function updateFeeCollector(address _newCollector) external onlyOwner {
-        require(_newCollector != address(0), "Invalid address");
+        require(_newCollector != address(0), "Invalid fee collector");
         feeCollector = _newCollector;
         emit FeeCollectorUpdated(_newCollector);
     }
@@ -128,7 +130,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @param _tokenId NFT ID
      * @param _price 挂单价格（碳币数量）
      */
-    function listNFT(uint256 _tokenId, uint256 _price) external whenInitialized {
+    function listNFT(uint256 _tokenId, uint256 _price) external {
         require(nftContract.ownerOf(_tokenId) == msg.sender, "Not NFT owner");
         require(_price > 0, "Price must be greater than 0");
         require(!listings[_tokenId].isActive, "NFT already listed");
@@ -144,7 +146,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
             isActive: true
         });
 
-        emit NFTListed(_tokenId, msg.sender, _price);
+        emit NFTListed(_tokenId, msg.sender, _price, block.timestamp);
     }
 
     /**
@@ -153,7 +155,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @notice 购买者需要支付足够的碳币
      * @notice 购买成功后，NFT将转移给购买者
      */
-    function buyNFT(uint256 _tokenId) external nonReentrant whenInitialized {
+    function buyNFT(uint256 _tokenId) external nonReentrant {
         Listing storage listing = listings[_tokenId];
         require(listing.isActive, "NFT not listed");
         require(msg.sender != listing.seller, "Cannot buy your own NFT");
@@ -184,14 +186,22 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
         // 清除挂单信息
         delete listings[_tokenId];
 
-        emit NFTSold(_tokenId, listing.seller, msg.sender, price);
+        emit NFTSold(
+            _tokenId,
+            listing.seller,
+            msg.sender,
+            price,
+            platformFee,
+            sellerAmount,
+            block.timestamp
+        );
     }
 
     /**
      * @dev 取消挂单
      * @param _tokenId NFT ID
      */
-    function cancelListing(uint256 _tokenId) external whenInitialized {
+    function cancelListing(uint256 _tokenId) external {
         Listing storage listing = listings[_tokenId];
         require(listing.isActive, "NFT not listed");
         require(listing.seller == msg.sender, "Not the seller");
@@ -202,7 +212,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
         // 清除挂单信息
         delete listings[_tokenId];
 
-        emit ListingCancelled(_tokenId, msg.sender);
+        emit ListingCancelled(_tokenId, msg.sender, block.timestamp);
     }
 
     /**
@@ -221,6 +231,23 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      */
     function getLastTradePrice(uint256 _tokenId) external view returns (uint256) {
         return lastTradePrice[_tokenId];
+    }
+
+    /**
+     * @dev 更新NFT价格
+     * @param _tokenId NFT ID
+     * @param _newPrice 新的价格（碳币数量）
+     */
+    function updatePrice(uint256 _tokenId, uint256 _newPrice) external {
+        Listing storage listing = listings[_tokenId];
+        require(listing.isActive, "NFT not listed");
+        require(listing.seller == msg.sender, "Not the seller");
+        require(_newPrice > 0, "Price must be greater than 0");
+        
+        uint256 oldPrice = listing.price;
+        listing.price = _newPrice;
+        
+        emit PriceUpdated(_tokenId, msg.sender, oldPrice, _newPrice, block.timestamp);
     }
 
     /**

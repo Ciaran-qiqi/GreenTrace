@@ -30,7 +30,9 @@ contract CarbonTokenTest is Test {
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
         greenTrace = makeAddr("greenTrace");
-        carbonToken = new CarbonToken(INITIAL_SUPPLY);
+        CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](1);
+        initialBalances[0] = CarbonToken.InitialBalance(owner, INITIAL_SUPPLY);
+        carbonToken = new CarbonToken(initialBalances);
     }
 
     /**

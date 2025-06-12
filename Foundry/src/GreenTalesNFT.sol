@@ -43,12 +43,20 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     // NFT ID => 故事元数据
-    mapping(uint256 => StoryMeta) public storyMetas;
+    mapping(uint256 => StoryMeta) public storyMetadata;
 
     // 事件定义
     event Minted(address indexed to, uint256 indexed tokenId, string storyTitle);
     event Burned(uint256 indexed tokenId);
     event PriceUpdated(uint256 indexed tokenId, uint256 price, bool isInitial);
+    event StoryMetaUpdated(
+        uint256 indexed tokenId,
+        string storyTitle,
+        string storyDetail,
+        uint256 carbonReduction,
+        uint256 timestamp
+    );
+    event GreenTraceUpdated(address indexed oldAddress, address indexed newAddress);
 
     /**
      * @dev 构造函数
@@ -103,7 +111,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
         uint256 tokenId = nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
-        storyMetas[tokenId] = StoryMeta({
+        storyMetadata[tokenId] = StoryMeta({
             storyTitle: storyTitle,
             storyDetail: storyDetail,
             carbonReduction: carbonReduction,
@@ -113,6 +121,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
         });
         emit Minted(to, tokenId, storyTitle);
         emit PriceUpdated(tokenId, initialPrice, true);
+        emit StoryMetaUpdated(tokenId, storyTitle, storyDetail, carbonReduction, block.timestamp);
         return tokenId;
     }
 
@@ -124,7 +133,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
      */
     function updateLastPrice(uint256 tokenId, uint256 newPrice) external onlyGreenTrace {
         require(_exists(tokenId), "Token does not exist");
-        storyMetas[tokenId].lastPrice = newPrice;
+        storyMetadata[tokenId].lastPrice = newPrice;
         emit PriceUpdated(tokenId, newPrice, false);
     }
 
@@ -136,7 +145,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     function burn(uint256 tokenId) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), "Not owner nor approved");
         _burn(tokenId);
-        delete storyMetas[tokenId];
+        delete storyMetadata[tokenId];
         emit Burned(tokenId);
     }
 
@@ -148,6 +157,18 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
      */
     function getStoryMeta(uint256 tokenId) external view returns (StoryMeta memory) {
         require(_exists(tokenId), "Token does not exist");
-        return storyMetas[tokenId];
+        return storyMetadata[tokenId];
+    }
+
+    /**
+     * @dev 设置 GreenTrace 合约地址
+     * @param _greenTrace 新的 GreenTrace 合约地址
+     * @notice 只有合约所有者可以调用此函数
+     */
+    function setGreenTrace(address _greenTrace) external onlyOwner {
+        require(_greenTrace != address(0), "Invalid GreenTrace address");
+        address oldAddress = greenTrace;
+        greenTrace = _greenTrace;
+        emit GreenTraceUpdated(oldAddress, _greenTrace);
     }
 } 
