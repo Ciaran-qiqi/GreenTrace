@@ -16,6 +16,7 @@ if not defined SEPOLIA_RPC_URL (
 if defined missing_vars (
     echo Error: Missing required environment variables: %missing_vars%
     echo Please check your .env file
+    
     pause
     exit /b 1
 )
@@ -31,11 +32,12 @@ echo 2. NFT
 echo 3. GreenTrace
 echo 4. Market
 echo 5. Auction
-echo 6. Initialize
-echo 7. Deploy All
+echo 6. Tender
+echo 7. Initialize
+echo 8. Deploy All
 echo.
 
-set /p choice=Enter option (1-7): 
+set /p choice=Enter option (1-8): 
 
 if "%choice%"=="1" (
     forge script script/Deploy.s.sol:DeployScript --rpc-url %SEPOLIA_RPC_URL% --broadcast --private-key %PRIVATE_KEY% --sig "deployCarbonToken()" --legacy --timeout 300
@@ -48,8 +50,10 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="5" (
     forge script script/Deploy.s.sol:DeployScript --rpc-url %SEPOLIA_RPC_URL% --broadcast --private-key %PRIVATE_KEY% --sig "deployAuction()" --legacy --timeout 300
 ) else if "%choice%"=="6" (
-    forge script script/Deploy.s.sol:DeployScript --rpc-url %SEPOLIA_RPC_URL% --broadcast --private-key %PRIVATE_KEY% --sig "initializeContracts()" --legacy --timeout 300
+    forge script script/Deploy.s.sol:DeployScript --rpc-url %SEPOLIA_RPC_URL% --broadcast --private-key %PRIVATE_KEY% --sig "deployTender()" --legacy --timeout 300
 ) else if "%choice%"=="7" (
+    forge script script/Deploy.s.sol:DeployScript --rpc-url %SEPOLIA_RPC_URL% --broadcast --private-key %PRIVATE_KEY% --sig "initializeContracts()" --legacy --timeout 300
+) else if "%choice%"=="8" (
     forge script script/Deploy.s.sol:DeployScript --rpc-url %SEPOLIA_RPC_URL% --broadcast --private-key %PRIVATE_KEY% --sig "run()" --legacy --timeout 300
 ) else (
     echo Invalid option!

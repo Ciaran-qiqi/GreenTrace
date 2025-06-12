@@ -32,9 +32,6 @@ contract DeployScript is Script {
     uint256 public constant PLATFORM_FEE_RATE = 250; // 2.5%
     address public feeCollector;
 
-    // 部署文档路径
-    string constant DEPLOY_DOC_PATH = "deployment.md";
-
     // 错误信息
     error DeploymentFailed(string message);
     error InitializationFailed(string message);
@@ -44,20 +41,21 @@ contract DeployScript is Script {
      * @dev 环境检查
      * @notice 检查部署环境是否满足要求
      */
-    function checkEnvironment() internal view {
+    function _checkEnvironment() internal view {
         // 检查链ID
         uint256 chainId = block.chainid;
         require(chainId != 0, "Invalid chain ID");
         
         // 检查部署者地址
-        require(msg.sender != address(0), "Invalid deployer address");
+        address deployer = msg.sender;
+        require(deployer != address(0), "Invalid deployer address");
         
         // 检查手续费接收地址
         require(feeCollector != address(0), "Invalid fee collector address");
         
         console.log(unicode"=== 环境检查通过 ===");
         console.log("Chain ID:", chainId);
-        console.log("Deployer:", msg.sender);
+        console.log("Deployer:", deployer);
         console.log("Fee Collector:", feeCollector);
     }
 
@@ -105,140 +103,25 @@ contract DeployScript is Script {
     }
 
     function setUp() public {
-        // 设置手续费接收地址
+        // 设置手续费接收地址为部署者
         feeCollector = msg.sender;
         
         // 打印当前部署状态
         console.log(unicode"=== 当前部署状态 ===");
-        console.log("CarbonToken:", carbonTokenDeployed ? unicode"已部署" : unicode"未部署");
-        console.log("NFT:", nftDeployed ? unicode"已部署" : unicode"未部署");
-        console.log("GreenTrace:", greenTraceDeployed ? unicode"已部署" : unicode"未部署");
-        console.log("Market:", marketDeployed ? unicode"已部署" : unicode"未部署");
-        console.log("Auction:", auctionDeployed ? unicode"已部署" : unicode"未部署");
-        console.log("Tender:", tenderDeployed ? unicode"已部署" : unicode"未部署");
+        console.log(unicode"CarbonToken:", carbonTokenDeployed ? unicode"已部署" : unicode"未部署");
+        console.log(unicode"NFT:", nftDeployed ? unicode"已部署" : unicode"未部署");
+        console.log(unicode"GreenTrace:", greenTraceDeployed ? unicode"已部署" : unicode"未部署");
+        console.log(unicode"Market:", marketDeployed ? unicode"已部署" : unicode"未部署");
+        console.log(unicode"Auction:", auctionDeployed ? unicode"已部署" : unicode"未部署");
+        console.log(unicode"Tender:", tenderDeployed ? unicode"已部署" : unicode"未部署");
         console.log(unicode"==================");
     }
 
-    /**
-     * @dev 记录部署信息到文档
-     * @param content 要记录的内容
-     */
-    function logToDeployDoc(string memory content) internal {
-        string memory deployDoc = vm.readFile(DEPLOY_DOC_PATH);
-        vm.writeFile(DEPLOY_DOC_PATH, string.concat(deployDoc, content, "\n"));
-    }
-
-    /**
-     * @dev 记录部署错误到文档
-     * @param contractName 合约名称
-     * @param error 错误信息
-     */
-    function logDeployError(string memory contractName, string memory error) internal {
-        string memory content = string.concat(
-            unicode"### 部署错误\n",
-            unicode"- 合约: ", contractName, "\n",
-            unicode"- 时间: ", vm.toString(block.timestamp), "\n",
-            unicode"- 错误: ", error, "\n",
-            "---\n"
-        );
-        logToDeployDoc(content);
-    }
-
-    /**
-     * @dev 记录合约部署信息到文档
-     * @param contractName 合约名称
-     * @param contractAddress 合约地址
-     */
-    function logDeploySuccess(string memory contractName, address contractAddress) internal {
-        string memory content = string.concat(
-            unicode"### 部署成功\n",
-            unicode"- 合约: ", contractName, "\n",
-            unicode"- 地址: ", vm.toString(contractAddress), "\n",
-            unicode"- 时间: ", vm.toString(block.timestamp), "\n",
-            "---\n"
-        );
-        logToDeployDoc(content);
-    }
-
     function run() external {
-        // 创建部署文档
-        string memory header = string.concat(
-            unicode"# 部署文档\n\n",
-            unicode"## 部署信息\n",
-            unicode"- 网络: ", vm.toString(block.chainid), "\n",
-            unicode"- 部署时间: ", vm.toString(block.timestamp), "\n",
-            unicode"- 部署者: ", vm.toString(msg.sender), "\n",
-            "---\n\n"
-        );
-        vm.writeFile(DEPLOY_DOC_PATH, header);
-
         // 环境检查
-        checkEnvironment();
+        _checkEnvironment();
 
         // 部署 CarbonToken
-        try this.deployCarbonToken() {
-            console.log(unicode"CarbonToken 部署成功！地址:", carbonTokenAddress);
-            logDeploySuccess("CarbonToken", carbonTokenAddress);
-        } catch Error(string memory reason) {
-            logDeployError("CarbonToken", reason);
-            revert DeploymentFailed(reason);
-        }
-
-        // 部署 GreenTrace
-        try this.deployGreenTrace() {
-            console.log(unicode"GreenTrace 部署成功！地址:", greenTraceAddress);
-            logDeploySuccess("GreenTrace", greenTraceAddress);
-        } catch Error(string memory reason) {
-            logDeployError("GreenTrace", reason);
-            revert DeploymentFailed(reason);
-        }
-
-        // 部署 NFT
-        try this.deployNFT() {
-            console.log(unicode"GreenTalesNFT 部署成功！地址:", nftAddress);
-            logDeploySuccess("GreenTalesNFT", nftAddress);
-        } catch Error(string memory reason) {
-            logDeployError("GreenTalesNFT", reason);
-            revert DeploymentFailed(reason);
-        }
-
-        // 初始化合约
-        try this.initializeContracts() {
-            console.log(unicode"合约初始化成功");
-            logDeploySuccess("Market", marketAddress);
-            logDeploySuccess("Auction", auctionAddress);
-            logDeploySuccess("Tender", tenderAddress);
-        } catch Error(string memory reason) {
-            logDeployError("Contract Initialization", reason);
-            revert InitializationFailed(reason);
-        }
-
-        // 验证部署结果
-        try this.validateDeployment() {
-            console.log(unicode"=== 合约状态验证通过 ===");
-            logToDeployDoc(unicode"## 部署验证\n- 状态: 验证通过\n");
-        } catch Error(string memory reason) {
-            logToDeployDoc(string.concat(unicode"## 部署验证\n- 状态: 验证失败\n- 原因: ", reason, "\n"));
-            revert ValidationFailed(reason);
-        }
-
-        // 记录最终状态
-        string memory finalState = string.concat(
-            unicode"## 最终部署状态\n",
-            unicode"- CarbonToken: ", vm.toString(carbonTokenAddress), "\n",
-            unicode"- NFT: ", vm.toString(nftAddress), "\n",
-            unicode"- GreenTrace: ", vm.toString(greenTraceAddress), "\n",
-            unicode"- Market: ", vm.toString(marketAddress), "\n",
-            unicode"- Auction: ", vm.toString(auctionAddress), "\n",
-            unicode"- Tender: ", vm.toString(tenderAddress), "\n"
-        );
-        logToDeployDoc(finalState);
-    }
-
-    /**
-     * @dev 部署 CarbonToken 合约
-     */
-    function deployCarbonToken() external {
         vm.startBroadcast();
         CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](1);
         initialBalances[0] = CarbonToken.InitialBalance(feeCollector, INITIAL_SUPPLY);
@@ -246,34 +129,25 @@ contract DeployScript is Script {
         carbonTokenAddress = address(carbonToken);
         carbonTokenDeployed = true;
         vm.stopBroadcast();
-    }
+        console.log(unicode"CarbonToken 部署成功！地址:", carbonTokenAddress);
 
-    /**
-     * @dev 部署 GreenTrace 合约
-     */
-    function deployGreenTrace() external {
+        // 部署 GreenTrace
         vm.startBroadcast();
         GreenTrace greenTrace = new GreenTrace(carbonTokenAddress, address(0));
         greenTraceAddress = address(greenTrace);
         greenTraceDeployed = true;
         vm.stopBroadcast();
-    }
+        console.log(unicode"GreenTrace 部署成功！地址:", greenTraceAddress);
 
-    /**
-     * @dev 部署 NFT 合约
-     */
-    function deployNFT() external {
+        // 部署 NFT
         vm.startBroadcast();
         GreenTalesNFT nft = new GreenTalesNFT(greenTraceAddress);
         nftAddress = address(nft);
         nftDeployed = true;
         vm.stopBroadcast();
-    }
+        console.log(unicode"GreenTalesNFT 部署成功！地址:", nftAddress);
 
-    /**
-     * @dev 初始化所有合约
-     */
-    function initializeContracts() external {
+        // 初始化合约
         vm.startBroadcast();
         
         // 设置 NFT 的 GreenTrace 地址
@@ -325,5 +199,38 @@ contract DeployScript is Script {
         GreenTrace(greenTraceAddress).addBusinessContract(tenderAddress);
         
         vm.stopBroadcast();
+        console.log(unicode"合约初始化成功");
+        console.log(unicode"Market 地址:", marketAddress);
+        console.log(unicode"Auction 地址:", auctionAddress);
+        console.log(unicode"Tender 地址:", tenderAddress);
+
+        // 验证部署结果
+        require(carbonTokenAddress != address(0), "Invalid CarbonToken address");
+        require(carbonToken.greenTrace() == greenTraceAddress, "Invalid CarbonToken GreenTrace address");
+        require(nftAddress != address(0), "Invalid NFT address");
+        require(nft.greenTrace() == greenTraceAddress, "Invalid NFT GreenTrace address");
+        require(greenTraceAddress != address(0), "Invalid GreenTrace address");
+        require(greenTrace.initialized(), "GreenTrace not initialized");
+        require(address(greenTrace.greenTalesNFT()) == nftAddress, "Invalid GreenTrace NFT address");
+        require(address(greenTrace.carbonToken()) == carbonTokenAddress, "Invalid GreenTrace CarbonToken address");
+        require(marketAddress != address(0), "Invalid Market address");
+        require(address(market.carbonToken()) == carbonTokenAddress, "Invalid Market CarbonToken address");
+        require(address(market.nftContract()) == nftAddress, "Invalid Market NFT address");
+        require(auctionAddress != address(0), "Invalid Auction address");
+        require(address(auction.carbonToken()) == carbonTokenAddress, "Invalid Auction CarbonToken address");
+        require(address(auction.greenTalesNFT()) == nftAddress, "Invalid Auction NFT address");
+        require(tenderAddress != address(0), "Invalid Tender address");
+        require(address(tender.carbonToken()) == carbonTokenAddress, "Invalid Tender CarbonToken address");
+        require(address(tender.greenTalesNFT()) == nftAddress, "Invalid Tender NFT address");
+        console.log(unicode"=== 合约状态验证通过 ===");
+
+        // 打印最终状态
+        console.log(unicode"=== 最终部署状态 ===");
+        console.log("CarbonToken:", carbonTokenAddress);
+        console.log("NFT:", nftAddress);
+        console.log("GreenTrace:", greenTraceAddress);
+        console.log("Market:", marketAddress);
+        console.log("Auction:", auctionAddress);
+        console.log("Tender:", tenderAddress);
     }
 } 
