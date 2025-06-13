@@ -298,6 +298,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         emit BusinessContractRemoved(_contract);
     }
 
+
     /**
      * @dev 业务合约铸造 NFT
      * @param _recipient NFT 接收者地址
@@ -309,6 +310,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
      * @notice 只有授权的业务合约可以调用此函数
      * @notice 在测试环境中，允许测试合约直接调用
      */
+
     function mintNFTByBusiness(
         address _recipient,
         string memory _title,

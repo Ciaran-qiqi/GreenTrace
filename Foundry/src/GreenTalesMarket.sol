@@ -9,6 +9,7 @@ import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
+
 /**
  * @title GreenTalesMarket
  * @dev NFT交易市场合约，支持NFT的挂单、购买、取消挂单等功能
@@ -21,6 +22,7 @@ import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
  * 4. 价格管理：支持查看NFT当前挂单价格和历史成交价格
  * 5. 交易费用：支持设置和收取交易手续费
  */
+
 contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for CarbonToken;
 
