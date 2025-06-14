@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 // 源目录和目标目录
-const sourceDir = path.join(__dirname, '..', 'Foundry', 'out');
-const targetDir = path.join(__dirname, '..', 'frontend', 'src', 'contracts', 'abi');
+const sourceDir = path.join(__dirname, '..', '..', 'Foundry', 'out');
+const targetDir = path.join(__dirname, '..', 'src', 'contracts', 'abi');
 
 console.log('源目录:', sourceDir);
 console.log('目标目录:', targetDir);

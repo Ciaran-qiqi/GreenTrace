@@ -41,11 +41,29 @@ const foundryChain: Chain = {
   testnet: true,
 };
 
+// 配置 Sepolia 测试网
+const sepoliaChain = {
+  ...sepolia,
+  rpcUrls: {
+    default: { http: [process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL || ''] },
+    public: { http: [process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL || ''] },
+  },
+};
+
+// 配置主网
+const mainnetChain = {
+  ...mainnet,
+  rpcUrls: {
+    default: { http: [process.env.NEXT_PUBLIC_MAINNET_RPC_URL || ''] },
+    public: { http: [process.env.NEXT_PUBLIC_MAINNET_RPC_URL || ''] },
+  },
+};
+
 // 配置 RainbowKit
 const config = getDefaultConfig({
   appName: 'GreenTrace',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
-  chains: [foundryChain, sepolia, mainnet, polygon, optimism, arbitrum, base],
+  chains: [foundryChain, sepoliaChain, mainnetChain, polygon, optimism, arbitrum, base],
   ssr: true,
 });
 

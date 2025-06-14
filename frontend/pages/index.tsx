@@ -4,8 +4,8 @@ import { Auth } from '@/src/components/Auth';
 // 主页面组件
 export default function Home() {
   return (
-    <div className="min-h-screen">
+    <main className="min-h-screen">
       <Auth />
-    </div>
+    </main>
   );
 }
