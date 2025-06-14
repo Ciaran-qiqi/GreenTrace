@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';

@@ -18,3 +18,20 @@ yul_details = { optimizer_steps = "dhfoDgvulfnTUtnIf", stack_allocation = true }
 
 [profile.default.metadata]
 bytecode_hash = "none"
+
+
+
+
+[rpc endpoints]
+ethereum ='${ETHEREUM MAINNET URL}'
+base ="${BASE MAINNET URL}"
+sepolia="${SEPOLIA RPC URL}"
+base sepolia ='${BASE SEPOLIA RPC URL}'
+arbitrum sepolia="${ARBITRUM SEPOLIA RPC URL}"
+
+[etherscan]
+ethereum = { key = "${ETHERSCAN API KEY}", url = "https://api.etherscan.io/api", chain = 1 }
+base = { key = "${BASESCAN API KEY}", url = "https://api.basescan.org/api", chain = "8453"}
+sepolia = { key = "${ETHERSCAN API KEY}", url = "https://api-sepolia.etherscan.io/api", chain = "11155111" }
+base sepolia = { key = "${BASESCAN API KEY}", url = "https://api-sepolia.basescan.org/api", chain = "84532" }
+arbitrum sepolia = { key = "${ARBISCAN API KEY}", url = "https://api-sepolia.arbiscan.io/api", chain = "421614" }

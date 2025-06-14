@@ -247,6 +247,7 @@ contract GreenTalesAuction is Ownable, ReentrancyGuard {
      * @notice 返还创建者押金
      * @notice 这步gas费用796428，后期可优化
      */
+    
     function completeAuction(uint256 _auctionId) external nonReentrant {
         Auction storage auction = auctions[_auctionId];
         require(msg.sender == auction.creator, "Not auction creator");

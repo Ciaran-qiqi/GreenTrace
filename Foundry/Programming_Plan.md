@@ -34,7 +34,56 @@ tender合约逻辑有问题，我是征集人，是出钱的人，我招标人�
 
 7.tmd一直部署不成功，部署合约里乱七八糟的都不要，别搞太多 不接受的；但是全部搞完还是不能上链；我调高了gas费用也一直Error: Transaction dropped from the mempool:
 
+整理所有合约的 Etherscan 链接：
 
+1. CarbonToken
+
+* 地址：0x6eF91f1d3A64eEC47278FA45f240dd6dd5D8fB39
+* Etherscan：https://sepolia.etherscan.io/address/0x6ef91f1d3a64eec47278fa45f240dd6dd5d8fb39
+
+1. GreenTrace
+
+* 地址：0x9127167d979c346687ca61024c530e8C9abe71ae
+* Etherscan：https://sepolia.etherscan.io/address/0x9127167d979c346687ca61024c530e8c9abe71ae
+
+1. GreenTalesNFT
+
+* 地址：0xA989A17406045db3327eBFBfacc2C52eA68be8a7
+* Etherscan：https://sepolia.etherscan.io/address/0xa989a17406045db3327ebfbfacc2c52ea68be8a7
+
+1. GreenTalesMarket
+
+* 地址：0x2263C25a1e57db73fe5a74B280DCE079d22a1423
+* Etherscan：https://sepolia.etherscan.io/address/0x2263c25a1e57db73fe5a74b280dce079d22a1423
+
+1. GreenTalesAuction
+
+* 地址：0x763873aBaaEf83FA33daeECBEB4701678654Cb69
+* Etherscan：https://sepolia.etherscan.io/address/0x763873abaaef83fa33daeecbeb4701678654cb69
+
+1. GreenTalesTender
+
+* 地址：0x5F26e81C0Ff40050c1A5B6793f55b7791ef49adA
+* Etherscan：https://sepolia.etherscan.io/address/0x5f26e81c0ff40050c1a5b6793f55b7791ef49ada
+
+614 12
+
+本地部署：
+
+Private Key (使用 Anvil 默认账户)
+
+LOCAL_PRIVATE_KEY=ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+RPC
+
+LOCAL_RPC_URL=http://localhost:8545
+
+* CarbonToken: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+* GreenTrace: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+* NFT: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+* Market: 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
+* Auction: 0x2279B7A0a67DB3729967a5FaB50D91eAA73d2eBe6
+* Tender: 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
 
 x.准备把不太清楚的审计拿出主合约
 

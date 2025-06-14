@@ -44,8 +44,8 @@ const foundryChain: Chain = {
 // 配置 RainbowKit
 const config = getDefaultConfig({
   appName: 'GreenTrace',
-  projectId: '87f8d0e2790aa6cae758342866a35ae4', // 请替换为你的 WalletConnect projectId
-  chains: [foundryChain, sepolia, mainnet, polygon, optimism, arbitrum, base], // 将 Foundry 放在第一位作为默认网络
+  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
+  chains: [foundryChain, sepolia, mainnet, polygon, optimism, arbitrum, base],
   ssr: true,
 });
 
@@ -61,12 +61,12 @@ export const WalletConnectButton = () => {
 // 导出 Provider 组件
 export const RainbowKitProvider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={config}>
         <RainbowKitProviderComponent>
           {children}
         </RainbowKitProviderComponent>
-      </QueryClientProvider>
-    </WagmiProvider>
+      </WagmiProvider>
+    </QueryClientProvider>
   );
 };
