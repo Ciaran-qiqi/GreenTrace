@@ -1,0 +1,6 @@
+[submodule "Foundry/lib/chainlink-brownie-contracts"]
+	path = Foundry/lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts
+[submodule "Foundry/lib/chainlink"]
+	path = Foundry/lib/chainlink
+	url = https://github.com/smartcontractkit/chainlink
