@@ -44,7 +44,7 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
 
     // NFT ID => 故事元数据
     mapping(uint256 => StoryMeta) public storyMetadata;
-
+    
     // 事件定义
     event Minted(address indexed to, uint256 indexed tokenId, string storyTitle);
     event Burned(uint256 indexed tokenId);
@@ -108,7 +108,11 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
         uint256 initialPrice,
         string memory tokenURI
     ) external onlyGreenTrace returns (uint256) {
+        // 检查初始价格是否满足最低要求（至少1个碳币）
+        require(initialPrice >= 1 * 10**18, "Initial price must be at least 1 carbon token");
+        
         uint256 tokenId = nextTokenId++;
+        //自增
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
         storyMetadata[tokenId] = StoryMeta({

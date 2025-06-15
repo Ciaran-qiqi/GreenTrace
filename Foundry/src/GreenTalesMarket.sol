@@ -9,7 +9,6 @@ import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
-
 /**
  * @title GreenTalesMarket
  * @dev NFT交易市场合约，支持NFT的挂单、购买、取消挂单等功能
@@ -21,8 +20,8 @@ import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
  * 3. 取消挂单：NFT持有者可以取消已挂单的NFT
  * 4. 价格管理：支持查看NFT当前挂单价格和历史成交价格
  * 5. 交易费用：支持设置和收取交易手续费
+ * 6. 价格同步：与GreenTrace合约同步NFT价格信息
  */
-
 contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for CarbonToken;
 
@@ -110,6 +109,8 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     /**
      * @dev 更新平台手续费率
      * @param _newRate 新的手续费率（基点）
+     * @notice 只有合约所有者可以调用此函数
+     * @notice 手续费率最高为10%（1000基点）
      */
     function updatePlatformFeeRate(uint256 _newRate) external onlyOwner {
         require(_newRate <= 1000, "Fee rate too high"); // 最高10%
@@ -120,6 +121,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     /**
      * @dev 更新手续费接收地址
      * @param _newCollector 新的接收地址
+     * @notice 只有合约所有者可以调用此函数
      */
     function updateFeeCollector(address _newCollector) external onlyOwner {
         require(_newCollector != address(0), "Invalid fee collector");
@@ -131,6 +133,8 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @dev 挂单NFT
      * @param _tokenId NFT ID
      * @param _price 挂单价格（碳币数量）
+     * @notice NFT持有者可以设置价格并挂单
+     * @notice 挂单后NFT会转移到合约中
      */
     function listNFT(uint256 _tokenId, uint256 _price) external {
         require(nftContract.ownerOf(_tokenId) == msg.sender, "Not NFT owner");
@@ -156,6 +160,7 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @param _tokenId NFT ID
      * @notice 购买者需要支付足够的碳币
      * @notice 购买成功后，NFT将转移给购买者
+     * @notice 交易完成后会自动更新NFT价格
      */
     function buyNFT(uint256 _tokenId) external nonReentrant {
         Listing storage listing = listings[_tokenId];
@@ -202,6 +207,8 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     /**
      * @dev 取消挂单
      * @param _tokenId NFT ID
+     * @notice 只有挂单者可以取消挂单
+     * @notice 取消后NFT会返还给挂单者
      */
     function cancelListing(uint256 _tokenId) external {
         Listing storage listing = listings[_tokenId];
@@ -239,6 +246,8 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
      * @dev 更新NFT价格
      * @param _tokenId NFT ID
      * @param _newPrice 新的价格（碳币数量）
+     * @notice 只有挂单者可以更新价格
+     * @notice 新价格必须大于0
      */
     function updatePrice(uint256 _tokenId, uint256 _newPrice) external {
         Listing storage listing = listings[_tokenId];

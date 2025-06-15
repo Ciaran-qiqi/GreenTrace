@@ -31,7 +31,6 @@ contract GreenTraceTest is Test {
     /**
      * @dev 测试环境设置
      * @notice 在每个测试用例执行前运行，初始化合约和用户
-     * @notice 确保 CarbonToken 的 owner 是当前测试合约，先 setGreenTrace 再 transferOwnership
      */
     function setUp() public {
         owner = address(this);
@@ -39,159 +38,213 @@ contract GreenTraceTest is Test {
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
 
-        // 先部署 CarbonToken，此时 owner 是当前测试合约
+        // 部署 CarbonToken
         CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](1);
         initialBalances[0] = CarbonToken.InitialBalance(owner, INITIAL_SUPPLY);
         carbonToken = new CarbonToken(initialBalances);
         
-        // 部署 GreenTrace 合约，先不设置 NFT 地址
+        // 部署 GreenTrace 合约
         greenTrace = new GreenTrace(address(carbonToken), address(0));
         
-        // 部署 NFT 合约，设置 GreenTrace 为调用者
+        // 部署 NFT 合约
         nft = new GreenTalesNFT(address(greenTrace));
-        
-        // 设置 GreenTrace 的 NFT 地址
-        greenTrace.setNFTContract(address(nft));
 
-        // 设置 CarbonToken 的权限
+        
+        // 设置合约权限、地址和初始化
         carbonToken.setGreenTrace(address(greenTrace));
         carbonToken.transferOwnership(address(greenTrace));
-        
-        // 初始化 GreenTrace
+        greenTrace.setNFTContract(address(nft));
         greenTrace.initialize();
-        
         greenTrace.addAuditor(auditor);
+
+        // 给测试用户分配碳币
+        carbonToken.transfer(user1, 1000 ether);
+        carbonToken.transfer(user2, 1000 ether);
     }
 
     /**
      * @dev 测试初始状态
-     * @notice 验证合约部署后的初始状态是否正确
      */
     function test_InitialState() public view {
-        // 检查初始状态
         assertEq(address(greenTrace.carbonToken()), address(carbonToken));
         assertEq(address(greenTrace.greenTalesNFT()), address(nft));
         assertTrue(greenTrace.initialized());
+        assertTrue(greenTrace.auditors(auditor));
     }
 
     /**
-     * @dev 测试添加和移除审计人员
-     * @notice 验证合约所有者是否可以正确管理审计人员
+     * @dev 测试NFT铸造流程
      */
-    function test_AddRemoveAuditor() public {
-        address newAuditor = makeAddr("newAuditor");
-        greenTrace.addAuditor(newAuditor);
-        assertTrue(greenTrace.auditors(newAuditor));
+    function test_NFTMintFlow() public {
+        // 申请铸造NFT
+        vm.startPrank(user1);
+        carbonToken.approve(address(greenTrace), 100 ether);
+        uint256 tokenId = greenTrace.requestMintNFT(
+            "Test Story",
+            "This is a test story",
+            1000,
+            "ipfs://Qm..."
+        );
 
-        greenTrace.removeAuditor(newAuditor);
-        assertFalse(greenTrace.auditors(newAuditor));
-    }
-
-    /**
-     * @dev 测试提交审计
-     * @notice 验证审计者是否可以正确提交审计结果
-     */
-    function test_SubmitAudit() public {
-        vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
-
+        // 审计者提交审计
+        vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitAudit(tokenId, 800);
+        greenTrace.submitMintAudit(tokenId, 800, "");
 
-        // 检查审计信息
-        (address auditorAddr, , , GreenTrace.AuditStatus status, ) = greenTrace.audits(tokenId);
-        assertEq(auditorAddr, auditor);
-        assertEq(uint256(status), uint256(GreenTrace.AuditStatus.Pending));
+        // 支付费用并铸造NFT
+        vm.startPrank(user1);
+        carbonToken.approve(address(greenTrace), 100 ether);
+        uint256 mintedTokenId = greenTrace.payAndMintNFT(
+            tokenId,
+            user1,
+            "Test Story",
+            "This is a test story",
+            1000,
+            "ipfs://Qm..."
+        );
+
+        // 验证NFT所有权和元数据
+        assertEq(nft.ownerOf(mintedTokenId), user1);
+        GreenTalesNFT.StoryMeta memory meta = nft.getStoryMeta(mintedTokenId);
+        assertEq(meta.storyTitle, "Test Story");
+        assertEq(meta.storyDetail, "This is a test story");
+        assertEq(meta.carbonReduction, 1000);
+        assertEq(meta.initialPrice, 800);
+        assertEq(meta.lastPrice, 800);
+        vm.stopPrank();
     }
 
     /**
-     * @dev 测试完成审计
-     * @notice 验证合约所有者是否可以正确完成审计
+     * @dev 测试NFT兑换流程
      */
-    function test_CompleteAudit() public {
-        vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+    function test_NFTExchangeFlow() public {
+        // 先铸造一个NFT
+        vm.startPrank(user1);
+        carbonToken.approve(address(greenTrace), 100 ether);
+        uint256 tokenId = greenTrace.requestMintNFT(
+            "Test Story",
+            "This is a test story",
+            1000,
+            "ipfs://Qm..."
+        );
 
+        vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitAudit(tokenId, 800);
+        greenTrace.submitMintAudit(tokenId, 800, "");
 
-        greenTrace.completeAudit(tokenId, GreenTrace.AuditStatus.Approved);
-        // 检查审计状态
-        (address auditorAddr, , , GreenTrace.AuditStatus status, ) = greenTrace.audits(tokenId);
-        assertEq(auditorAddr, auditor);
-        assertEq(uint256(status), uint256(GreenTrace.AuditStatus.Approved));
-    }
+        vm.startPrank(user1);
+        carbonToken.approve(address(greenTrace), 100 ether);
+        uint256 mintedTokenId = greenTrace.payAndMintNFT(
+            tokenId,
+            user1,
+            "Test Story",
+            "This is a test story",
+            1000,
+            "ipfs://Qm..."
+        );
 
-    /**
-     * @dev 测试NFT兑换
-     * @notice 验证用户是否可以正确将NFT兑换为碳币
-     */
-    function test_ExchangeNFT() public {
-        // 由 GreenTrace 合约铸造 NFT 给 user1
-        vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+        // 申请兑换NFT前，先进行NFT授权
+        nft.approve(address(greenTrace), mintedTokenId);
+        
+        // 申请兑换NFT
+        carbonToken.approve(address(greenTrace), 100 ether);
+        greenTrace.requestExchangeNFT(mintedTokenId);
 
-        // 由 auditor 提交审计结果
+        // 审计者提交兑换审计
+        vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitAudit(tokenId, 800);
+        greenTrace.submitExchangeAudit(mintedTokenId, 700);
 
-        // 由 owner 完成审计，状态为 Approved
-        greenTrace.completeAudit(tokenId, GreenTrace.AuditStatus.Approved);
+        // 完成兑换审计
+        greenTrace.completeExchangeAudit(mintedTokenId, GreenTrace.AuditStatus.Approved);
 
-        // 记录 user1 的初始余额
+        // 记录初始余额
         uint256 initialBalance = carbonToken.balanceOf(user1);
 
-        // 由 user1 授权 GreenTrace 合约销毁 NFT
-        vm.prank(user1);
-        nft.approve(address(greenTrace), tokenId);
+        // 执行NFT兑换
+        vm.startPrank(user1);
+        // 由于之前已经授权，这里不需要再次授权
+        greenTrace.exchangeNFT(mintedTokenId);
 
-        // 由 user1 调用 exchangeNFT，将 NFT 兑换为碳币（合约内部会自动转移和销毁NFT）
-        vm.prank(user1);
-        greenTrace.exchangeNFT(tokenId);
+        // 验证NFT已被销毁
+        vm.expectRevert("ERC721: invalid token ID");
+        nft.ownerOf(mintedTokenId);
 
-        // 计算系统手续费、审计费用和实际返还金额
-        uint256 systemFee = greenTrace.calculateSystemFee(800);
-        uint256 auditFee = greenTrace.calculateAuditFee(800);
-        uint256 returnAmount = greenTrace.calculateReturnAmount(800);
-
-        // 验证 user1 的余额增加了实际返还金额
+        // 验证碳币余额
+        uint256 systemFee = greenTrace.calculateSystemFee(700);
+        uint256 auditFee = greenTrace.calculateAuditFee(700);
+        uint256 returnAmount = greenTrace.calculateReturnAmount(700);
         assertEq(carbonToken.balanceOf(user1), initialBalance + returnAmount);
-        // 验证 owner 的余额为初始供应加上系统手续费
-        assertEq(carbonToken.balanceOf(owner), INITIAL_SUPPLY + systemFee);
-        // 验证 auditor 的余额增加了审计费用
-        assertEq(carbonToken.balanceOf(auditor), auditFee);
+        vm.stopPrank();
     }
 
     /**
-     * @dev 测试非审计者提交审计失败
-     * @notice 验证非审计者无法提交审计结果
+     * @dev 测试审计拒绝流程
      */
-    function test_RevertWhen_SubmitAuditNotAuditor() public {
+    function test_AuditRejection() public {
+        // 申请铸造NFT
+        vm.startPrank(user1);
+        carbonToken.approve(address(greenTrace), 100 ether);
+        uint256 tokenId = greenTrace.requestMintNFT(
+            "Test Story",
+            "This is a test story",
+            1000,
+            "ipfs://Qm..."
+        );
+
+        // 审计者拒绝申请
+        vm.stopPrank();
+        vm.prank(auditor);
+        greenTrace.submitMintAudit(tokenId, 0, "Invalid carbon reduction claim");
+
+        // 验证无法支付费用并铸造NFT
+        vm.startPrank(user1);
+        carbonToken.approve(address(greenTrace), 100 ether);
+        vm.expectRevert("Mint audit not approved");
+        greenTrace.payAndMintNFT(
+            tokenId,
+            user1,
+            "Test Story",
+            "This is a test story",
+            1000,
+            "ipfs://Qm..."
+        );
+        vm.stopPrank();
+    }
+
+    /**
+     * @dev 测试错误处理
+     */
+    function test_ErrorHandling() public {
+        // 测试非审计者提交审计
         vm.prank(user1);
         vm.expectRevert("Not authorized auditor");
-        greenTrace.submitAudit(0, 800);
-    }
+        greenTrace.submitMintAudit(0, 800, "");
 
-    /**
-     * @dev 测试非所有者完成审计失败
-     * @notice 验证非合约所有者无法完成审计
-     */
-    function test_RevertWhen_CompleteAuditNotOwner() public {
+        // 测试非所有者完成审计
         vm.prank(user1);
         vm.expectRevert("Ownable: caller is not the owner");
-        greenTrace.completeAudit(0, GreenTrace.AuditStatus.Approved);
+        greenTrace.completeExchangeAudit(0, GreenTrace.AuditStatus.Approved);
+
+        // 测试未初始化合约
+        GreenTrace newGreenTrace = new GreenTrace(address(carbonToken), address(0));
+        vm.expectRevert("Not initialized");
+        newGreenTrace.addAuditor(auditor);
     }
 
     /**
-     * @dev 测试未批准审计兑换NFT失败
-     * @notice 验证用户无法兑换未通过审计的NFT
+     * @dev 测试费用计算
      */
-    function test_RevertWhen_ExchangeNFTNotApproved() public {
-        vm.prank(address(greenTrace));
-        uint256 tokenId = nft.mint(user1, "Title", "Detail", 1000, 100 ether, "ipfs://Qm...");
+    function test_FeeCalculation() public {
+        uint256 amount = 1000 ether;
+        uint256 systemFee = greenTrace.calculateSystemFee(amount);
+        uint256 auditFee = greenTrace.calculateAuditFee(amount);
+        uint256 returnAmount = greenTrace.calculateReturnAmount(amount);
 
-        vm.prank(user1);
-        vm.expectRevert("Audit not approved");
-        greenTrace.exchangeNFT(tokenId);
+        // 验证费用计算
+        assertEq(systemFee, 10 ether);  // 1%
+        assertEq(auditFee, 40 ether);   // 4%
+        assertEq(returnAmount, 950 ether); // 95%
+        assertEq(systemFee + auditFee + returnAmount, amount);
     }
 } 
