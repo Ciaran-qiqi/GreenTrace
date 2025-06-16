@@ -20,7 +20,7 @@ import "../src/CarbonPriceOracle.sol";
  */
 contract DeployMarket is Script {
     // Sepolia测试网合约地址
-    address constant SEPOLIA_USDT = 0xdcdc73413c6136c9abcc3e8d250af42947ac2fc7;          //USDT（Testnet USDT）18位精度 主网6位
+    address constant SEPOLIA_USDT = 0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7;          //USDT（Testnet USDT）18位精度 主网6位
     address constant SEPOLIA_EUR_USD_FEED = 0x1a81afB8146aeFfCFc5E50e8479e826E7D55b910; // Chainlink Sepolia EUR/USD预言机地址
     address constant SEPOLIA_CHAINLINK_TOKEN = 0x779877A7B0D9E8603169DdbD7836e478b4624789; // Sepolia Chainlink Token
     
