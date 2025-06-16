@@ -10,8 +10,6 @@
 ├── go.mod           # Go 模块定义
 └── go.sum           # 依赖版本锁定
 
-
-
 我们目前有三个 API 端点：
 
 1. 获取最新价格
@@ -49,8 +47,8 @@
 
    Run
 
-   **   **curl** **http://localhost:5000/api/carbon-price
+   **   **curl** http://localhost:5000/api/carbon-price
 
-   **   **curl** **http://localhost:5000/api/carbon-price/history
+   **   **curl** http://localhost:5000/api/carbon-price/history
 
-   **   **curl** **-X** **POST** **http://localhost:5000/api/carbon-price/update
+   **   curl -X POST http://localhost:5000/api/carbon-price/update

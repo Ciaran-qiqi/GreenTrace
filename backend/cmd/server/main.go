@@ -3,11 +3,12 @@ package main
 import (
 	"log"
 	"sync"
+	"time"
 
-	"backend/configs"
 	"backend/pkg/crawler"
 	"backend/pkg/logger"
 	"backend/pkg/storage"
+	"backend/pkg/types"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
@@ -15,8 +16,9 @@ import (
 
 // 全局变量
 var (
-	priceStorage *storage.Storage
+	priceStorage storage.Storage
 	priceMutex   sync.RWMutex
+	lastUpdate   time.Time
 )
 
 // 更新价格信息
@@ -30,11 +32,26 @@ func updatePriceInfo() error {
 		return err
 	}
 
-	// 保存到存储
-	if err := priceStorage.Save(*priceInfo); err != nil {
+	// 转换为 types.PriceInfo
+	lastUpdated, _ := time.Parse(time.RFC3339, priceInfo.LastUpdated)
+	priceInfoType := types.PriceInfo{
+		Price:         priceInfo.Price,
+		Date:          priceInfo.Date,
+		DailyChange:   priceInfo.DailyChange,
+		MonthlyChange: priceInfo.MonthlyChange,
+		YearlyChange:  priceInfo.YearlyChange,
+		LastUpdated:   lastUpdated,
+	}
+
+	// 保存到内存存储
+	priceMutex.Lock()
+	if err := priceStorage.Save(priceInfoType); err != nil {
+		priceMutex.Unlock()
 		logger.ErrorLogger.Printf("保存价格信息失败: %v", err)
 		return err
 	}
+	lastUpdate = time.Now()
+	priceMutex.Unlock()
 
 	logger.InfoLogger.Printf("价格信息已更新: 价格=%.2f, 日期=%s, 日涨跌幅=%.2f%%, 月涨跌幅=%.2f%%, 年涨跌幅=%.2f%%",
 		priceInfo.Price,
@@ -46,25 +63,15 @@ func updatePriceInfo() error {
 }
 
 func main() {
-	// 初始化配置
-	config := configs.NewConfig()
-
 	// 初始化日志
-	if err := logger.InitLogger(config.GetLoggerConfig()); err != nil {
+	if err := logger.InitLogger(); err != nil {
 		log.Fatalf("初始化日志失败: %v", err)
 	}
 
-	// 现在可以安全使用 logger
 	logger.InfoLogger.Println("程序启动...")
-	logger.InfoLogger.Println("配置初始化完成")
 
-	// 初始化存储
-	logger.InfoLogger.Println("正在初始化存储...")
-	var err error
-	priceStorage, err = storage.NewStorage(config.GetStorageConfig())
-	if err != nil {
-		logger.ErrorLogger.Fatalf("初始化存储失败: %v", err)
-	}
+	// 初始化内存存储
+	priceStorage = storage.NewMemoryStorage()
 	logger.InfoLogger.Println("存储初始化完成")
 
 	// 创建Gin路由
@@ -86,7 +93,10 @@ func main() {
 	// API路由
 	r.GET("/api/carbon-price", func(c *gin.Context) {
 		logger.InfoLogger.Println("收到获取价格请求")
+		priceMutex.RLock()
 		priceInfo := priceStorage.GetLatest()
+		priceMutex.RUnlock()
+
 		if priceInfo == nil {
 			logger.ErrorLogger.Println("暂无价格信息")
 			c.JSON(404, gin.H{"error": "暂无价格信息"})
@@ -98,7 +108,9 @@ func main() {
 
 	r.GET("/api/carbon-price/history", func(c *gin.Context) {
 		logger.InfoLogger.Println("收到获取历史记录请求")
+		priceMutex.RLock()
 		history := priceStorage.GetHistory()
+		priceMutex.RUnlock()
 		c.JSON(200, history)
 	})
 
@@ -109,7 +121,9 @@ func main() {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
+		priceMutex.RLock()
 		priceInfo := priceStorage.GetLatest()
+		priceMutex.RUnlock()
 		logger.InfoLogger.Printf("手动更新成功: %+v", priceInfo)
 		c.JSON(200, gin.H{
 			"message": "价格信息已更新",
@@ -120,8 +134,8 @@ func main() {
 	// 设置定时任务
 	logger.InfoLogger.Println("正在设置定时任务...")
 	c := cron.New()
-	// 每12小时执行一次更新（每天0点和12点）
-	_, err = c.AddFunc("0 0,12 * * 1-5", func() {
+	// 每12小时执行一次更新（每天0点和12点，工作日）
+	_, err := c.AddFunc("0 0,12 * * 1-5", func() {
 		logger.InfoLogger.Println("执行定时更新，注意周末停牌...")
 		if err := updatePriceInfo(); err != nil {
 			logger.ErrorLogger.Printf("定时更新失败: %v", err)
