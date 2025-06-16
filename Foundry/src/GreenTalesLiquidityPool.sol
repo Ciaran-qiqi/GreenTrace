@@ -3,14 +3,15 @@ pragma solidity ^0.8.19;
 
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import "./interfaces/AggregatorV3Interface.sol";
+import "lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./CarbonToken.sol";
 import "./interfaces/IUSDT.sol";
+import "./interfaces/ICarbonPriceOracle.sol";
 
 /**
  * @title GreenTalesLiquidityPool
- * @dev NFT流动性池合约，支持USDT和碳币的兑换
- * @notice 用于提供NFT的USDT流动性，实现碳币和USDT的双向兑换
+ * @dev 碳币流动性池合约，支持USDT和碳币的兑换
+ * @notice 用于提供碳币的USDT流动性，实现碳币和USDT的双向兑换
  * 
  * 主要功能：
  * 1. 提供流动性：用户可以存入USDT和碳币
@@ -27,9 +28,11 @@ contract GreenTalesLiquidityPool is Ownable {
     CarbonToken public carbonToken;        // 碳币合约
     IUSDT public usdtToken;              // USDT合约
     AggregatorV3Interface public priceFeed; // Chainlink价格预言机
+    ICarbonPriceOracle public carbonPriceOracle; // 碳价预言机
     
     uint256 public constant FEE_RATE = 30;  // 0.3%的手续费
     uint256 public constant BASE_RATE = 10000; // 100%
+    uint256 public priceDeviationThreshold; // 价格偏离阈值（百分比）
     
     // 流动性池状态
     uint256 public totalCarbonTokens;     // 池中碳币总量
@@ -44,6 +47,8 @@ contract GreenTalesLiquidityPool is Ownable {
     event LiquidityRemoved(address indexed user, uint256 carbonAmount, uint256 usdtAmount, uint256 lpTokens);
     event TokensSwapped(address indexed user, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut);
     event PriceUpdated(uint256 carbonPrice, uint256 timestamp);
+    event PriceDeviationThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+    event CarbonPriceOracleUpdated(address oldOracle, address newOracle);
 
     /**
      * @dev 构造函数
@@ -59,6 +64,45 @@ contract GreenTalesLiquidityPool is Ownable {
         carbonToken = CarbonToken(_carbonToken);
         usdtToken = IUSDT(_usdtToken);
         priceFeed = AggregatorV3Interface(_priceFeed);
+        priceDeviationThreshold = 10; // 默认10%的偏离阈值
+    }
+
+    /**
+     * @dev 设置碳价预言机
+     * @param _carbonPriceOracle 碳价预言机地址
+     */
+    function setCarbonPriceOracle(address _carbonPriceOracle) external onlyOwner {
+        address oldOracle = address(carbonPriceOracle);
+        carbonPriceOracle = ICarbonPriceOracle(_carbonPriceOracle);
+        emit CarbonPriceOracleUpdated(oldOracle, _carbonPriceOracle);
+    }
+
+    /**
+     * @dev 设置价格偏离阈值
+     * @param _threshold 阈值（百分比，例如：10表示10%）
+     */
+    function setPriceDeviationThreshold(uint256 _threshold) external onlyOwner {
+        uint256 oldThreshold = priceDeviationThreshold;
+        priceDeviationThreshold = _threshold;
+        emit PriceDeviationThresholdUpdated(oldThreshold, _threshold);
+    }
+
+    /**
+     * @dev 检查价格是否偏离过大
+     * @param marketPrice 市场价格
+     * @return bool 是否偏离过大
+     */
+    function isPriceDeviated(uint256 marketPrice) public view returns (bool) {
+        if (address(carbonPriceOracle) == address(0)) return false;
+        
+        uint256 referencePrice = carbonPriceOracle.getLatestCarbonPriceUSD();
+        if (referencePrice == 0) return false;
+        
+        uint256 deviation = marketPrice > referencePrice ? 
+            ((marketPrice - referencePrice) * 100) / referencePrice :
+            ((referencePrice - marketPrice) * 100) / referencePrice;
+            
+        return deviation > priceDeviationThreshold;
     }
 
     /**
@@ -155,6 +199,10 @@ contract GreenTalesLiquidityPool is Ownable {
         uint256 fee = (usdtAmount * FEE_RATE) / BASE_RATE;
         usdtAmount -= fee;
         
+        // 检查价格偏离
+        uint256 marketPrice = (usdtAmount * 1e18) / carbonAmount;
+        require(!isPriceDeviated(marketPrice), "Price deviation too large");
+        
         // 转移代币
         carbonToken.safeTransferFrom(msg.sender, address(this), carbonAmount);
         usdtToken.safeTransfer(msg.sender, usdtAmount);
@@ -179,6 +227,10 @@ contract GreenTalesLiquidityPool is Ownable {
         carbonAmount = (usdtAmount * totalCarbonTokens) / totalUsdtTokens;
         uint256 fee = (carbonAmount * FEE_RATE) / BASE_RATE;
         carbonAmount -= fee;
+        
+        // 检查价格偏离
+        uint256 marketPrice = (usdtAmount * 1e18) / carbonAmount;
+        require(!isPriceDeviated(marketPrice), "Price deviation too large");
         
         // 转移代币
         usdtToken.safeTransferFrom(msg.sender, address(this), usdtAmount);
