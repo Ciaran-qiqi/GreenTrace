@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"net/http"
+	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -303,9 +305,12 @@ func main() {
 	}
 
 	// 启动服务器
-	port := "5000"
-	logger.InfoLogger.Printf("服务器即将启动在 http://localhost:%s", port)
-	if err := r.Run(":" + port); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "10000" // fallback
+	}
+	logger.InfoLogger.Printf("服务器即将启动在 :%s", port)
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		logger.ErrorLogger.Fatalf("启动服务器失败: %v", err)
 	}
 }
