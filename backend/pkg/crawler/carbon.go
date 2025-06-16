@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"backend/pkg/models"
@@ -81,12 +82,12 @@ func parsePriceInfo(text string) (*models.PriceInfo, error) {
 	fmt.Println("开始解析价格信息...") // 添加调试日志
 	// 价格和日期匹配
 	pricePattern := regexp.MustCompile(`(\d+\.\d+)\s+EUR\s+on\s+([A-Za-z]+\s+\d+,\s+\d{4})`)
-	// 日涨跌幅匹配
-	dailyPattern := regexp.MustCompile(`up\s+(\d+\.\d+)%`)
-	// 月涨跌幅匹配
-	monthlyPattern := regexp.MustCompile(`risen\s+(\d+\.\d+)%`)
-	// 年涨跌幅匹配
-	yearlyPattern := regexp.MustCompile(`up\s+(\d+\.\d+)%\s+compared\s+to\s+the\s+same\s+time\s+last\s+year`)
+	// 日涨跌幅匹配（支持上涨和下降）
+	dailyPattern := regexp.MustCompile(`(?:up|down)\s+(\d+\.\d+)%`)
+	// 月涨跌幅匹配（支持上涨和下降）
+	monthlyPattern := regexp.MustCompile(`(?:risen|fallen)\s+(\d+\.\d+)%`)
+	// 年涨跌幅匹配（支持上涨和下降）
+	yearlyPattern := regexp.MustCompile(`(?:up|down)\s+(\d+\.\d+)%\s+compared\s+to\s+the\s+same\s+time\s+last\s+year`)
 
 	priceMatch := pricePattern.FindStringSubmatch(text)
 	if len(priceMatch) < 3 {
@@ -106,18 +107,30 @@ func parsePriceInfo(text string) (*models.PriceInfo, error) {
 	// 解析日涨跌幅
 	if dailyMatch := dailyPattern.FindStringSubmatch(text); len(dailyMatch) > 1 {
 		info.DailyChange, _ = strconv.ParseFloat(dailyMatch[1], 64)
+		// 如果是下降，转换为负数
+		if strings.Contains(text, "down") {
+			info.DailyChange = -info.DailyChange
+		}
 		fmt.Printf("解析到日涨跌幅: %f%%\n", info.DailyChange) // 添加调试日志
 	}
 
 	// 解析月涨跌幅
 	if monthlyMatch := monthlyPattern.FindStringSubmatch(text); len(monthlyMatch) > 1 {
 		info.MonthlyChange, _ = strconv.ParseFloat(monthlyMatch[1], 64)
+		// 如果是下降，转换为负数
+		if strings.Contains(text, "fallen") {
+			info.MonthlyChange = -info.MonthlyChange
+		}
 		fmt.Printf("解析到月涨跌幅: %f%%\n", info.MonthlyChange) // 添加调试日志
 	}
 
 	// 解析年涨跌幅
 	if yearlyMatch := yearlyPattern.FindStringSubmatch(text); len(yearlyMatch) > 1 {
 		info.YearlyChange, _ = strconv.ParseFloat(yearlyMatch[1], 64)
+		// 如果是下降，转换为负数
+		if strings.Contains(text, "down") {
+			info.YearlyChange = -info.YearlyChange
+		}
 		fmt.Printf("解析到年涨跌幅: %f%%\n", info.YearlyChange) // 添加调试日志
 	}
 
