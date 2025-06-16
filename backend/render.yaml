@@ -2,8 +2,8 @@ services:
   - type: web
     name: carbon-price-api
     env: go
-    buildCommand: go build -o main ./cmd/server
-    startCommand: ./main
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/server
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 10000
