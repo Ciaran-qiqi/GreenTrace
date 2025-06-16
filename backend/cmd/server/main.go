@@ -163,27 +163,9 @@ func main() {
 
 	// 健康检查接口
 	r.GET("/health", func(c *gin.Context) {
-		priceMutex.RLock()
-		latestPrice := priceStorage.GetLatest()
-		priceMutex.RUnlock()
-
-		status := "ok"
-		if latestPrice == nil {
-			status = "no_data"
-		}
-
 		c.JSON(200, gin.H{
-			"status": status,
-			"system": gin.H{
-				"uptime":     time.Since(startTime).String(),
-				"version":    "1.0.0",
-				"goVersion":  runtime.Version(),
-				"goroutines": runtime.NumGoroutine(),
-			},
-			"data": gin.H{
-				"lastUpdate": lastUpdate.Format(time.RFC3339),
-				"hasData":    latestPrice != nil,
-			},
+			"status": "ok",
+			"time":   time.Now().Format(time.RFC3339),
 		})
 	})
 
