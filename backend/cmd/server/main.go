@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -133,20 +134,21 @@ func calculateLatencyStats() map[string]interface{} {
 func main() {
 	// 记录启动时间
 	startTime = time.Now()
+	fmt.Println("=== 服务启动开始 ===")
+	fmt.Printf("Go版本: %s\n", runtime.Version())
+	fmt.Printf("CPU核心数: %d\n", runtime.NumCPU())
 
 	// 初始化日志
 	if err := logger.InitLogger(); err != nil {
 		log.Fatalf("初始化日志失败: %v", err)
 	}
 
-	logger.InfoLogger.Println("程序启动...")
-
 	// 初始化内存存储
 	priceStorage = storage.NewMemoryStorage()
-	logger.InfoLogger.Println("存储初始化完成")
+	fmt.Println("存储初始化完成")
 
 	// 创建Gin路由
-	logger.InfoLogger.Println("正在创建Gin路由...")
+	fmt.Println("正在创建Gin路由...")
 	r := gin.Default()
 
 	// 设置CORS
@@ -162,10 +164,37 @@ func main() {
 	})
 
 	// 健康检查接口
-	r.GET("/health", func(c *gin.Context) {
+	r.GET("/healthz", func(c *gin.Context) {
+		fmt.Println("收到健康检查请求")
 		c.JSON(200, gin.H{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
+		})
+	})
+
+	// 保留原有的 /health 接口用于内部监控
+	r.GET("/health", func(c *gin.Context) {
+		priceMutex.RLock()
+		latestPrice := priceStorage.GetLatest()
+		priceMutex.RUnlock()
+
+		status := "ok"
+		if latestPrice == nil {
+			status = "no_data"
+		}
+
+		c.JSON(200, gin.H{
+			"status": status,
+			"system": gin.H{
+				"uptime":     time.Since(startTime).String(),
+				"version":    "1.0.0",
+				"goVersion":  runtime.Version(),
+				"goroutines": runtime.NumGoroutine(),
+			},
+			"data": gin.H{
+				"lastUpdate": lastUpdate.Format(time.RFC3339),
+				"hasData":    latestPrice != nil,
+			},
 		})
 	})
 
@@ -290,9 +319,46 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "10000" // fallback
+		fmt.Println("使用默认端口 10000")
+	} else {
+		fmt.Printf("使用环境变量端口: %s\n", port)
 	}
-	logger.InfoLogger.Printf("服务器即将启动在 :%s", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		logger.ErrorLogger.Fatalf("启动服务器失败: %v", err)
+
+	// 创建一个自定义的 HTTP 服务器
+	server := &http.Server{
+		Addr:         "0.0.0.0:" + port,
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+
+	// 在 goroutine 中启动服务器
+	go func() {
+		fmt.Printf("HTTP服务器启动中... 地址: 0.0.0.0:%s\n", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("启动服务器失败: %v\n", err)
+			fmt.Printf("错误类型: %T\n", err)
+			os.Exit(1)
+		}
+	}()
+
+	// 等待服务器启动
+	fmt.Println("等待服务器启动...")
+	time.Sleep(1 * time.Second)
+
+	// 测试服务器是否正常启动
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%s/healthz", port))
+	if err != nil {
+		fmt.Printf("服务器启动测试失败: %v\n", err)
+	} else {
+		fmt.Printf("服务器启动测试成功: %s\n", resp.Status)
+		resp.Body.Close()
+	}
+
+	fmt.Println("=== 服务启动完成 ===")
+	fmt.Printf("启动耗时: %v\n", time.Since(startTime))
+
+	// 保持主程序运行
+	select {}
 }

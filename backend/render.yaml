@@ -9,5 +9,5 @@ services:
         value: 10000
       - key: GIN_MODE
         value: release
-    healthCheckPath: /health
+    healthCheckPath: /healthz
     autoDeploy: true 
