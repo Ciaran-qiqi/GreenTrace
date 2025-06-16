@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -22,27 +21,27 @@ var (
 
 // 更新价格信息
 func updatePriceInfo() error {
-	fmt.Println("开始更新价格信息...") // 添加调试日志
+	logger.InfoLogger.Println("开始更新价格信息...")
 	crawler := crawler.NewCarbonCrawler()
-	fmt.Println("爬虫实例已创建") // 添加调试日志
 
 	priceInfo, err := crawler.FetchPrice()
 	if err != nil {
-		fmt.Printf("获取价格信息失败: %v\n", err) // 添加调试日志
 		logger.ErrorLogger.Printf("获取价格信息失败: %v", err)
 		return err
 	}
 
-	fmt.Printf("成功获取价格信息: %+v\n", priceInfo) // 添加调试日志
-
 	// 保存到存储
 	if err := priceStorage.Save(*priceInfo); err != nil {
-		fmt.Printf("保存价格信息失败: %v\n", err) // 添加调试日志
 		logger.ErrorLogger.Printf("保存价格信息失败: %v", err)
 		return err
 	}
 
-	logger.InfoLogger.Printf("价格信息已更新: %+v", priceInfo)
+	logger.InfoLogger.Printf("价格信息已更新: 价格=%.2f, 日期=%s, 日涨跌幅=%.2f%%, 月涨跌幅=%.2f%%, 年涨跌幅=%.2f%%",
+		priceInfo.Price,
+		priceInfo.Date,
+		priceInfo.DailyChange,
+		priceInfo.MonthlyChange,
+		priceInfo.YearlyChange)
 	return nil
 }
 
