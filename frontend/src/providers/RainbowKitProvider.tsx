@@ -22,7 +22,6 @@ import {
 } from "@tanstack/react-query";
 import { useWallet } from '@/src/hooks/useWallet';
 import { useEffect, useState } from 'react';
-import logger from '@/src/utils/logger';
 
 // 创建 QueryClient 实例
 const queryClient = new QueryClient({
@@ -80,23 +79,12 @@ const config = getDefaultConfig({
   ssr: false,
 });
 
-// 本地存储键名
-const STORAGE_KEYS = {
-  WALLET_ADDRESS: 'greentrace_wallet_address',
-  CONNECTED_CHAIN: 'greentrace_connected_chain',
-  LAST_CONNECTED: 'greentrace_last_connected',
-};
-
 // 导出钱包连接按钮组件
 export const WalletConnectButton = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    try {
-      setMounted(true);
-    } catch (error) {
-      logger.error('WalletConnectButton mount error:', error);
-    }
+    setMounted(true);
   }, []);
 
   if (!mounted) return null;
@@ -115,24 +103,9 @@ export const RainbowKitProvider = ({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     try {
-      // 覆盖全局 console 方法
-      const originalConsole = { ...console };
-      console.debug = (...args) => logger.debug(...args);
-      console.info = (...args) => logger.info(...args);
-      console.warn = (...args) => logger.warn(...args);
-      console.error = (...args) => logger.error(...args);
-
       setMounted(true);
-
-      // 恢复原始 console 方法
-      return () => {
-        console.debug = originalConsole.debug;
-        console.info = originalConsole.info;
-        console.warn = originalConsole.warn;
-        console.error = originalConsole.error;
-      };
     } catch (err) {
-      logger.error('RainbowKitProvider mount error:', err);
+      console.error('RainbowKitProvider mount error:', err);
       setError(err as Error);
     }
   }, []);

@@ -15,6 +15,7 @@ export const Navbar = () => {
     { name: '碳币市场', path: '/carbon-market' },
     { name: 'NFT中心', path: '/nft-center' },
     { name: 'NFT交易', path: '/nft-trading' },
+    { name: '审计中心', path: '/audit-center' },
   ];
 
   return (
@@ -52,6 +53,12 @@ export const Navbar = () => {
                 </Link>
               ))}
             </div>
+          </div>
+
+          <div className="hidden md:block">
+            <Link href="/admin" className="text-gray-300 hover:text-white">
+              管理后台
+            </Link>
           </div>
         </div>
       </div>
