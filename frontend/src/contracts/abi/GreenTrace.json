@@ -132,6 +132,11 @@
           "internalType": "enum GreenTrace.AuditStatus"
         },
         {
+          "name": "auditType",
+          "type": "uint8",
+          "internalType": "enum GreenTrace.AuditType"
+        },
+        {
           "name": "timestamp",
           "type": "uint256",
           "internalType": "uint256"
@@ -164,6 +169,25 @@
       "inputs": [
         {
           "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "calculateRequestFee",
+      "inputs": [
+        {
+          "name": "_carbonReduction",
           "type": "uint256",
           "internalType": "uint256"
         }
@@ -230,7 +254,7 @@
     },
     {
       "type": "function",
-      "name": "completeAudit",
+      "name": "completeExchangeAudit",
       "inputs": [
         {
           "name": "_tokenId",
@@ -398,6 +422,50 @@
     },
     {
       "type": "function",
+      "name": "payAndMintNFT",
+      "inputs": [
+        {
+          "name": "_tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_title",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "_details",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "_carbonReduction",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_tokenURI",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "removeAuditor",
       "inputs": [
         {
@@ -431,6 +499,53 @@
     },
     {
       "type": "function",
+      "name": "requestExchangeNFT",
+      "inputs": [
+        {
+          "name": "_tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "requestMintNFT",
+      "inputs": [
+        {
+          "name": "_title",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "_storyDetails",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "_carbonReduction",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_tokenURI",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "setNFTContract",
       "inputs": [
         {
@@ -444,7 +559,7 @@
     },
     {
       "type": "function",
-      "name": "submitAudit",
+      "name": "submitExchangeAudit",
       "inputs": [
         {
           "name": "_tokenId",
@@ -455,6 +570,29 @@
           "name": "_carbonValue",
           "type": "uint256",
           "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "submitMintAudit",
+      "inputs": [
+        {
+          "name": "_tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_carbonValue",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_reason",
+          "type": "string",
+          "internalType": "string"
         }
       ],
       "outputs": [],
@@ -506,6 +644,37 @@
           "type": "uint8",
           "indexed": false,
           "internalType": "enum GreenTrace.AuditStatus"
+        },
+        {
+          "name": "auditType",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "enum GreenTrace.AuditType"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "AuditRejected",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "auditor",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
         }
       ],
       "anonymous": false
@@ -531,6 +700,12 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
+        },
+        {
+          "name": "auditType",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "enum GreenTrace.AuditType"
         }
       ],
       "anonymous": false
@@ -614,6 +789,37 @@
     },
     {
       "type": "event",
+      "name": "ExchangeRequested",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "requester",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "basePrice",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "totalFee",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
       "name": "FeeDistribution",
       "inputs": [
         {
@@ -657,6 +863,55 @@
     },
     {
       "type": "event",
+      "name": "MintRequested",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "requester",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "details",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "carbonReduction",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "tokenURI",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "totalFee",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
       "name": "NFTExchanged",
       "inputs": [
         {
@@ -673,6 +928,37 @@
         },
         {
           "name": "carbonAmount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "NFTMintedAfterAudit",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "carbonReduction",
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"

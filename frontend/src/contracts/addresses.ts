@@ -6,8 +6,6 @@ export const CONTRACT_ADDRESSES = {
     GreenTrace: process.env.NEXT_PUBLIC_GREEN_TRACE_ADDRESS || '',
     NFT: process.env.NEXT_PUBLIC_NFT_ADDRESS || '',
     Market: process.env.NEXT_PUBLIC_MARKET_ADDRESS || '',
-    Auction: process.env.NEXT_PUBLIC_AUCTION_ADDRESS || '',
-    Tender: process.env.NEXT_PUBLIC_TENDER_ADDRESS || '',
   },
   // Sepolia 测试网
   sepolia: {
@@ -15,8 +13,6 @@ export const CONTRACT_ADDRESSES = {
     GreenTrace: process.env.NEXT_PUBLIC_GREEN_TRACE_ADDRESS || '',
     NFT: process.env.NEXT_PUBLIC_NFT_ADDRESS || '',
     Market: process.env.NEXT_PUBLIC_MARKET_ADDRESS || '',
-    Auction: process.env.NEXT_PUBLIC_AUCTION_ADDRESS || '',
-    Tender: process.env.NEXT_PUBLIC_TENDER_ADDRESS || '',
   },
   // 本地 Foundry 测试网
   foundry: {
@@ -24,7 +20,5 @@ export const CONTRACT_ADDRESSES = {
     GreenTrace: process.env.NEXT_PUBLIC_GREEN_TRACE_ADDRESS || '',
     NFT: process.env.NEXT_PUBLIC_NFT_ADDRESS || '',
     Market: process.env.NEXT_PUBLIC_MARKET_ADDRESS || '',
-    Auction: process.env.NEXT_PUBLIC_AUCTION_ADDRESS || '',
-    Tender: process.env.NEXT_PUBLIC_TENDER_ADDRESS || '',
   },
 }; 

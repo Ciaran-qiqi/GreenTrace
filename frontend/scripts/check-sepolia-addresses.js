@@ -112,9 +112,11 @@ try {
 
   // 读取 .env 文件
   const envFile = path.join(__dirname, '..', '.env');
+  let envContent = '';
   let currentAddresses = {};
+  
   if (fs.existsSync(envFile)) {
-    const envContent = fs.readFileSync(envFile, 'utf8');
+    envContent = fs.readFileSync(envFile, 'utf8');
     const envLines = envContent.split('\n');
     envLines.forEach(line => {
       const [key, value] = line.split('=');
@@ -126,17 +128,17 @@ try {
 
   // 检查地址是否有更新
   let hasUpdates = false;
+  let updatedEnvContent = envContent;
   console.log('\n📝 Sepolia 网络合约地址检查结果：');
   console.log('=====================');
 
-  // 主要合约名称列表，确保与 addresses.ts 文件一致
+  // 主要合约名称列表，确保与 addresses.ts 文件一致，自行修改
   const mainContracts = [
     'CarbonToken',
     'GreenTrace',
     'NFT',
     'Market',
-    'Auction',
-    'Tender',
+   
   ];
 
   // 显示主要合约
@@ -159,29 +161,32 @@ try {
       const currentAddress = currentAddresses[envVarName];
       console.log(`\n合约: ${contractName}`);
       console.log(`环境变量: ${envVarName}`);
-      if (currentAddress) {
-        if (newAddress && currentAddress.toLowerCase() === newAddress.toLowerCase()) {
-          console.log(`状态: ✅ 地址已是最新`);
+      if (newAddress && (!currentAddress || currentAddress.toLowerCase() !== newAddress.toLowerCase())) {
+        console.log(`状态: 🔄 需要更新`);
+        if (currentAddress) {
           console.log(`当前地址: ${currentAddress}`);
-        } else if (newAddress) {
-          console.log(`状态: 🔄 需要更新`);
-          console.log(`当前地址: ${currentAddress}`);
-          console.log(`新地址: ${newAddress}`);
-          hasUpdates = true;
-        } else {
-          console.log(`状态: ⚠️ 部署文件中未找到该合约地址`);
-          console.log(`当前地址: ${currentAddress}`);
-          hasUpdates = true;
         }
+        console.log(`新地址: ${newAddress}`);
+        
+        // 更新 .env 文件内容
+        const envVarPattern = new RegExp(`^${envVarName}=.*$`, 'm');
+        if (envVarPattern.test(updatedEnvContent)) {
+          updatedEnvContent = updatedEnvContent.replace(envVarPattern, `${envVarName}=${newAddress}`);
+        } else {
+          updatedEnvContent += `\n${envVarName}=${newAddress}`;
+        }
+        hasUpdates = true;
+      } else if (currentAddress) {
+        console.log(`状态: ✅ 地址已是最新`);
+        console.log(`当前地址: ${currentAddress}`);
+      } else if (newAddress) {
+        console.log(`状态: ⚠️ 未配置`);
+        console.log(`新地址: ${newAddress}`);
+        updatedEnvContent += `\n${envVarName}=${newAddress}`;
+        hasUpdates = true;
       } else {
-        if (newAddress) {
-          console.log(`状态: ⚠️ 未配置`);
-          console.log(`新地址: ${newAddress}`);
-          hasUpdates = true;
-        } else {
-          console.log(`状态: ⚠️ 未配置，且部署文件中未找到该合约地址`);
-          hasUpdates = true;
-        }
+        console.log(`状态: ⚠️ 未配置，且部署文件中未找到该合约地址`);
+        hasUpdates = true;
       }
       console.log('---------------------');
     } else {
@@ -214,7 +219,9 @@ try {
   }
 
   if (hasUpdates) {
-    console.log('\n💡 请将需要更新的地址更新到您的 .env 文件中');
+    // 写入更新后的 .env 文件
+    fs.writeFileSync(envFile, updatedEnvContent);
+    console.log('\n✅ .env 文件已更新！');
   } else {
     console.log('\n✅ 所有合约地址都是最新的，无需更新');
   }

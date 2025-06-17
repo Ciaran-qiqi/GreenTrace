@@ -13,14 +13,13 @@ if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
 }
 
-// 要复制的合约列表
+// 要复制的合约列表，自行修改
 const contracts = [
     'GreenTrace',
     'GreenTalesNFT',
     'GreenTalesMarket',
-    'GreenTalesAuction',
     'CarbonToken',
-    'GreenTalesTender'
+    
 ];
 
 // 复制每个合约的 ABI

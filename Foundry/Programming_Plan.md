@@ -85,6 +85,32 @@ LOCAL_RPC_URL=http://localhost:8545
 * Auction: 0x2279B7A0a67DB3729967a5FaB50D91eAA73d2eBe6
 * Tender: 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
 
+
+最新部署617
+
+CarbonToken: 0x48757B6E7Da7f9C5566C4f952dd7A78cd437d870
+NFT: 0xE0fE62C8aF74A98C3B3cBd82AA277575CD244201
+GreenTrace: 0x0FA9a4D2408C93cCA02743A1e06C51f1f5AC9d60
+Market: 0x2c2C17487f765bc38603E73778D0dACa7d4C1f16
+
+这是所有合约在 Sepolia 测试网上的区块链浏览器地址：
+
+1. CarbonToken:
+
+https://sepolia.etherscan.io/address/0x48757B6E7Da7f9C5566C4f952dd7A78cd437d870
+
+1. GreenTalesNFT:
+
+https://sepolia.etherscan.io/address/0xE0fE62C8aF74A98C3B3cBd82AA277575CD244201
+
+1. GreenTrace:
+
+https://sepolia.etherscan.io/address/0x0FA9a4D2408C93cCA02743A1e06C51f1f5AC9d60
+
+1. GreenTalesMarket:
+
+https://sepolia.etherscan.io/address/0x2c2C17487f765bc38603E73778D0dACa7d4C1f16
+
 x.准备把不太清楚的审计拿出主合约
 
 # 后续计划：

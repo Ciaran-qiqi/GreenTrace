@@ -8,8 +8,6 @@ declare global {
       NEXT_PUBLIC_GREEN_TRACE_ADDRESS: string;
       NEXT_PUBLIC_NFT_ADDRESS: string;
       NEXT_PUBLIC_MARKET_ADDRESS: string;
-      NEXT_PUBLIC_AUCTION_ADDRESS: string;
-      NEXT_PUBLIC_TENDER_ADDRESS: string;
     }
   }
 }
