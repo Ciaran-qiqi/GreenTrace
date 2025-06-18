@@ -1,4 +1,9 @@
 // SPDX-License-Identifier: MIT
+// https://ackee.xyz/wake/docs/4.19.0/static-analysis/using-detectors/#ignoring-detections
+// 忽略wake检测
+// https://ackee.xyz/wake/docs/4.19.0/static-analysis/detectors/unsafe-erc20-call/
+// wake-disable unsafe-erc20-call 
+
 pragma solidity ^0.8.19;
 
 import "lib/chainlink-brownie-contracts/contracts/src/v0.8/ChainlinkClient.sol";
