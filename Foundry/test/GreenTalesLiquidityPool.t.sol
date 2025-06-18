@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../src/GreenTalesLiquidityPool.sol";
 import "../src/CarbonToken.sol";
-import "../src/interfaces/IUSDT.sol";
+import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../src/interfaces/ICarbonPriceOracle.sol";
 import "../src/CarbonPriceOracle.sol";
 
@@ -17,7 +17,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     // 测试合约实例
     GreenTalesLiquidityPool public liquidityPool;
     CarbonToken public carbonToken;
-    IUSDT public usdtToken;
+    IERC20 public usdtToken;
     CarbonPriceOracle public carbonPriceOracle;
     
     // 测试账户
@@ -41,15 +41,17 @@ contract GreenTalesLiquidityPoolTest is Test {
         carbonToken = new CarbonToken(initialBalances);
         
         // 部署USDT合约（模拟）
-        usdtToken = IUSDT(address(new MockUSDT()));
+        usdtToken = IERC20(address(new MockUSDT()));
         
         // 部署EUR/USD价格预言机（模拟）
         mockEurUsdPriceFeed = address(new MockPriceFeed());
         
         // 部署碳价预言机
         carbonPriceOracle = new CarbonPriceOracle(
-            address(0), // 模拟LINK代币地址
-            mockEurUsdPriceFeed  // 传入mock EUR/USD价格预言机地址
+            address(0x123), // 模拟router地址
+            bytes32("mock_don_id"), // 模拟DON ID
+            mockEurUsdPriceFeed,
+            address(0) // 模拟LINK代币地址
         );
         
         // 部署流动性池合约
@@ -144,8 +146,11 @@ contract GreenTalesLiquidityPoolTest is Test {
      */
     function testPriceDeviation() public {
         // 模拟预言机返回一个非零价格，以触发价格偏离检查
-        bytes32 requestId = bytes32("test_request_id");
-        carbonPriceOracle.fulfillCarbonPrice(requestId, 1 * 1e18); // 设置预言机价格为1 EUR
+        vm.store(
+            address(carbonPriceOracle),
+            keccak256(abi.encode(uint256(0))), // carbonPriceEUR 的存储槽
+            bytes32(uint256(1 * 1e18)) // 设置预言机价格为1 EUR
+        );
         
         // 尝试进行兑换
         uint256 carbonAmount = 1000 * 1e18;
