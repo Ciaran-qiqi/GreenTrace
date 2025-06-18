@@ -491,15 +491,18 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 业务合约铸造 NFT
+     * @dev 业务合约铸造 NFT（仅测试环境建议使用）
      * @param _recipient NFT 接收者地址
      * @param _title 故事标题
      * @param _storyDetails 故事详情
      * @param _carbonReduction 碳减排量
      * @param _initialPrice 初始价格
      * @param _tokenURI NFT 元数据 URI
-     * @notice 只有授权的业务合约可以调用此函数
-     * @notice 在测试环境中，允许测试合约直接调用
+     * @return tokenId 新铸造的NFT ID
+     *
+     * @notice ⚠️ 本函数主要用于测试环境（如Foundry/Hardhat链）快速铸造NFT，便于测试用例编写。
+     * @notice 生产环境下，业务合约不应调用此函数，实际业务流程应通过"申请-审计-支付"完整流程铸造NFT。
+     * @notice 只有在测试环境（isTestEnvironment为true）或白名单业务合约（暂无）才可调用。
      */
     function mintNFTByBusiness(
         address _recipient,
@@ -510,15 +513,13 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         string memory _tokenURI
     ) external whenInitialized returns (uint256) {
         uint256 tokenId;
-        
-        // 在测试环境中，允许测试合约直接调用
+        // 测试环境下允许直接铸造NFT，便于测试
         if (isTestEnvironment) {
             tokenId = greenTalesNFT.mint(_recipient, _title, _storyDetails, _carbonReduction, _initialPrice, _tokenURI);
             emit NFTMintedByBusiness(tokenId, _recipient, _title, _carbonReduction);
             return tokenId;
         }
-        
-        // 生产环境中，只允许白名单中的业务合约调用
+        // 生产环境下，仅白名单业务合约可调用，目前没有该业务需求
         require(businessContracts[msg.sender], "Not authorized business contract");
         tokenId = greenTalesNFT.mint(_recipient, _title, _storyDetails, _carbonReduction, _initialPrice, _tokenURI);
         emit NFTMintedByBusiness(tokenId, _recipient, _title, _carbonReduction);
