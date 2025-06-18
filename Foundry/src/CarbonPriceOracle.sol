@@ -126,7 +126,7 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
             "if (!data || !data.price) {"
             "  throw Error('Invalid response format');"
             "}"
-            "return Functions.encodeUint256(Math.round(data.price * 1e18));";
+            "return Functions.encodeUint256(Math.round(data.price * 1e8));";
         
         // 构建请求
         FunctionsRequest.Request memory req;
@@ -158,10 +158,11 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
             // 处理错误
             return;
         }
-        uint256 priceEUR = abi.decode(response, (uint256));
+        uint256 priceEUR = abi.decode(response, (uint256)); // 8位精度
         carbonPriceEUR = priceEUR;
-        // 获取EUR/USD价格
+        // 获取EUR/USD价格（8位精度）
         (, int256 eurUsdPrice,,,) = eurUsdPriceFeed.latestRoundData();
+        // 计算USD价格：两个8位精度相乘，除以1e8得到8位精度结果
         carbonPriceUSD = (priceEUR * uint256(eurUsdPrice)) / 1e8;
         emit PriceUpdated(carbonPriceEUR, carbonPriceUSD, block.timestamp);
     }
@@ -176,6 +177,11 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
         require(_to != address(0), "Invalid address");
         uint256 contractBalance = linkToken.balanceOf(address(this));
         require(_amount <= contractBalance, "Insufficient LINK balance");
+        
+        // 检查提取后是否还有足够余额支付费用
+        uint256 remainingBalance = contractBalance - _amount;
+        require(remainingBalance >= 0.1 * 1e18, "Insufficient balance after withdrawal");
+        
         require(linkToken.transfer(_to, _amount), "LINK transfer failed");
     }
     
@@ -193,5 +199,18 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
      */
     function getLatestCarbonPriceEUR() external view override returns (uint256) {
         return carbonPriceEUR;
+    }
+    
+    /**
+     * @dev 仅测试用：设置碳价（欧元）
+     */
+    function setTestCarbonPriceEUR(uint256 value) external {
+        carbonPriceEUR = value;
+    }
+    /**
+     * @dev 仅测试用：设置碳价（美元）
+     */
+    function setTestCarbonPriceUSD(uint256 value) external {
+        carbonPriceUSD = value;
     }
 } 

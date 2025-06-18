@@ -90,18 +90,21 @@ contract GreenTalesLiquidityPool is Ownable {
 
     /**
      * @dev 检查价格是否偏离过大
-     * @param marketPrice 市场价格
+     * @param marketPrice 市场价格（18位精度）
      * @return bool 是否偏离过大
      */
     function isPriceDeviated(uint256 marketPrice) public view returns (bool) {
         if (address(carbonPriceOracle) == address(0)) return false;
         
-        uint256 referencePrice = carbonPriceOracle.getLatestCarbonPriceUSD();
+        uint256 referencePrice = carbonPriceOracle.getLatestCarbonPriceUSD(); // 8位精度
         if (referencePrice == 0) return false;
         
-        uint256 deviation = marketPrice > referencePrice ? 
-            ((marketPrice - referencePrice) * 100) / referencePrice :
-            ((referencePrice - marketPrice) * 100) / referencePrice;
+        // 将预言机价格从8位精度转换为18位精度，与市场价格保持一致
+        uint256 referencePrice18 = referencePrice * 1e10; // 8位 -> 18位
+        
+        uint256 deviation = marketPrice > referencePrice18 ? 
+            ((marketPrice - referencePrice18) * 100) / referencePrice18 :
+            ((referencePrice18 - marketPrice) * 100) / referencePrice18;
             
         return deviation > priceDeviationThreshold;
     }
