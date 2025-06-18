@@ -7,7 +7,6 @@ import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./CarbonToken.sol";
-import "./interfaces/IUSDT.sol";
 import "./interfaces/ICarbonPriceOracle.sol";
 
 /**
@@ -23,12 +22,12 @@ import "./interfaces/ICarbonPriceOracle.sol";
  * 5. 手续费：收取交易手续费
  */
 contract GreenTalesLiquidityPool is Ownable {
-    using SafeERC20 for IUSDT;
+    using SafeERC20 for IERC20;
     using SafeERC20 for CarbonToken;
 
     // 合约状态变量
     CarbonToken public carbonToken;        // 碳币合约
-    IUSDT public usdtToken;              // USDT合约
+    IERC20 public usdtToken;              // USDT合约（使用标准ERC20接口）
     AggregatorV3Interface public priceFeed; // Chainlink价格预言机
     ICarbonPriceOracle public carbonPriceOracle; // 碳价预言机
     
@@ -64,7 +63,7 @@ contract GreenTalesLiquidityPool is Ownable {
         address _priceFeed
     ) {
         carbonToken = CarbonToken(_carbonToken);
-        usdtToken = IUSDT(_usdtToken);
+        usdtToken = IERC20(_usdtToken);  // 使用标准ERC20接口
         priceFeed = AggregatorV3Interface(_priceFeed);
         priceDeviationThreshold = 10; // 默认10%的偏离阈值
     }
