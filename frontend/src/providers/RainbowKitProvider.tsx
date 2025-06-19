@@ -19,12 +19,10 @@ import {
   QueryClient,
 } from "@tanstack/react-query";
 
-// 创建 QueryClient 实例
 const queryClient = new QueryClient();
 
-// 定义本地 Foundry 测试网配置
 const foundryChain: Chain = {
-  id: 31337, // Foundry 默认链 ID
+  id: 31337,
   name: 'Foundry',
   nativeCurrency: {
     decimals: 18,
@@ -41,7 +39,6 @@ const foundryChain: Chain = {
   testnet: true,
 };
 
-// 配置 Sepolia 测试网
 const sepoliaChain = {
   ...sepolia,
   rpcUrls: {
@@ -50,7 +47,6 @@ const sepoliaChain = {
   },
 };
 
-// 配置主网
 const mainnetChain = {
   ...mainnet,
   rpcUrls: {
@@ -59,7 +55,6 @@ const mainnetChain = {
   },
 };
 
-// 配置 RainbowKit
 const config = getDefaultConfig({
   appName: 'GreenTrace',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
@@ -67,7 +62,6 @@ const config = getDefaultConfig({
   ssr: true,
 });
 
-// 导出钱包连接按钮组件
 export const WalletConnectButton = () => {
   return (
     <div className="fixed top-0 right-0 p-4 z-50">
@@ -76,7 +70,6 @@ export const WalletConnectButton = () => {
   );
 };
 
-// 导出 Provider 组件
 export const RainbowKitProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
