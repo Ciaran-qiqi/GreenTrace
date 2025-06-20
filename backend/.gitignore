@@ -1,0 +1,23 @@
+# 数据文件
+internal/data/*.json
+internal/logs/*.log
+
+# Go 相关
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# IDE 相关
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db 

@@ -1,0 +1,98 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# 不忽略所有依赖，因为我前端的依赖很容易下载出错，我要一起管理
+# node_modules
+
+
+# solidity-coverage files
+/coverage
+/coverage.json
+
+
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Foundry broadcast files
+/broadcast/
+Foundry/broadcast/
+Foundry/broadcast/**/*
+Foundry/broadcast/Deploy.s.sol/
+
+
+
+
+# 不忽略 .gitignore 文件
+!.gitignore
+
+# 不忽略 README.md
+!README.md
+
+
+# 不忽略 Foundry 配置文件
+!foundry.toml
+!remappings.txt
+
+
+# 忽略所有环境变量文件
+.env*
+# 不忽略示例环境变量文件
+!.env.example
+
+# 忽略所有 IDE 和编辑器文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+
+# 忽略特定文件夹
+.github/
+.wake/
+.vscode/
+.idea/
+
