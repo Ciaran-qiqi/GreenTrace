@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// wake-disable unsafe-erc20-call 
+
 pragma solidity ^0.8.19;
 
 import "./CarbonToken.sol";
@@ -6,7 +8,6 @@ import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IUSDT.sol";
 
 /**
  * @title CarbonUSDTMarket
@@ -23,11 +24,11 @@ import "./interfaces/IUSDT.sol";
  */
 contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     using SafeERC20 for CarbonToken;
-    using SafeERC20 for IUSDT;
+    using SafeERC20 for IERC20;
 
     // 合约状态变量
     CarbonToken public carbonToken;    // 碳币合约
-    IUSDT public usdtToken;           // USDT合约
+    IERC20 public usdtToken;           // USDT合约（使用标准ERC20接口）
     uint256 public platformFeeRate;    // 平台手续费率（基点，1基点 = 0.01%）
     address public feeCollector;       // 手续费接收地址
 
@@ -91,7 +92,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         address _feeCollector
     ) Ownable() {
         carbonToken = CarbonToken(_carbonToken);
-        usdtToken = IUSDT(_usdtToken);
+        usdtToken = IERC20(_usdtToken);  // 使用标准ERC20接口
         platformFeeRate = _platformFeeRate;
         feeCollector = _feeCollector;
     }

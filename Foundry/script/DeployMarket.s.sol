@@ -23,6 +23,8 @@ contract DeployMarket is Script {
     address constant SEPOLIA_USDT = 0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7;          //USDT（Testnet USDT）18位精度 主网6位
     address constant SEPOLIA_EUR_USD_FEED = 0x1a81afB8146aeFfCFc5E50e8479e826E7D55b910; // Chainlink Sepolia EUR/USD预言机地址
     address constant SEPOLIA_CHAINLINK_TOKEN = 0x779877A7B0D9E8603169DdbD7836e478b4624789; // Sepolia Chainlink Token
+    address constant SEPOLIA_FUNCTIONS_ROUTER = 0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C; // Sepolia Functions Router
+    bytes32 constant SEPOLIA_DON_ID = 0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000; // Sepolia DON ID
     
     // 初始流动性配置
     uint256 constant INITIAL_CARBON_AMOUNT = 1_000_000 * 1e18;  // 100万碳币
@@ -69,8 +71,10 @@ contract DeployMarket is Script {
 
         // 4. 部署CarbonPriceOracle合约
         CarbonPriceOracle oracle = new CarbonPriceOracle(
-            SEPOLIA_CHAINLINK_TOKEN,
-            SEPOLIA_EUR_USD_FEED
+            SEPOLIA_FUNCTIONS_ROUTER,
+            SEPOLIA_DON_ID,
+            SEPOLIA_EUR_USD_FEED,
+            SEPOLIA_CHAINLINK_TOKEN
         );
         console.log("CarbonPriceOracle deployed at:", address(oracle));
 

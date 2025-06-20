@@ -76,41 +76,35 @@ contract GreenTraceTest is Test {
      * @dev 测试NFT铸造流程
      */
     function test_NFTMintFlow() public {
-        // 申请铸造NFT
         vm.startPrank(user1);
-        carbonToken.approve(address(greenTrace), 100 ether);
+        carbonToken.approve(address(greenTrace), 100 * 1e18);
+        
+        // 请求铸造NFT
         uint256 tokenId = greenTrace.requestMintNFT(
             "Test Story",
             "This is a test story",
             1000,
             "ipfs://Qm..."
         );
-
-        // 审计者提交审计
+        
+        // 审计员审核
         vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitMintAudit(tokenId, 800, "");
-
+        greenTrace.submitMintAudit(tokenId, 1 * 1e18, "");
+        
         // 支付费用并铸造NFT
         vm.startPrank(user1);
-        carbonToken.approve(address(greenTrace), 100 ether);
-        uint256 mintedTokenId = greenTrace.payAndMintNFT(
-            tokenId,
-            user1,
-            "Test Story",
-            "This is a test story",
-            1000,
-            "ipfs://Qm..."
-        );
-
-        // 验证NFT所有权和元数据
-        assertEq(nft.ownerOf(mintedTokenId), user1);
-        GreenTalesNFT.StoryMeta memory meta = nft.getStoryMeta(mintedTokenId);
+        carbonToken.approve(address(greenTrace), 100 * 1e18);
+        greenTrace.payAndMintNFT(tokenId, user1, "Test Story", "This is a test story", 1000, "ipfs://Qm...");
+        
+        // 验证NFT所有权
+        assertEq(nft.ownerOf(tokenId), user1);
+        GreenTalesNFT.StoryMeta memory meta = nft.getStoryMeta(tokenId);
         assertEq(meta.storyTitle, "Test Story");
         assertEq(meta.storyDetail, "This is a test story");
         assertEq(meta.carbonReduction, 1000);
-        assertEq(meta.initialPrice, 800);
-        assertEq(meta.lastPrice, 800);
+        assertEq(meta.initialPrice, 1 * 1e18);
+        assertEq(meta.lastPrice, 1 * 1e18);
         vm.stopPrank();
     }
 
@@ -118,45 +112,54 @@ contract GreenTraceTest is Test {
      * @dev 测试NFT兑换流程
      */
     function test_NFTExchangeFlow() public {
-        // 先铸造一个NFT
         vm.startPrank(user1);
-        carbonToken.approve(address(greenTrace), 100 ether);
+        carbonToken.approve(address(greenTrace), 100 * 1e18);
+        
+        // 请求铸造NFT
         uint256 tokenId = greenTrace.requestMintNFT(
             "Test Story",
             "This is a test story",
             1000,
             "ipfs://Qm..."
         );
-
+        
+        // 审计员审核
         vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitMintAudit(tokenId, 800, "");
-
+        greenTrace.submitMintAudit(tokenId, 1 * 1e18, "");
+        
+        // 支付费用并铸造NFT
         vm.startPrank(user1);
-        carbonToken.approve(address(greenTrace), 100 ether);
-        uint256 mintedTokenId = greenTrace.payAndMintNFT(
-            tokenId,
-            user1,
-            "Test Story",
-            "This is a test story",
-            1000,
-            "ipfs://Qm..."
-        );
+        carbonToken.approve(address(greenTrace), 100 * 1e18);
+        greenTrace.payAndMintNFT(tokenId, user1, "Test Story", "This is a test story", 1000, "ipfs://Qm...");
+        // NFT持有者user1进行approve
+        nft.approve(address(greenTrace), tokenId);
+        vm.stopPrank();
+        
+        // 验证NFT所有权
+        assertEq(nft.ownerOf(tokenId), user1);
+        GreenTalesNFT.StoryMeta memory meta = nft.getStoryMeta(tokenId);
+        assertEq(meta.storyTitle, "Test Story");
+        assertEq(meta.storyDetail, "This is a test story");
+        assertEq(meta.carbonReduction, 1000);
+        assertEq(meta.initialPrice, 1 * 1e18);
+        assertEq(meta.lastPrice, 1 * 1e18);
 
         // 申请兑换NFT前，先进行NFT授权
-        nft.approve(address(greenTrace), mintedTokenId);
+        // nft.approve(address(greenTrace), tokenId); // 已在上面授权
         
-        // 申请兑换NFT
-        carbonToken.approve(address(greenTrace), 100 ether);
-        greenTrace.requestExchangeNFT(mintedTokenId);
+        // 申请兑换NFT，必须由user1发起
+        vm.startPrank(user1);
+        greenTrace.requestExchangeNFT(tokenId);
+        vm.stopPrank();
 
         // 审计者提交兑换审计
         vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitExchangeAudit(mintedTokenId, 700);
+        greenTrace.submitExchangeAudit(tokenId, 700);
 
         // 完成兑换审计
-        greenTrace.completeExchangeAudit(mintedTokenId, GreenTrace.AuditStatus.Approved);
+        greenTrace.completeExchangeAudit(tokenId, GreenTrace.AuditStatus.Approved);
 
         // 记录初始余额
         uint256 initialBalance = carbonToken.balanceOf(user1);
@@ -164,11 +167,11 @@ contract GreenTraceTest is Test {
         // 执行NFT兑换
         vm.startPrank(user1);
         // 由于之前已经授权，这里不需要再次授权
-        greenTrace.exchangeNFT(mintedTokenId);
+        greenTrace.exchangeNFT(tokenId);
 
         // 验证NFT已被销毁
         vm.expectRevert("ERC721: invalid token ID");
-        nft.ownerOf(mintedTokenId);
+        nft.ownerOf(tokenId);
 
         // 验证碳币余额
         uint256 systemFee = greenTrace.calculateSystemFee(700);
@@ -181,34 +184,27 @@ contract GreenTraceTest is Test {
     /**
      * @dev 测试审计拒绝流程
      */
-    function test_AuditRejection() public {
+    function test_MintAuditRejected() public {
         // 申请铸造NFT
         vm.startPrank(user1);
-        carbonToken.approve(address(greenTrace), 100 ether);
+        carbonToken.approve(address(greenTrace), 100 * 1e18);
         uint256 tokenId = greenTrace.requestMintNFT(
             "Test Story",
             "This is a test story",
             1000,
             "ipfs://Qm..."
         );
-
-        // 审计者拒绝申请
+        
+        // 审计员拒绝
         vm.stopPrank();
         vm.prank(auditor);
-        greenTrace.submitMintAudit(tokenId, 0, "Invalid carbon reduction claim");
-
+        greenTrace.submitMintAudit(tokenId, 0, "Invalid story");
+        
         // 验证无法支付费用并铸造NFT
         vm.startPrank(user1);
-        carbonToken.approve(address(greenTrace), 100 ether);
+        carbonToken.approve(address(greenTrace), 100 * 1e18);
         vm.expectRevert("Mint audit not approved");
-        greenTrace.payAndMintNFT(
-            tokenId,
-            user1,
-            "Test Story",
-            "This is a test story",
-            1000,
-            "ipfs://Qm..."
-        );
+        greenTrace.payAndMintNFT(tokenId, user1, "Test Story", "This is a test story", 1000, "ipfs://Qm...");
         vm.stopPrank();
     }
 

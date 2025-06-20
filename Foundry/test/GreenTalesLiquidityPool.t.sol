@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../src/GreenTalesLiquidityPool.sol";
 import "../src/CarbonToken.sol";
-import "../src/interfaces/IUSDT.sol";
+import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "../src/interfaces/ICarbonPriceOracle.sol";
 import "../src/CarbonPriceOracle.sol";
 
@@ -17,7 +17,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     // 测试合约实例
     GreenTalesLiquidityPool public liquidityPool;
     CarbonToken public carbonToken;
-    IUSDT public usdtToken;
+    IERC20 public usdtToken;
     CarbonPriceOracle public carbonPriceOracle;
     
     // 测试账户
@@ -27,9 +27,9 @@ contract GreenTalesLiquidityPoolTest is Test {
     
     // 测试常量
     uint256 public constant INITIAL_CARBON_SUPPLY = 1000000 * 1e18;
-    uint256 public constant INITIAL_USDT_SUPPLY = 1000000 * 1e6;
+    uint256 public constant INITIAL_USDT_SUPPLY = 1000000 * 1e18;
     uint256 public constant INITIAL_LIQUIDITY_CARBON = 100000 * 1e18;
-    uint256 public constant INITIAL_LIQUIDITY_USDT = 100000 * 1e6;
+    uint256 public constant INITIAL_LIQUIDITY_USDT = 100000 * 1e18;
     
     // 模拟Chainlink价格预言机
     address public mockPriceFeed;
@@ -41,15 +41,17 @@ contract GreenTalesLiquidityPoolTest is Test {
         carbonToken = new CarbonToken(initialBalances);
         
         // 部署USDT合约（模拟）
-        usdtToken = IUSDT(address(new MockUSDT()));
+        usdtToken = IERC20(address(new MockUSDT()));
         
         // 部署EUR/USD价格预言机（模拟）
         mockEurUsdPriceFeed = address(new MockPriceFeed());
         
         // 部署碳价预言机
         carbonPriceOracle = new CarbonPriceOracle(
-            address(0), // 模拟LINK代币地址
-            mockEurUsdPriceFeed  // 传入mock EUR/USD价格预言机地址
+            address(0x123), // 模拟router地址
+            bytes32("mock_don_id"), // 模拟DON ID
+            mockEurUsdPriceFeed,
+            address(0) // 模拟LINK代币地址
         );
         
         // 部署流动性池合约
@@ -82,7 +84,7 @@ contract GreenTalesLiquidityPoolTest is Test {
      */
     function testAddLiquidity() public {
         uint256 carbonAmount = 1000 * 1e18;
-        uint256 usdtAmount = 1000 * 1e6;
+        uint256 usdtAmount = 1000 * 1e18;
         
         vm.startPrank(bob);
         carbonToken.approve(address(liquidityPool), carbonAmount);
@@ -129,7 +131,7 @@ contract GreenTalesLiquidityPoolTest is Test {
      * @dev 测试USDT兑换碳币
      */
     function testSwapUsdtToCarbon() public {
-        uint256 usdtAmount = 1000 * 1e6;
+        uint256 usdtAmount = 1000 * 1e18;
         
         vm.startPrank(bob);
         usdtToken.approve(address(liquidityPool), usdtAmount);
@@ -143,17 +145,37 @@ contract GreenTalesLiquidityPoolTest is Test {
      * @dev 测试价格偏离检查
      */
     function testPriceDeviation() public {
-        // 模拟预言机返回一个非零价格，以触发价格偏离检查
-        bytes32 requestId = bytes32("test_request_id");
-        carbonPriceOracle.fulfillCarbonPrice(requestId, 1 * 1e18); // 设置预言机价格为1 EUR
-        
-        // 尝试进行兑换
+        // 设置预言机价格 - 使用setter函数，设置更极端的价格
+        uint256 eurPrice = 1 * 1e8; // 1 EUR (8位精度)
+        uint256 usdPrice = 2 * 1e8; // 2 USD (8位精度，制造更大偏离)
+        carbonPriceOracle.setTestCarbonPriceEUR(eurPrice);
+        carbonPriceOracle.setTestCarbonPriceUSD(usdPrice);
+
+        // 验证价格设置成功
+        console.log("EUR Price from oracle:", carbonPriceOracle.getLatestCarbonPriceEUR());
+        console.log("USD Price from oracle:", carbonPriceOracle.getLatestCarbonPriceUSD());
+
+        // bob极端添加USDT流动性，拉高池内USDT数量，制造极端市场价格
         uint256 carbonAmount = 1000 * 1e18;
-        
+        uint256 usdtAmount = 10000000 * 1e18; // 极大USDT数量
+        MockUSDT(address(usdtToken)).mint(bob, usdtAmount);
         vm.startPrank(bob);
+        carbonToken.approve(address(liquidityPool), 1 * 1e18);
+        usdtToken.approve(address(liquidityPool), usdtAmount);
+        liquidityPool.addLiquidity(1 * 1e18, usdtAmount); // 极端拉高池中USDT
         carbonToken.approve(address(liquidityPool), carbonAmount);
         
-        // 应该失败
+        // 调试：输出市场价格和参考价格
+        uint256 marketPrice = liquidityPool.getCarbonPrice(); // 18位精度
+        uint256 referencePrice = carbonPriceOracle.getLatestCarbonPriceUSD(); // 8位精度
+        uint256 referencePrice18 = referencePrice * 1e10; // 转换为18位精度
+        console.log(unicode"Market Price (18位):", marketPrice);
+        console.log(unicode"Reference Price (8位):", referencePrice);
+        console.log(unicode"Reference Price (18位):", referencePrice18);
+        console.log("Price Deviation Threshold:", liquidityPool.priceDeviationThreshold());
+        console.log("Is Price Deviated:", liquidityPool.isPriceDeviated(marketPrice));
+        
+        // 现在兑换应该因为价格偏离过大而revert
         vm.expectRevert("Price deviation too large");
         liquidityPool.swapCarbonToUsdt(carbonAmount);
         vm.stopPrank();
@@ -199,6 +221,6 @@ contract MockPriceFeed {
         uint256 updatedAt,
         uint80 answeredInRound
     ) {
-        return (0, int256(1.1 * 1e8), 0, block.timestamp, 0); // 1 EUR = 1.1 USD
+        return (0, int256(1.1 * 1e8), 0, block.timestamp, 0); // 1 EUR = 1.1 USD (8位精度)
     }
 } 

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
+// wake-disable unsafe-erc20-call 
+
 pragma solidity ^0.8.19;
 
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./CarbonToken.sol";
-import "./interfaces/IUSDT.sol";
 import "./interfaces/ICarbonPriceOracle.sol";
 
 /**
@@ -21,12 +22,12 @@ import "./interfaces/ICarbonPriceOracle.sol";
  * 5. 手续费：收取交易手续费
  */
 contract GreenTalesLiquidityPool is Ownable {
-    using SafeERC20 for IUSDT;
+    using SafeERC20 for IERC20;
     using SafeERC20 for CarbonToken;
 
     // 合约状态变量
     CarbonToken public carbonToken;        // 碳币合约
-    IUSDT public usdtToken;              // USDT合约
+    IERC20 public usdtToken;              // USDT合约（使用标准ERC20接口）
     AggregatorV3Interface public priceFeed; // Chainlink价格预言机
     ICarbonPriceOracle public carbonPriceOracle; // 碳价预言机
     
@@ -62,7 +63,7 @@ contract GreenTalesLiquidityPool is Ownable {
         address _priceFeed
     ) {
         carbonToken = CarbonToken(_carbonToken);
-        usdtToken = IUSDT(_usdtToken);
+        usdtToken = IERC20(_usdtToken);  // 使用标准ERC20接口
         priceFeed = AggregatorV3Interface(_priceFeed);
         priceDeviationThreshold = 10; // 默认10%的偏离阈值
     }
@@ -89,18 +90,21 @@ contract GreenTalesLiquidityPool is Ownable {
 
     /**
      * @dev 检查价格是否偏离过大
-     * @param marketPrice 市场价格
+     * @param marketPrice 市场价格（18位精度）
      * @return bool 是否偏离过大
      */
     function isPriceDeviated(uint256 marketPrice) public view returns (bool) {
         if (address(carbonPriceOracle) == address(0)) return false;
         
-        uint256 referencePrice = carbonPriceOracle.getLatestCarbonPriceUSD();
+        uint256 referencePrice = carbonPriceOracle.getLatestCarbonPriceUSD(); // 8位精度
         if (referencePrice == 0) return false;
         
-        uint256 deviation = marketPrice > referencePrice ? 
-            ((marketPrice - referencePrice) * 100) / referencePrice :
-            ((referencePrice - marketPrice) * 100) / referencePrice;
+        // 将预言机价格从8位精度转换为18位精度，与市场价格保持一致
+        uint256 referencePrice18 = referencePrice * 1e10; // 8位 -> 18位
+        
+        uint256 deviation = marketPrice > referencePrice18 ? 
+            ((marketPrice - referencePrice18) * 100) / referencePrice18 :
+            ((referencePrice18 - marketPrice) * 100) / referencePrice18;
             
         return deviation > priceDeviationThreshold;
     }
