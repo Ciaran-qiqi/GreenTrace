@@ -34,24 +34,20 @@
 - **部署交易**: `0xea119be0d14dc897d39aafe51ea45faabc78b8c5b2c48de5d6df988564f34a56`
 - **GreenTrace合约**: `0x11e6b5Aeff2FaeFe489776aDa627B2C621ee8673`
 
-### 4. CarbonPriceOracle (碳价预言机)
+### **4. CarbonPriceOracle (碳价预言机)**
 
-- **合约地址**: `0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c`
-- **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c)
-- **部署交易**: `0x122969fd546d79e1fbbf55fbc3e53944ac2fd692634334834c40602c60cf1aa0`
-- **Functions Router**: `0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C`
-- **DON ID**: `0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000`
-- **EUR/USD Feed**: `0x1a81afB8146aeFfCFc5E50e8479e826E7D55b910`
-- **LINK Token**: `0x779877A7B0D9E8603169DdbD7836e478b4624789`
+- 合约地址：0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa
+- **Etherscan：**[查看合约](https://sepolia.etherscan.io/address/0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa)
+- 主要功能：requestCarbonPrice(0x07ca5e23)
 
-### 5. GreenTalesLiquidityPool (流动性池)
+### 5. GreenTalesLiquidityPool (流动性池)-问题：没有用到预言机获取的api价格
 
 - **合约地址**: `0x6c9c8c371cBD71108e272D20c86978AdB2f9a114`
 - **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x6c9c8c371cBD71108e272D20c86978AdB2f9a114)
 - **部署交易**: `0x3983d5335aeb595a648aaebadedd41855231a49bc848fc3a00c2568ffe86f0ba`
 - **碳币合约**: `0x808b73A3A1D97382acF32d4F4F834e799Aa08198`
 - **USDT合约**: `0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7`
-- **碳价预言机**: `0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c`
+- **碳价预言机合约**: `0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa`
 
 ### 6. GreenTalesMarket (NFT市场)
 
@@ -64,6 +60,15 @@
 - **手续费接收地址**: `0x294761C91734360C5A70e33F8372778ED2849767`
 - **GreenTrace合约**: `0x11e6b5Aeff2FaeFe489776aDa627B2C621ee8673`
 
+## 目前问题：
+
+问题合约详情：
+
+CarbonPriceOracle流动性池子合约（已部署）：目前只有流动性的定价，目前是88 usdt，但是没有获取到我预言机合约得到的 carbonPriceUSD (0xb7c5a4b9)参考价8375065380（参考价用于 交易限制+-10%），但是这个功能我没写，你帮我完成流动性定价的限制
+
+CarbonUSDTMarket订单簿市场合约（未部署）：和amm池合约没有联动，是单独的订单簿市场合约，而且挂单交易也没有限价，目前好的办法就是，单簿市场可以直接调用AMM池的兑换函数，市价单直接吃池子，限价单挂单，二者互补。
+
+
 ## 网络配置
 
 ### Sepolia 测试网地址
@@ -71,7 +76,7 @@
 - **USDT**: `0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7` (18位精度)
 - **EUR/USD 价格预言机**: `0x1a81afB8146aeFfCFc5E50e8479e826E7D55b910`
 - **Chainlink Token**: `0x779877A7B0D9E8603169DdbD7836e478b4624789`
-- **Functions Router**: `0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C`
+- **Functions Router**: `0xb83E47C2bC239B3bf370bc41e1459A34b41238D0`
 - **DON ID**: `0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000`
 
 ## 部署参数
@@ -96,121 +101,6 @@
 - ✅ GreenTalesLiquidityPool 已部署并设置预言机
 - ✅ GreenTalesMarket 已部署
 
-## 下一步操作
-
-### 1. 配置预言机
-
-```bash
-# 更新 .env 文件
-CARBON_PRICE_ORACLE_ADDRESS=0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c
-CHAINLINK_FUNCTIONS_SUBSCRIPTION_ID=5045
-
-# 运行配置脚本
-forge script script/ConfigureOracle.s.sol:ConfigureOracle \
-  --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY \
-  --private-key YOUR_PRIVATE_KEY \
-  --broadcast -vvvv
-```
-
-🎉 预言机配置成功！
-
-🎉 太棒了！预言机合约部署成功！
-
-## 部署结果：
-
-* ✅ 新预言机地址: 0xFDA7AaAB821186B9fABa7B0418df0f514d221dec
-* ✅ 订阅ID: 5045
-* ✅ 操作员: 0x294761C91734360C5A70e33F8372778ED2849767
-* ✅ 初始Gas限制: 1,000,000
-* ✅ 部署费用: 0.000002566139463261 ETH
-
-## 下一步操作：
-
-## ✅ 配置完成状态：
-
-### 1. 订阅ID设置成功
-
-* 订阅ID: 5045
-* 交易哈希: 0x93ce804f0abacb0ee54aa2f14a1cd6c1ea18a3ff4b88539bfd1c0f0cfa5094db
-
-### 2. 操作员添加成功
-
-* 操作员地址: 0x4b5EF7cA580Db6f98D794A1b78d56773Bc83F9D3
-* 交易哈希: 0x8e65f864de9f5c3e824d1e2cebfee80fe683700c259523a90e4800c07d6db86b
-
-### 3. 验证通过
-
-* ✅ 订阅ID验证成功
-* ✅ 操作员权限验证成功
-
-### 2. 初始化流动性池
-
-```bash
-# 授权USDT给流动性池
-cast send 0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7 \
-  "approve(address,uint256)" \
-  0x6c9c8c371cBD71108e272D20c86978AdB2f9a114 \
-  44000000000000000000000000 \
-  --private-key YOUR_PRIVATE_KEY
-
-# 添加流动性
-cast send 0x6c9c8c371cBD71108e272D20c86978AdB2f9a114 \
-  "addLiquidity(uint256,uint256)" \
-  500000000000000000000000 \
-  44000000000000000000000000 \
-  --private-key YOUR_PRIVATE_KEY
-```
-
-流动性池初始化成功！
-
-* 交易哈希：0xd724ef8904a3881deda2b6c5e6c476f1ebc753949e59169ca764a03796fc46aa
-* 区块号：8576809
-* 状态：成功
-
-你已经成功向流动性池 0x6c9c8c371cBD71108e272D20c86978AdB2f9a114 添加了* 50万碳币（500000 \* 1e18）
-
-* 4400万 USDT（44,000,000 \* 1e18）
-
-https://sepolia.etherscan.io/tx/0xd724ef8904a3881deda2b6c5e6c476f1ebc753949e59169ca764a03796fc46aa
-
-### 
-
-3. 测试预言机
-
-```bash
-# 请求更新碳价
-cast send 0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c \
-  "requestCarbonPrice()" \
-  --private-key YOUR_PRIVATE_KEY
-```
-
-✅ 交易详情：
-
-* 交易哈希: 0xca7bb7584d8db765219591efd79c722abe0661a9dfa9b70445764b01dec3e3e8
-* 区块号: 8576786
-* 状态: 成功执行
-* Gas消耗: 48,043 gas
-
-你可以查看 PriceUpdated 事件：
-
-🔍 查看方式：
-
-1Etherscan 合约页面（推荐）
-
-访问你的预言机合约页面：
-
-https://sepolia.etherscan.io/address/0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c
-
-然后：* 点击 "Events" 标签页
-
-* 查看是否有新的 PriceUpdated 事件
-* 事件会显示欧元价格、美元价格和时间戳
-*
-
-2.或者
-
-cast logs 0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c --from-block 8576786 --rpc-url https://eth-sepolia.g.alchemy.com/v2/hAep1geH-r3ppdFDXWBK5Ymvmn9Zl7ql
-
 ## 合约验证状态
 
 所有合约已通过 Etherscan 验证：
@@ -233,10 +123,10 @@ cast logs 0x619953d9a7D946360E53f9aFF79ed8F2b3Cd3E6c --from-block 8576786 --rpc-
 ## 部署脚本
 
 - **分步部署脚本**: `script/DeployStepByStep.s.sol`
-- **配置脚本**: `script/ConfigureOracle.s.sol`
+- 并且手动配置orcle合约地址到pool合约中
 - **完成初始化脚本**: `script/CompleteInitialization.s.sol`
 
 ---
 
-*部署完成时间: 2024年12月19日*
+*部署完成时间: 2024年6月19日*
 *部署者: 0x294761C91734360C5A70e33F8372778ED2849767*
