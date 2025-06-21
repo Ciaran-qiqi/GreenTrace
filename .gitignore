@@ -39,8 +39,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# 不忽略所有依赖，因为我前端的依赖很容易下载出错，我要一起管理
-# node_modules
+# 忽略 node_modules 和 Next.js 编译输出
+node_modules/
+.next/
 
 
 # solidity-coverage files
