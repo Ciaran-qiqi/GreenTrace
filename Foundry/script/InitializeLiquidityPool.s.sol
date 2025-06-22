@@ -19,7 +19,7 @@ contract InitializeLiquidityPool is Script {
     // 已部署的合约地址（需要根据实际部署结果更新）
     address constant CARBON_TOKEN = 0x808b73A3A1D97382acF32d4F4F834e799Aa08198;
     // 需要部署后更新这个地址
-    address constant LIQUIDITY_POOL = 0x0000000000000000000000000000000000000000; // 部署后更新
+    address constant LIQUIDITY_POOL = 0xCfBE2B410E5707b35231B9237bD7E523403Db889; // 部署后更新
     
     // 初始流动性参数
     uint256 constant INITIAL_CARBON_AMOUNT = 1000 * 1e18; // 1000 碳币
