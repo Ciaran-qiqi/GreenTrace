@@ -34,22 +34,7 @@
 - **部署交易**: `0xea119be0d14dc897d39aafe51ea45faabc78b8c5b2c48de5d6df988564f34a56`
 - **GreenTrace合约**: `0x11e6b5Aeff2FaeFe489776aDa627B2C621ee8673`
 
-### **4. CarbonPriceOracle (碳价预言机)**
-
-- 合约地址：0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa
-- **Etherscan：**[查看合约](https://sepolia.etherscan.io/address/0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa)
-- 主要功能：requestCarbonPrice(0x07ca5e23)
-
-### 5. GreenTalesLiquidityPool (流动性池)-问题：没有用到预言机获取的api价格
-
-- **合约地址**: `0x6c9c8c371cBD71108e272D20c86978AdB2f9a114`
-- **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x6c9c8c371cBD71108e272D20c86978AdB2f9a114)
-- **部署交易**: `0x3983d5335aeb595a648aaebadedd41855231a49bc848fc3a00c2568ffe86f0ba`
-- **碳币合约**: `0x808b73A3A1D97382acF32d4F4F834e799Aa08198`
-- **USDT合约**: `0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7`
-- **碳价预言机合约**: `0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa`
-
-### 6. GreenTalesMarket (NFT市场)
+### 4. GreenTalesMarket (NFT市场)
 
 - **合约地址**: `0x82c59961a858f92816d61be7Ec28541E51d37224`
 - **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x82c59961a858f92816d61be7Ec28541E51d37224)
@@ -60,14 +45,31 @@
 - **手续费接收地址**: `0x294761C91734360C5A70e33F8372778ED2849767`
 - **GreenTrace合约**: `0x11e6b5Aeff2FaeFe489776aDa627B2C621ee8673`
 
-## 目前问题：
+### **5. CarbonPriceOracle (碳价预言机)**
+
+- 合约地址：0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa
+- **Etherscan：**[查看合约](https://sepolia.etherscan.io/address/0xe3e2262fb8c00374b1e73f34ae34df2ce36f03fa)
+- 主要功能：requestCarbonPrice(0x07ca5e23)
+
+### 6. GreenTalesLiquidityPool (流动性池)
+
+* 合约地址: 0x299491bF3556e506D4545B0B35FB04f26017f191
+* Etherscan: [查看合约](https://sepolia.etherscan.io/address/0x299491bF3556e506D4545B0B35FB04f26017f191)
+* 部署交易: 0x51aff3720eedf2489d0efc4c9008fe7fae8e45126759af6ea93efcc6b492a2b5
+
+### 7. CarbonUSDTMarket (订单簿市场)
+
+* 合约地址: 0x76Fd70Fd0c46e8AD4EEA20E435e2eE82B528E8d5
+* Etherscan: [查看合约](https://sepolia.etherscan.io/address/0x76Fd70Fd0c46e8AD4EEA20E435e2eE82B528E8d5)
+* 部署交易: 0x7cde0f573599b9564c1791244a4f986b064fb87147f6f46ff538a01eba3e2894
+
+## 目前问题：（已解决）
 
 问题合约详情：
 
 CarbonPriceOracle流动性池子合约（已部署）：目前只有流动性的定价，目前是88 usdt，但是没有获取到我预言机合约得到的 carbonPriceUSD (0xb7c5a4b9)参考价8375065380（参考价用于 交易限制+-10%），但是这个功能我没写，你帮我完成流动性定价的限制
 
 CarbonUSDTMarket订单簿市场合约（未部署）：和amm池合约没有联动，是单独的订单簿市场合约，而且挂单交易也没有限价，目前好的办法就是，单簿市场可以直接调用AMM池的兑换函数，市价单直接吃池子，限价单挂单，二者互补。
-
 
 ## 网络配置
 

@@ -111,20 +111,26 @@ contract DeployStepByStep is Script {
         console.log(unicode"CarbonPriceOracle 部署成功！地址:", carbonPriceOracleAddress);
         vm.stopBroadcast();
         
-        // 9. 部署GreenTalesLiquidityPool
+        // 9. 部署GreenTalesLiquidityPool（移除USDT/USD价格预言机依赖）
         console.log(unicode"9. 部署 GreenTalesLiquidityPool...");
         vm.startBroadcast(deployerPrivateKey);
         GreenTalesLiquidityPool pool = new GreenTalesLiquidityPool(
             carbonTokenAddress,
-            SEPOLIA_USDT,
-            address(0)
+            SEPOLIA_USDT
         );
         address liquidityPoolAddress = address(pool);
         console.log(unicode"GreenTalesLiquidityPool 部署成功！地址:", liquidityPoolAddress);
         vm.stopBroadcast();
         
-        // 10. 部署GreenTalesMarket
-        console.log(unicode"10. 部署 GreenTalesMarket...");
+        // 10. 设置Pool的碳价预言机地址
+        console.log(unicode"10. 设置Pool的碳价预言机地址...");
+        vm.startBroadcast(deployerPrivateKey);
+        pool.setCarbonPriceOracle(carbonPriceOracleAddress);
+        console.log(unicode"Pool的碳价预言机地址设置成功");
+        vm.stopBroadcast();
+        
+        // 11. 部署GreenTalesMarket
+        console.log(unicode"11. 部署 GreenTalesMarket...");
         vm.startBroadcast(deployerPrivateKey);
         GreenTalesMarket market = new GreenTalesMarket(
             nftAddress,

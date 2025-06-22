@@ -56,7 +56,10 @@ contract DeployMarket is Script {
         CarbonUSDTMarket market = new CarbonUSDTMarket(
             address(carbonToken),
             SEPOLIA_USDT,
+            address(0), // AMM池地址（暂时设为0，后续设置）
             PLATFORM_FEE_RATE,
+            50, // 限价单挂单手续费率 0.5%
+            30, // 限价单成交手续费率 0.3%
             deployer  // 手续费接收地址设置为部署者
         );
         console.log("CarbonUSDTMarket deployed at:", address(market));
@@ -64,8 +67,7 @@ contract DeployMarket is Script {
         // 3. 部署GreenTalesLiquidityPool合约
         GreenTalesLiquidityPool pool = new GreenTalesLiquidityPool(
             address(carbonToken),
-            SEPOLIA_USDT,
-            address(0)  // 移除USDT/USD价格预言机
+            SEPOLIA_USDT
         );
         console.log("GreenTalesLiquidityPool deployed at:", address(pool));
 

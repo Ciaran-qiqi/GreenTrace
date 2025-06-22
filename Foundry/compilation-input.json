@@ -1,0 +1,545 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "src/CarbonToken.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n// wake-disable unsafe-erc20-call \n\npragma solidity ^0.8.19;\n\nimport \"lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol\";\nimport \"lib/openzeppelin-contracts/contracts/access/Ownable.sol\";\n\n/**\n * @title CarbonToken\n * @dev 碳币代币合约，实现ERC20标准\n * @notice 用于环保项目的碳信用代币，代表经过审计的碳减排量\n * \n * 主要功能：\n * 1. 初始铸造：部署时铸造初始供应量，用于系统运营\n * 2. 代币生成：通过销毁NFT兑换生成，生成数量由审计结果决定\n * 3. 代币分配：生成时自动分配系统手续费、审计费用和兑换数量\n * 4. 代币转账：支持标准的ERC20转账功能\n * \n * 碳币生成逻辑：\n * 1. NFT持有者申请审计\n * 2. 审计者提交审计结果\n * 3. 系统确认审计结果\n * 4. 销毁NFT并生成对应数量的碳币\n * 5. 自动分配：\n *    - 系统手续费（1%）给系统钱包\n *    - 审计费用（4%）给审计者\n *    - 剩余数量（95%）给NFT持有者\n */\ncontract CarbonToken is ERC20, Ownable {\n    // GreenTrace合约地址\n    address public greenTrace;\n\n    // 事件定义\n    event GreenTraceUpdated(address indexed oldAddress, address indexed newAddress);\n    event TokensMinted(address indexed to, uint256 amount, uint256 timestamp);\n\n    // 初始分配结构体\n    struct InitialBalance {\n        address to;\n        uint256 amount;\n    }\n\n    /**\n     * @dev 构造函数\n     * @param initialBalances 初始分配数组，部署时一次性铸造给多个地址\n     * @notice 部署时会将所有初始代币铸造给指定账户，用于系统运营和测试\n     */\n    constructor(InitialBalance[] memory initialBalances) ERC20(\"Carbon Token\", \"CARB\") {\n        for (uint i = 0; i < initialBalances.length; i++) {\n            _mint(initialBalances[i].to, initialBalances[i].amount);\n            emit TokensMinted(initialBalances[i].to, initialBalances[i].amount, block.timestamp);\n        }\n    }\n\n    /**\n     * @dev 设置GreenTrace合约地址\n     * @param _greenTrace GreenTrace合约地址\n     * @notice 只有合约所有者可以调用此函数（所以很多情况下要先设置地址才能调用）\n     */\n    function setGreenTrace(address _greenTrace) external onlyOwner {\n        address oldAddress = greenTrace;\n        greenTrace = _greenTrace;\n        emit GreenTraceUpdated(oldAddress, _greenTrace);\n    }\n\n    /**\n     * @dev 铸造碳币\n     * @param to 接收地址\n     * @param amount 铸造数量\n     * @notice 只有GreenTrace合约可以调用此函数\n     * @notice 用于NFT兑换时铸造新的碳币\n     */\n    function mint(address to, uint256 amount) external {\n        require(msg.sender == greenTrace, \"Only GreenTrace can mint\");\n        _mint(to, amount);\n        emit TokensMinted(to, amount, block.timestamp);\n    }\n}"
+    },
+    "src/CarbonPriceOracle.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n// wake-disable unsafe-erc20-call\n\npragma solidity ^0.8.19;\n\nimport \"lib/chainlink-brownie-contracts/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol\";\nimport \"lib/chainlink-brownie-contracts/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol\";\nimport \"lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol\";\nimport \"lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol\";\nimport \"lib/openzeppelin-contracts/contracts/access/Ownable.sol\";\nimport \"./interfaces/ICarbonPriceOracle.sol\";\n\n/**\n * @title CarbonPriceOracle\n * @dev 碳价预言机合约，使用Chainlink Functions获取API碳价并转换为美元价格\n * @notice 通过Chainlink Functions调用API获取碳价(欧元计价)，并通过EUR/USD价格预言机转换为美元价格\n */\ncontract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {\n    using FunctionsRequest for FunctionsRequest.Request;\n    \n    // ============ 状态变量 ============\n    uint256 public carbonPriceEUR;      // 欧元碳价（8位精度，例如：500000000 = 5.00 EUR）\n    uint256 public carbonPriceUSD;      // 美元碳价（8位精度，例如：550000000 = 5.50 USD）\n    \n    // ============ Chainlink Functions 配置 ============\n    bytes32 public donId;               // DON ID：指定使用哪个去中心化预言机网络\n    uint64 public subscriptionId;       // 订阅ID：关联付费账户，用于支付Functions调用费用\n    uint32 public gasLimit;             // Gas限制：限制JavaScript代码执行的最大gas消耗\n    bytes32 public secretsLocation;     // 密钥位置：用于存储API密钥等敏感信息（当前未使用）\n    \n    // ============ 外部依赖 ============\n    AggregatorV3Interface public eurUsdPriceFeed;  // EUR/USD价格预言机合约地址\n    IERC20 public linkToken;                       // LINK代币合约地址，用于支付Functions费用\n    \n    // ============ 权限管理 ============\n    mapping(address => bool) public authorizedOperators;  // 授权操作员映射，允许非所有者调用requestCarbonPrice\n    \n    // ============ 事件定义 ============\n    // 价格更新事件\n    event PriceUpdated(uint256 eurPrice, uint256 usdPrice, uint256 timestamp);\n    \n    // 操作员管理事件\n    event OperatorAdded(address indexed operator);\n    event OperatorRemoved(address indexed operator);\n    \n    // Functions请求相关事件\n    event FunctionsRequestSent(bytes32 indexed requestId, string source);\n    event RequestProcessed(bytes32 indexed requestId, bool success, string errorMessage);\n    event RequestInitiated(address indexed caller, uint64 subscriptionId, uint32 gasLimit, bytes32 donId);\n    event RequestValidationFailed(string reason);\n    event RequestSent(bytes32 indexed requestId, uint64 subscriptionId, uint32 gasLimit, bytes32 donId);\n    \n    // JavaScript代码构建事件\n    event JavaScriptSourceBuilt(string source);\n    event RequestObjectCreated();\n    event RequestEncoded(bytes encodedRequest);\n    \n    // 回调处理事件\n    event FulfillRequestStarted(bytes32 indexed requestId, uint256 responseLength, uint256 errorLength);\n    event ResponseDecoded(uint256 priceEUR);\n    event EurUsdPriceFetched(int256 eurUsdPrice);\n    event UsdPriceCalculated(uint256 usdPrice);\n    event FulfillRequestCompleted(bytes32 indexed requestId);\n    \n    // 价格计算事件\n    event PriceCalculation(uint256 eurPrice, uint256 eurUsdRate, uint256 usdPrice);\n    \n    /**\n     * @dev 构造函数 - 初始化预言机合约\n     * @param router Chainlink Functions Router地址 - 负责路由Functions请求到正确的DON\n     * @param _donId DON ID - 指定使用哪个去中心化预言机网络（例如：fun-ethereum-sepolia-1）\n     * @param _eurUsdPriceFeed EUR/USD价格预言机地址 - 用于获取实时汇率\n     * @param _linkToken LINK代币地址 - 用于支付Functions调用费用\n     * \n     * 初始化说明：\n     * - 继承FunctionsClient以获取Functions调用能力\n     * - 继承Ownable以获取权限管理功能\n     * - 设置初始gas限制为1,000,000（足够执行复杂的JavaScript代码）\n     * - 验证所有地址参数的有效性\n     * \n     * 技术细节：\n     * - gasLimit设置为1,000,000确保JavaScript代码有足够gas执行\n     * - 使用AggregatorV3Interface接口与Chainlink价格预言机交互\n     * - 初始化LINK代币合约引用用于费用支付\n     */\n    constructor(\n        address router,\n        bytes32 _donId,\n        address _eurUsdPriceFeed,\n        address _linkToken\n    ) FunctionsClient(router) Ownable() {\n        donId = _donId;\
+        eurUsdPriceFeed = AggregatorV3Interface(_eurUsdPriceFeed);\
+        gasLimit = 1000000; // 设置更高的初始gas限制\
+        linkToken = IERC20(_linkToken);\
+    }\
+    \n    /**\n     * @dev 设置订阅ID-订阅ID关联了你的付费账户\n     * @param _subscriptionId 订阅ID\n     * @notice 只有合约所有者可以调用此函数\n     */\n    function setSubscriptionId(uint64 _subscriptionId) external onlyOwner {\n        subscriptionId = _subscriptionId;\
+    }\
+    \n    /**\n     * @dev 设置Gas限制\n     * @param _gasLimit Gas限制\n     * @notice 只有合约所有者可以调用此函数\n     */\n    function setGasLimit(uint32 _gasLimit) external onlyOwner {\n        gasLimit = _gasLimit;\
+    }\
+    \n    /**\n     * @dev 添加授权操作员-操作员可以调用requestCarbonPrice函数\n     * @param _operator 操作员地址\n     * @notice 只有合约所有者可以调用此函数\n     */\n    function addOperator(address _operator) external onlyOwner {\n        require(_operator != address(0), \"Invalid operator address\");\
+        authorizedOperators[_operator] = true;\
+        emit OperatorAdded(_operator);\
+    }\
+    \n    /**\n     * @dev 移除授权操作员\n     * @param _operator 操作员地址\n     * @notice 只有合约所有者可以调用此函数\n     */\n    function removeOperator(address _operator) external onlyOwner {\n        authorizedOperators[_operator] = false;\
+        emit OperatorRemoved(_operator);\
+    }\
+    \n    /**\n     * @dev 权限检查修饰器\n     * @notice 只有合约所有者或授权操作员可以调用\n     */\n    modifier onlyAuthorized() {\
+        require(owner() == msg.sender || authorizedOperators[msg.sender], \"Not authorized\");\
+        _;\
+    }\
+    \n    /**\n     * @dev 请求更新碳价 - 核心功能函数\n     * @notice 使用Chainlink Functions调用API获取最新碳价\n     * @notice 需要确保有足够的订阅余额支付费用\n     * @notice 只有合约所有者或授权操作员可以调用此函数\n     * \n     * 执行流程：\n     * 1. 验证配置参数（订阅ID、gas限制、DON ID）\n     * 2. 构建JavaScript源代码（调用API并返回8位精度价格）\n     * 3. 创建FunctionsRequest对象并编码为CBOR格式\n     * 4. 发送请求到Chainlink Functions网络\n     * 5. 记录请求ID和相关信息\n     * \n     * JavaScript代码说明：\n     * - 调用https://greentrace-api.onrender.com/api/carbon-price获取碳价\n     * - 验证响应格式和数据类型\n     * - 将价格乘以1e8转换为8位精度\n     * - 使用Functions.encodeUint256编码返回数据\n     * \n     * 安全考虑：\n     * - 参数验证防止无效请求\n     * - 权限检查确保只有授权用户可调用\n     * - 完整的事件记录便于调试和监控\n     */\n    function requestCarbonPrice() public onlyAuthorized {\
+        // 验证订阅ID\
+        if (subscriptionId == 0) {\
+            emit RequestValidationFailed(\"Subscription ID not set\");\
+            revert(\"Subscription ID not set\");\
+        }\
+        \
+        // 验证gas限制\
+        if (gasLimit == 0) {\
+            emit RequestValidationFailed(\"Gas limit not set\");\
+            revert(\"Gas limit not set\");\
+        }\
+        \
+        // 验证DON ID\
+        if (donId == bytes32(0)) {\
+            emit RequestValidationFailed(\"DON ID not set\");\
+            revert(\"DON ID not set\");\
+        }\
+        \
+        // 记录请求开始\
+        emit RequestInitiated(msg.sender, subscriptionId, gasLimit, donId);\
+        \
+        // 构建JavaScript源代码\
+        string memory source = string(\
+            abi.encodePacked(\
+                \"const response = await Functions.makeHttpRequest({\",\
+                \"url: 'https://greentrace-api.onrender.com/api/carbon-price',\",\
+                \"method: 'GET'\",\
+                \"});\",\
+                \"if (response.error) { throw Error('Request failed'); }\",\
+                \"const data = response.data;\",\
+                \"if (!data || typeof data.price !== 'number') { throw Error('Invalid response format'); }\",\
+                \"return Functions.encodeUint256(Math.round(data.price * 1e8));\"\
+            )\
+        );\
+        \
+        // 记录JavaScript源代码构建完成\
+        emit JavaScriptSourceBuilt(source);\
+        \
+        // 构建请求\
+        FunctionsRequest.Request memory req;\
+        req.initializeRequestForInlineJavaScript(source);\
+        \
+        // 记录请求对象创建完成\
+        emit RequestObjectCreated();\
+        \
+        // 编码请求\
+        bytes memory encodedRequest = req.encodeCBOR();\
+        emit RequestEncoded(encodedRequest);\
+        \
+        // 发送请求\
+        bytes32 requestId = _sendRequest(\
+            encodedRequest,\
+            subscriptionId,\
+            gasLimit,\
+            donId\
+        );\
+        \
+        // 记录请求发送完成\
+        emit RequestSent(requestId, subscriptionId, gasLimit, donId);\
+        emit FunctionsRequestSent(requestId, source);\
+    }\
+    \n    /**\n     * @dev fulfillRequest - Chainlink Functions回调处理函数\n     * @param requestId 请求ID - 用于标识特定的Functions请求\n     * @param response 响应数据 - JavaScript代码返回的编码数据\n     * @param err 错误信息 - 如果JavaScript执行失败，包含错误详情\n     * \n     * 处理流程：\n     * 1. 检查是否有错误发生\n     * 2. 解码JavaScript返回的欧元价格（8位精度）\n     * 3. 从EUR/USD价格预言机获取实时汇率\n     * 4. 计算美元价格：USD = EUR * (EUR/USD汇率)\n     * 5. 更新状态变量并发出事件\n     * \n     * 精度处理：\n     * - 欧元价格：8位精度（例如：500000000 = 5.00 EUR）\
+        * - EUR/USD汇率：8位精度（例如：110000000 = 1.10）\
+        * - 美元价格：8位精度（例如：550000000 = 5.50 USD）\
+        * - 计算公式：(eurPrice * eurUsdRate) / 1e8\
+        * \
+        * 安全验证：\
+        * - 检查响应数据不为空\
+        * - 验证EUR/USD价格大于0\
+        * - 完整的错误处理和事件记录\
+        */\
+    function fulfillRequest(\
+        bytes32 requestId,\
+        bytes memory response,\
+        bytes memory err\
+    ) internal override {\
+        // 记录回调开始\
+        emit FulfillRequestStarted(requestId, response.length, err.length);\
+        \
+        if (err.length > 0) {\
+            // 处理错误 - 记录错误信息\
+            string memory errorMessage = string(err);\
+            emit RequestProcessed(requestId, false, errorMessage);\
+            return;\
+        }\
+        \
+        // 检查响应数据是否为空\
+        require(response.length > 0, \"Empty response from Functions\");\
+        \
+        // 解码价格数据\
+        uint256 priceEUR = abi.decode(response, (uint256)); // 8位精度\
+        carbonPriceEUR = priceEUR;\
+        \
+        // 记录价格解码完成\
+        emit ResponseDecoded(priceEUR);\
+        \
+        // 获取EUR/USD价格（8位精度）\
+        (, int256 eurUsdPrice,,,) = eurUsdPriceFeed.latestRoundData();\
+        require(eurUsdPrice > 0, \"Invalid EUR/USD price\");\
+        \
+        // 记录EUR/USD价格获取完成\
+        emit EurUsdPriceFetched(eurUsdPrice);\
+        \
+        // 计算USD价格：两个8位精度相乘，除以1e8得到8位精度结果\
+        carbonPriceUSD = (priceEUR * uint256(eurUsdPrice)) / 1e8;\
+        \
+        // 记录USD价格计算完成\
+        emit UsdPriceCalculated(carbonPriceUSD);\
+        \
+        // 发出价格计算事件\
+        emit PriceCalculation(priceEUR, uint256(eurUsdPrice), carbonPriceUSD);\
+        emit RequestProcessed(requestId, true, \"\");\
+        \
+        emit PriceUpdated(carbonPriceEUR, carbonPriceUSD, block.timestamp);\
+        \
+        // 记录回调完成\
+        emit FulfillRequestCompleted(requestId);\
+    }\
+    \n    /**\n     * @dev 提取合约中的LINK代币（管理合约中link币数量）\n     * @param _to 接收地址\n     * @param _amount 提取数量\n     * @notice 只有合约所有者可以调用此函数\n     */\
+    function withdrawLink(address _to, uint256 _amount) external onlyOwner {\
+        require(_to != address(0), \"Invalid address\");\
+        uint256 contractBalance = linkToken.balanceOf(address(this));\
+        require(_amount <= contractBalance, \"Insufficient LINK balance\");\
+        \
+        // 检查提取后是否还有足够余额支付费用\
+        uint256 remainingBalance = contractBalance - _amount;\
+        require(remainingBalance >= 0.1 * 1e18, \"Insufficient balance after withdrawal\");\
+        \
+        require(linkToken.transfer(_to, _amount), \"LINK transfer failed\");\
+    }\
+    \n    /**\n     * @dev 获取最新碳价（美元）\n     * @return 碳价（美元）\n     */\
+    function getLatestCarbonPriceUSD() external view override returns (uint256) {\
+        return carbonPriceUSD;\
+    }\
+    \n    /**\n     * @dev 获取最新碳价（欧元）\n     * @return 碳价（欧元）\n     */\
+    function getLatestCarbonPriceEUR() external view override returns (uint256) {\
+        return carbonPriceEUR;\
+    }\
+    \n    /**\n     * @dev 仅测试用：设置碳价（欧元）\n     */\
+    function setTestCarbonPriceEUR(uint256 value) external {\
+        carbonPriceEUR = value;\
+    }\
+    /**\n     * @dev 仅测试用：设置碳价（美元）\n     */\
+    function setTestCarbonPriceUSD(uint256 value) external {\
+        carbonPriceUSD = value;\
+    }\
+}"
+    },
+    "src/CarbonUSDTMarket.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\nimport \"./CarbonToken.sol\";\nimport \"./GreenTalesLiquidityPool.sol\";\nimport \"lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol\";\nimport \"lib/openzeppelin-contracts/contracts/access/Ownable.sol\";\nimport \"lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol\";\nimport \"lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol\";\n\n/**\n * @title CarbonUSDTMarket\n * @dev 碳币和USDT的交易市场合约，与AMM池集成\n * \n * 手续费结构：\n * 1. 市价单：只收平台手续费，Pool收0.3%手续费\n * 2. 限价单：收挂单费、成交费、平台手续费\n */\ncontract CarbonUSDTMarket is Ownable, ReentrancyGuard {\n    using SafeERC20 for CarbonToken;\n    using SafeERC20 for IERC20;\n\n    // 常量定义 - 优化Gas使用\n    uint256 private constant BASIS_POINTS = 10000;\n    uint256 private constant POOL_FEE_RATE = 30; // 0.3%\n    uint256 private constant MAX_FEE_RATE = 1000; // 10%\n    uint256 private constant PRICE_PRECISION = 1e18;\n\n    // 合约状态变量 - 优化存储布局\n    CarbonToken public immutable carbonToken;\
+    IERC20 public immutable usdtToken;\
+    GreenTalesLiquidityPool public immutable ammPool;\
+    \n    // 手续费配置\
+    uint256 public platformFeeRate;    // 平台手续费率（基点）\
+    uint256 public limitOrderFeeRate;  // 限价单挂单手续费率（基点）\
+    uint256 public fillOrderFeeRate;   // 限价单成交手续费率（基点）\
+    address public feeCollector;\
+\n    // 限价单价格限制参数\
+    uint256 public limitOrderPriceDeviationMultiplier = 2;\
+    uint256 public maxLimitOrderDeviation = 50;\
+\n    // 紧急暂停状态\
+    bool public paused;\
+\n    // 统计信息 - 打包到结构体中以节省Gas\
+    struct MarketStats {\
+        uint256 totalOrdersCreated;\
+        uint256 totalOrdersFilled;\
+        uint256 totalOrdersCancelled;\
+        uint256 totalVolumeTraded;\
+        uint256 totalFeesCollected;\
+        uint256 nextOrderId;\
+    }\
+    MarketStats public marketStats;\
+\n    // 订单类型枚举\
+    enum OrderType { Buy, Sell }\
+    enum OrderStatus { Active, Filled, Cancelled }\
+\n    // 订单结构体 - 优化存储布局\
+    struct Order {\
+        address user;\
+        OrderType orderType;\
+        uint256 amount;\
+        uint256 price;\
+        uint256 timestamp;\
+        OrderStatus status;\
+        uint256 orderFee;\
+    }\
+\n    // 映射关系\
+    mapping(uint256 => Order) public orders;\
+\n    // 事件定义\
+    event OrderCreated(uint256 indexed orderId, address indexed user, OrderType orderType, uint256 amount, uint256 price, uint256 timestamp);\
+    event OrderFilled(uint256 indexed orderId, address indexed buyer, address indexed seller, uint256 amount, uint256 price, uint256 platformFee, uint256 timestamp);\
+    event OrderCancelled(uint256 indexed orderId, address indexed user, uint256 timestamp);\
+    event MarketOrderExecuted(address indexed user, OrderType orderType, uint256 amount, uint256 price, uint256 timestamp);\
+    event PlatformFeeRateUpdated(uint256 oldRate, uint256 newRate);\
+    event LimitOrderFeeRateUpdated(uint256 oldRate, uint256 newRate);\
+    event FillOrderFeeRateUpdated(uint256 oldRate, uint256 newRate);\
+    event FeeCollectorUpdated(address oldCollector, address newCollector);\
+\n    /**\n     * @dev 构造函数\n     */\
+    constructor(\
+        address _carbonToken,\
+        address _usdtToken,\
+        address _ammPool,\
+        uint256 _platformFeeRate,\
+        uint256 _limitOrderFeeRate,\
+        uint256 _fillOrderFeeRate,\
+        address _feeCollector\
+    ) Ownable() {\
+        require(_carbonToken != address(0), \"Invalid carbon token\");\
+        require(_usdtToken != address(0), \"Invalid USDT token\");\
+        require(_ammPool != address(0), \"Invalid AMM pool\");\
+        require(_feeCollector != address(0), \"Invalid fee collector\");\
+        require(_platformFeeRate <= MAX_FEE_RATE, \"Platform fee too high\");\
+        require(_limitOrderFeeRate <= MAX_FEE_RATE, \"Limit order fee too high\");\
+        require(_fillOrderFeeRate <= MAX_FEE_RATE, \"Fill order fee too high\");\
+        \n        carbonToken = CarbonToken(_carbonToken);\
+        usdtToken = IERC20(_usdtToken);\
+        ammPool = GreenTalesLiquidityPool(_ammPool);\
+        platformFeeRate = _platformFeeRate;\
+        limitOrderFeeRate = _limitOrderFeeRate;\
+        fillOrderFeeRate = _fillOrderFeeRate;\
+        feeCollector = _feeCollector;\
+    }\
+\n    /**\n     * @dev 市价买单 - 直接调用AMM池，不额外收平台手续费\n     */\
+    function marketBuy(uint256 _amount) external whenNotPaused returns (uint256 usdtSpent) {\
+        require(_amount > 0, \"Amount must be greater than 0\");\
+        \n        uint256 ammPrice = ammPool.getCarbonPrice();\
+        require(ammPrice > 0, \"AMM pool price not available\");\
+        \n        // 计算需要的USDT数量（考虑Pool的0.3%手续费）\
+        uint256 adjustedAmount = (_amount * (BASIS_POINTS + POOL_FEE_RATE)) / BASIS_POINTS;\
+        uint256 estimatedUSDT = (adjustedAmount * ammPrice) / PRICE_PRECISION;\
+        \n        // 转移USDT到合约\
+        usdtToken.safeTransferFrom(msg.sender, address(this), estimatedUSDT);\
+        \n        // 调用AMM池进行兑换（添加失败处理）\
+        uint256 actualCarbonReceived;\
+        try ammPool.swapUsdtToCarbon(estimatedUSDT) returns (uint256 received) {\
+            actualCarbonReceived = received;\
+        } catch {\n            // 兑换失败，返还所有USDT给用户\
+            usdtToken.safeTransfer(msg.sender, estimatedUSDT);\
+            revert(\"AMM swap failed\");\
+        }\
+        \n        // 转移实际获得的碳币给用户\
+        carbonToken.safeTransfer(msg.sender, actualCarbonReceived);\
+        \n        marketStats.totalVolumeTraded += estimatedUSDT;\
+        emit MarketOrderExecuted(msg.sender, OrderType.Buy, actualCarbonReceived, ammPrice, block.timestamp);\
+        return estimatedUSDT;\
+    }\
+\n    /**\n     * @dev 市价卖单 - 直接调用AMM池，不额外收平台手续费\n     */\
+    function marketSell(uint256 _amount) external whenNotPaused returns (uint256 usdtReceived) {\
+        require(_amount > 0, \"Amount must be greater than 0\");\
+        \n        // 转移碳币到合约\
+        carbonToken.safeTransferFrom(msg.sender, address(this), _amount);\
+        \n        // 调用AMM池进行兑换（添加失败处理）\
+        uint256 received;\
+        try ammPool.swapCarbonToUsdt(_amount) returns (uint256 result) {\
+            received = result;\
+        } catch {\n            // 兑换失败，返还碳币给用户\
+            carbonToken.safeTransfer(msg.sender, _amount);\
+            revert(\"AMM swap failed\");\
+        }\
+        usdtReceived = received;\
+        \n        // 转移USDT给用户（AMM池已扣除手续费）\
+        usdtToken.safeTransfer(msg.sender, usdtReceived);\
+        \n        uint256 ammPrice = ammPool.getCarbonPrice();\
+        marketStats.totalVolumeTraded += usdtReceived;\
+        emit MarketOrderExecuted(msg.sender, OrderType.Sell, _amount, ammPrice, block.timestamp);\
+        return usdtReceived;\
+    }\
+\n    /**\n     * @dev 创建买单\n     */\
+    function createBuyOrder(uint256 _amount, uint256 _price) external whenNotPaused returns (uint256) {\
+        require(_amount > 0, \"Amount must be greater than 0\");\
+        require(_price > 0, \"Price must be greater than 0\");\
+\n        uint256 orderId = marketStats.nextOrderId++;\
+        \n        uint256 totalUSDT = _amount * _price;\
+        uint256 orderFee = (totalUSDT * limitOrderFeeRate) / BASIS_POINTS;\
+        uint256 totalRequired = totalUSDT + orderFee;\
+\n        // 转移USDT到合约（包含挂单手续费）\
+        usdtToken.safeTransferFrom(msg.sender, address(this), totalRequired);   \
+\n        // 转移挂单手续费给收集者\
+        if (orderFee > 0) {\
+            usdtToken.safeTransfer(feeCollector, orderFee);\
+            marketStats.totalFeesCollected += orderFee;\
+        }\
+\n        // 创建订单\
+        orders[orderId] = Order({\
+            user: msg.sender,\
+            orderType: OrderType.Buy,\
+            amount: _amount,\
+            price: _price,\
+            timestamp: block.timestamp,\
+            status: OrderStatus.Active,\
+            orderFee: orderFee\
+        });\
+\n        marketStats.totalOrdersCreated++;\
+        emit OrderCreated(orderId, msg.sender, OrderType.Buy, _amount, _price, block.timestamp);\
+        return orderId;\
+    }\
+\n    /**\n     * @dev 创建卖单\n     */\
+    function createSellOrder(uint256 _amount, uint256 _price) external whenNotPaused returns (uint256) {\
+        require(_amount > 0, \"Amount must be greater than 0\");\
+        require(_price > 0, \"Price must be greater than 0\");\
+\n        uint256 orderId = marketStats.nextOrderId++;\
+\n        uint256 totalUSDT = _amount * _price;\
+        uint256 orderFee = (totalUSDT * limitOrderFeeRate) / BASIS_POINTS;\
+\n        // 转移碳币到合约\
+        carbonToken.safeTransferFrom(msg.sender, address(this), _amount);\
+\n        // 转移挂单手续费（USDT）给收集者\
+        if (orderFee > 0) {\
+            usdtToken.safeTransferFrom(msg.sender, address(this), orderFee);\
+            usdtToken.safeTransfer(feeCollector, orderFee);\
+            marketStats.totalFeesCollected += orderFee;\
+        }\
+\n        // 创建订单\
+        orders[orderId] = Order({\
+            user: msg.sender,\
+            orderType: OrderType.Sell,\
+            amount: _amount,\
+            price: _price,\
+            timestamp: block.timestamp,\
+            status: OrderStatus.Active,\
+            orderFee: orderFee\
+        });\
+\n        marketStats.totalOrdersCreated++;\
+        emit OrderCreated(orderId, msg.sender, OrderType.Sell, _amount, _price, block.timestamp);\
+        return orderId;\
+    }\
+\n    /**\n     * @dev 成交订单\n     */\
+    function fillOrder(uint256 _orderId) external nonReentrant whenNotPaused {\
+        Order storage order = orders[_orderId];\
+        require(order.status == OrderStatus.Active, \"Order not active\");\
+        require(order.user != msg.sender, \"Cannot fill your own order\");\
+\n        uint256 amount = order.amount;\
+        uint256 price = order.price;\
+        uint256 totalUSDT = amount * price;\
+        \n        // 计算成交手续费（成交手续费 + 平台手续费）\
+        uint256 fillFee = (totalUSDT * fillOrderFeeRate) / BASIS_POINTS;\
+        uint256 platformFee = (totalUSDT * platformFeeRate) / BASIS_POINTS;\
+        uint256 totalFee = fillFee + platformFee;\
+        uint256 sellerAmount = totalUSDT - totalFee;\
+\n        if (order.orderType == OrderType.Buy) {\
+            // 买单成交：卖家提供碳币，获得USDT\
+            carbonToken.safeTransferFrom(msg.sender, order.user, amount);\
+            usdtToken.safeTransfer(msg.sender, sellerAmount);\
+            usdtToken.safeTransfer(feeCollector, totalFee);\
+        } else {\
+            // 卖单成交：买家提供USDT，获得碳币\
+            usdtToken.safeTransferFrom(msg.sender, address(this), totalUSDT);\
+            carbonToken.safeTransfer(msg.sender, amount);\
+            usdtToken.safeTransfer(order.user, sellerAmount);\
+            usdtToken.safeTransfer(feeCollector, totalFee);\
+        }\
+\n        order.status = OrderStatus.Filled;\
+\n        marketStats.totalOrdersFilled++;\
+        marketStats.totalVolumeTraded += totalUSDT;\
+        marketStats.totalFeesCollected += totalFee;\
+\n        emit OrderFilled(\
+            _orderId,\
+            order.orderType == OrderType.Buy ? order.user : msg.sender,\
+            order.orderType == OrderType.Buy ? msg.sender : order.user,\
+            amount,\
+            price,\
+            totalFee,\
+            block.timestamp\
+        );\
+    }\
+\n    /**\n     * @dev 取消订单\n     */\
+    function cancelOrder(uint256 _orderId) external {\
+        Order storage order = orders[_orderId];\
+        require(order.status == OrderStatus.Active, \"Order not active\");\
+        require(order.user == msg.sender, \"Not order owner\");\
+\n        uint256 amount = order.amount;\
+        uint256 price = order.price;\
+        uint256 totalUSDT = amount * price;\
+\n        if (order.orderType == OrderType.Buy) {\
+            // 返还USDT给买家（不包含挂单手续费）\
+            usdtToken.safeTransfer(msg.sender, totalUSDT);\
+        } else {\
+            // 返还碳币给卖家\
+            carbonToken.safeTransfer(msg.sender, amount);\
+        }\
+\n        order.status = OrderStatus.Cancelled;\
+        marketStats.totalOrdersCancelled++;\
+\n        emit OrderCancelled(_orderId, msg.sender, block.timestamp);\
+    }\
+\n    /**\n     * @dev 获取订单信息\n     */\
+    function getOrder(uint256 _orderId) external view returns (Order memory) {\
+        return orders[_orderId];\
+    }\
+\n    /**\n     * @dev 获取市价单费用估算\n     */\
+    function getMarketOrderEstimate(uint256 _amount, bool _isBuy) external view returns (\
+        uint256 estimatedAmount,\
+        uint256 platformFee,\
+        uint256 totalAmount\n    ) {\
+        require(_amount > 0, \"Amount must be greater than 0\");\
+        \n        uint256 ammPrice = ammPool.getCarbonPrice();\
+        require(ammPrice > 0, \"AMM pool price not available\");\
+        \n        if (_isBuy) {\
+            // 买单：用USDT买碳币\
+            uint256 adjustedAmount = (_amount * (BASIS_POINTS + POOL_FEE_RATE)) / BASIS_POINTS;\
+            estimatedAmount = (adjustedAmount * ammPrice) / PRICE_PRECISION;\
+            \n            // 只收AMM池手续费，不额外收Market平台手续费\
+            platformFee = 0;\
+            totalAmount = estimatedAmount;\
+        } else {\
+            // 卖单：卖碳币得USDT\
+            estimatedAmount = (_amount * ammPrice) / PRICE_PRECISION;\
+            \n            // 只扣除Pool手续费，不额外收Market平台手续费\
+            uint256 afterPoolFee = estimatedAmount * (BASIS_POINTS - POOL_FEE_RATE) / BASIS_POINTS;\
+            platformFee = 0;\
+            totalAmount = afterPoolFee;\
+        }\n        \n        return (estimatedAmount, platformFee, totalAmount);\
+    }\
+\n    /**\n     * @dev 获取所有手续费率信息\n     */\
+    function getFeeRates() external view returns (\
+        uint256 platformFee,\
+        uint256 limitOrderFee,\
+        uint256 fillOrderFee\n    ) {\
+        return (\
+            platformFeeRate,\
+            limitOrderFeeRate,\
+            fillOrderFeeRate\
+        );\
+    }\
+\n    /**\n     * @dev 紧急暂停修饰器\n     */\
+    modifier whenNotPaused() {\
+        require(!paused, \"Contract is paused\");\
+        _;\
+    }\
+\n    /**\n     * @dev 紧急暂停/恢复合约\n     */\
+    function setPaused(bool _paused) external onlyOwner {\
+        paused = _paused;\
+    }\
+\n    /**\n     * @dev 更新平台手续费率\n     * @param _newRate 新的平台手续费率（基点）\n     * @notice 只有合约所有者可以调用此函数\n     */\
+    function updatePlatformFeeRate(uint256 _newRate) external onlyOwner {\
+        require(_newRate <= MAX_FEE_RATE, \"Fee rate too high\"); // 最高10%\
+        uint256 oldRate = platformFeeRate;\
+        platformFeeRate = _newRate;\
+        emit PlatformFeeRateUpdated(oldRate, _newRate);\
+    }\
+\n    /**\n     * @dev 更新限价单挂单手续费率\n     * @param _newRate 新的限价单挂单手续费率（基点）\n     * @notice 只有合约所有者可以调用此函数\n     */\
+    function updateLimitOrderFeeRate(uint256 _newRate) external onlyOwner {\
+        require(_newRate <= MAX_FEE_RATE, \"Fee rate too high\"); // 最高10%\
+        uint256 oldRate = limitOrderFeeRate;\
+        limitOrderFeeRate = _newRate;\
+        emit LimitOrderFeeRateUpdated(oldRate, _newRate);\
+    }\
+\n    /**\n     * @dev 更新限价单成交手续费率\n     * @param _newRate 新的限价单成交手续费率（基点）\n     * @notice 只有合约所有者可以调用此函数\n     */\
+    function updateFillOrderFeeRate(uint256 _newRate) external onlyOwner {\
+        require(_newRate <= MAX_FEE_RATE, \"Fee rate too high\"); // 最高10%\
+        uint256 oldRate = fillOrderFeeRate;\
+        fillOrderFeeRate = _newRate;\
+        emit FillOrderFeeRateUpdated(oldRate, _newRate);\
+    }\
+\n    /**\n     * @dev 更新手续费收集者地址\n     * @param _newCollector 新的手续费收集者地址\n     * @notice 只有合约所有者可以调用此函数\n     */\
+    function updateFeeCollector(address _newCollector) external onlyOwner {\
+        require(_newCollector != address(0), \"Invalid fee collector\");\
+        address oldCollector = feeCollector;\
+        feeCollector = _newCollector;\
+        emit FeeCollectorUpdated(oldCollector, _newCollector);\
+    }\
+\n    /**\n     * @dev 获取市场统计信息\n     */\
+    function getMarketStats() external view returns (\
+        uint256 totalOrdersCreated,\
+        uint256 totalOrdersFilled,\
+        uint256 totalOrdersCancelled,\
+        uint256 totalVolumeTraded,\
+        uint256 totalFeesCollected,\
+        uint256 nextOrderId\n    ) {\
+        return (\
+            marketStats.totalOrdersCreated,\
+            marketStats.totalOrdersFilled,\
+            marketStats.totalOrdersCancelled,\
+            marketStats.totalVolumeTraded,\
+            marketStats.totalFeesCollected,\
+            marketStats.nextOrderId\n        );\
+    }\
+}"
+    },
+    "src/interfaces/ICarbonPriceOracle.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n// wake-disable unsafe-erc20-call \n\npragma solidity ^0.8.19;\n\n/**\n * @title ICarbonPriceOracle\n * @dev 碳价预言机接口\n * @notice 用于获取碳价的参考价格\n */\ninterface ICarbonPriceOracle {\n    /**\n     * @dev 获取最新碳价（美元）\n     * @return 碳价（美元）\n     */\n    function getLatestCarbonPriceUSD() external view returns (uint256);\n\n    /**\n     * @dev 获取最新碳价（欧元）\n     * @return 碳价（欧元）\n     */\n    function getLatestCarbonPriceEUR() external view returns (uint256);\n}"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200,
+      "details": {
+        "yul": true,
+        "yulDetails": {
+          "optimizerSteps": "dhfoDgvulfnTUtnIf",
+          "stackAllocation": true
+        }
+      }
+    },
+    "viaIR": true,
+    "evmVersion": "paris",
+    "libraries": {},
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "remappings": [
+      "@openzeppelin/=lib/openzeppelin-contracts/contracts/"
+    ],
+    "metadata": {
+      "bytecodeHash": "none"
+    }
+  }
+} 

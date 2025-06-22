@@ -101,8 +101,7 @@ contract DeployScript is Script {
         console.log(unicode"5. 部署 GreenTalesLiquidityPool...");
         GreenTalesLiquidityPool pool = new GreenTalesLiquidityPool(
             address(carbonToken),
-            SEPOLIA_USDT,
-            address(0)  // 移除USDT/USD价格预言机
+            SEPOLIA_USDT
         );
         liquidityPoolAddress = address(pool);
         console.log(unicode"GreenTalesLiquidityPool 部署成功！地址:", liquidityPoolAddress);
