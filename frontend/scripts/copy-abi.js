@@ -19,7 +19,9 @@ const contracts = [
     'GreenTalesNFT',
     'GreenTalesMarket',
     'CarbonToken',
-    
+    'CarbonPriceOracle',
+    'GreenTalesLiquidityPool',
+    'CarbonUSDTMarket',
 ];
 
 // 复制每个合约的 ABI

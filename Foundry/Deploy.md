@@ -21,8 +21,8 @@
 
 ### 2. GreenTrace (核心合约)
 
-- **合约地址**: `0x11e6b5Aeff2FaeFe489776aDa627B2C621ee8673`
-- **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x11e6b5Aeff2FaeFe489776aDa627B2C621ee8673)
+- **合约地址**: `0x141B2c6Df6AE9863f1cD8FC4624d165209b9c18c`
+- **Etherscan**: [Etherscan 查看](https://sepolia.etherscan.io/address/0x141b2c6df6ae9863f1cd8fc4624d165209b9c18c)
 - **部署交易**: `0x207d0680a5708c5669479662931af444a19109012c1a5ffacfd4d1fa78d92b80`
 - **碳币合约**: `0x808b73A3A1D97382acF32d4F4F834e799Aa08198`
 - **NFT合约**: `0x3456a42043955B1626F6353936c0FEfCd1cB5f1c`
@@ -36,8 +36,8 @@
 
 ### 4. GreenTalesMarket (NFT市场)
 
-- **合约地址**: `0x82c59961a858f92816d61be7Ec28541E51d37224`
-- **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x82c59961a858f92816d61be7Ec28541E51d37224)
+- **合约地址**: `0x2661421e4e0373a06A3e705A83d1063e8F2F40EA`
+- **Etherscan**:[Etherscan 查看](https://sepolia.etherscan.io/address/0x2661421e4e0373a06a3e705a83d1063e8f2f40ea)
 - **部署交易**: `0xe71d9e068aba8249136adba707e67d00c0dd2e4b08777fcde69a821f56cd0004`
 - **NFT合约**: `0x3456a42043955B1626F6353936c0FEfCd1cB5f1c`
 - **碳币合约**: `0x808b73A3A1D97382acF32d4F4F834e799Aa08198`
