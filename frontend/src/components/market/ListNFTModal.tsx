@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { parseEther } from 'viem';
 import { formatFeeAmount } from '@/utils/tokenUtils';
+import { formatCarbonReduction } from '@/utils/formatUtils';
 import { useListNFT } from '@/hooks/market/useListNFT';
 import { toast } from 'react-hot-toast';
 
@@ -38,7 +39,8 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
   onSuccess,
 }) => {
   const [price, setPrice] = useState('');
-  const [currentStep, setCurrentStep] = useState<'input' | 'approve' | 'list' | 'success'>('input');
+  const [currentStep, setCurrentStep] = useState<'input' | 'approve' | 'list' | 'success' | 'error'>('input');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   
   const {
     listNFT,
@@ -104,14 +106,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
     }
   };
 
-  // 格式化碳减排量
-  const formatCarbonReduction = (amount: string) => {
-    const value = parseFloat(amount) / 1000; // 转换为kg
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}t`;
-    }
-    return `${value.toFixed(1)}kg`;
-  };
+
 
   // 计算手续费（假设1%）
   const calculateFee = (priceStr: string) => {
@@ -136,11 +131,34 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
     }
   }, [isSuccess, onSuccess]);
 
+  // 监听错误
+  React.useEffect(() => {
+    if (error) {
+      console.error('挂单过程中出错:', error);
+      let errorMsg = '挂单失败';
+      if (error.includes('user rejected')) {
+        errorMsg = '用户取消了交易';
+      } else if (error.includes('insufficient funds')) {
+        errorMsg = 'ETH余额不足，无法支付Gas费';
+      } else if (error.includes('not owner')) {
+        errorMsg = '您不是该NFT的拥有者';
+      } else if (error.includes('already listed')) {
+        errorMsg = '该NFT已经在市场上挂单';
+      }
+      setErrorMessage(errorMsg);
+      setCurrentStep('error');
+      toast.error(errorMsg);
+    }
+  }, [error]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-md w-full max-h-[90vh] overflow-y-auto relative overflow-hidden">
+        {/* 装饰性顶部渐变 */}
+        <div className="h-1 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600"></div>
+        
         {/* 头部 */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -149,7 +167,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="w-8 h-8 rounded-full bg-white/80 hover:bg-white/90 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all duration-200 backdrop-blur-sm shadow-lg text-lg"
             >
               ×
             </button>
@@ -253,10 +271,16 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <div className="text-blue-600 font-medium text-lg mb-2">正在授权NFT...</div>
-              <div className="text-sm text-gray-500">请在钱包中确认授权交易</div>
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+              <div className="text-sm text-gray-500 mb-4">请在钱包中确认授权交易</div>
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
                 💡 授权后，市场合约才能代您转移NFT
               </div>
+              <button
+                onClick={() => setCurrentStep('input')}
+                className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                取消
+              </button>
             </div>
           )}
 
@@ -265,11 +289,17 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
               <div className="text-green-600 font-medium text-lg mb-2">正在挂单...</div>
-              <div className="text-sm text-gray-500">请在钱包中确认挂单交易</div>
-              <div className="mt-4 space-y-2 text-sm text-gray-600">
+              <div className="text-sm text-gray-500 mb-4">请在钱包中确认挂单交易</div>
+              <div className="mb-4 space-y-2 text-sm text-gray-600">
                 <div>💰 售价: {price} CARB</div>
                 <div>📋 Token ID: #{nft.tokenId}</div>
               </div>
+              <button
+                onClick={() => setCurrentStep('input')}
+                className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                取消
+              </button>
             </div>
           )}
 
@@ -297,14 +327,35 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </div>
           )}
 
-          {/* 错误显示 */}
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="text-red-600 text-sm">
-                ❌ {error}
+          {/* 错误状态 */}
+          {currentStep === 'error' && (
+            <div className="text-center py-8">
+              <div className="text-6xl mb-4">❌</div>
+              <div className="text-red-600 font-medium text-lg mb-2">挂单失败</div>
+              <div className="text-sm text-gray-600 mb-4 px-4">
+                {errorMessage}
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setCurrentStep('input');
+                    setErrorMessage('');
+                  }}
+                  className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  重试
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  关闭
+                </button>
               </div>
             </div>
           )}
+
+
         </div>
 
         {/* 底部提示 */}

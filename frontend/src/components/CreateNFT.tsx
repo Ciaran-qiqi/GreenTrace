@@ -329,6 +329,12 @@ export const CreateNFT: React.FC = () => {
       return;
     }
 
+    // 检查ETH余额是否足够支付Gas费
+    if (hasInsufficientETH()) {
+      alert(`ETH余额不足！\n\n当前余额: ${balance?.formatted || '0'} ETH\n建议余额: 至少 0.002 ETH\n\n请充值ETH到您的钱包以支付交易的Gas费。`);
+      return;
+    }
+
     if (!carbonAmount) {
       alert('请输入有效的碳减排量');
       return;
@@ -492,11 +498,19 @@ export const CreateNFT: React.FC = () => {
     }
   };
 
+  // 检查ETH余额是否不足的函数
+  const hasInsufficientETH = () => {
+    if (!balance?.value) return true; // 没有余额数据时认为不足
+    const ethBalance = parseFloat(balance.formatted);
+    return ethBalance < 0.002; // 如果ETH余额小于0.002认为不足
+  };
+
   // 获取按钮文本
   const getButtonText = () => {
     if (!isConnected) return '请先连接钱包';
     if (!isFormValid) return '请填写完整信息';
-    if (hasInsufficientBalance()) return '余额不足';
+    if (hasInsufficientETH()) return 'ETH余额不足，Gas费可能不够';
+    if (hasInsufficientBalance()) return 'CARB余额不足';
     if (needsApproval()) return '需要授权碳代币';
     if (currentStep === 'uploading') return '上传中...';
     if (currentStep === 'approving') return '授权中...';
@@ -508,7 +522,7 @@ export const CreateNFT: React.FC = () => {
 
   // 获取按钮状态
   const getButtonDisabled = () => {
-    return !isConnected || !isFormValid || hasInsufficientBalance() || 
+    return !isConnected || !isFormValid || hasInsufficientETH() || hasInsufficientBalance() || 
            currentStep === 'uploading' || currentStep === 'approving' || currentStep === 'minting' ||
            (mintHash && !mintConfirmed); // 如果有交易但未确认，也禁用按钮
   };
@@ -529,9 +543,14 @@ export const CreateNFT: React.FC = () => {
             </div>
             <div>
               <span className="text-gray-600">ETH余额:</span>
-              <span className="ml-2 text-gray-800">
+              <span className={`ml-2 ${hasInsufficientETH() ? 'text-red-600' : 'text-gray-800'}`}>
                 {balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : '加载中...'}
               </span>
+              {hasInsufficientETH() && balance && (
+                <div className="text-xs text-red-500 mt-1">
+                  ⚠️ ETH余额不足0.002，可能无法支付Gas费
+                </div>
+              )}
             </div>
             <div>
               <span className="text-gray-600">碳代币余额:</span>
@@ -559,9 +578,15 @@ export const CreateNFT: React.FC = () => {
               </span>
             </div>
             <div>
-              <span className="text-gray-600">余额足够:</span>
+              <span className="text-gray-600">CARB余额:</span>
               <span className="ml-2 text-gray-800">
-                {fee > 0 ? (hasInsufficientBalance() ? '余额不足' : '余额充足') : '等待费用计算'}
+                {fee > 0 ? (hasInsufficientBalance() ? 'CARB不足' : 'CARB充足') : '等待费用计算'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">ETH余额:</span>
+              <span className={`ml-2 ${hasInsufficientETH() ? 'text-red-600' : 'text-green-600'}`}>
+                {hasInsufficientETH() ? 'ETH不足' : 'ETH充足'}
               </span>
             </div>
             {/* 调试信息 */}
