@@ -7,34 +7,23 @@ import { useAuditData, AuditRequest } from '@/hooks/useAuditData';
 import { AuditForm } from './AuditForm';
 import { RequestDetailModal, type RequestRecord } from './RequestDetailModal';
 import { formatFeeAmount } from '@/utils/tokenUtils';
+import { NFTViewButton } from './NFTViewButton';
 
 // 标签页类型
 type TabType = 'pending' | 'history';
 
-// 状态标签组件
+// 状态徽章组件
 const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] }> = ({ status }) => {
-  const statusConfig = {
-    pending: {
-      label: '待审计',
-      className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      icon: '⏳'
-    },
-    approved: {
-      label: '已通过',
-      className: 'bg-green-100 text-green-800 border-green-200',
-      icon: '✅'
-    },
-    rejected: {
-      label: '已拒绝',
-      className: 'bg-red-100 text-red-800 border-red-200',
-      icon: '❌'
-    }
+  const statusMap = {
+    pending: { label: '待审计', className: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
+    approved: { label: '已通过', className: 'bg-green-100 text-green-800', icon: '✅' },
+    rejected: { label: '已拒绝', className: 'bg-red-100 text-red-800', icon: '❌' },
   };
-
-  const config = statusConfig[status];
-
+  
+  const config = statusMap[status] || statusMap.pending;
+  
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.className}`}>
       <span className="mr-1">{config.icon}</span>
       {config.label}
     </span>
@@ -64,7 +53,7 @@ export const AuditCenter: React.FC = () => {
       carbonReduction: request.carbonReduction,
       tokenURI: request.tokenURI,
       totalFee: request.totalFee,
-      status: request.auditStatus as 'pending' | 'approved' | 'rejected' | 'minted',
+      status: request.auditStatus as 'pending' | 'approved' | 'rejected',
       timestamp: request.blockTimestamp,
       auditor: request.auditor,
       carbonValue: request.auditedCarbonValue,
@@ -210,12 +199,23 @@ export const AuditCenter: React.FC = () => {
               </button>
             </>
           ) : (
-            <button 
-              onClick={() => handleViewDetails(request)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              查看详情
-            </button>
+            <>
+              <button 
+                onClick={() => handleViewDetails(request)}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                查看详情
+              </button>
+              {/* 如果NFT已铸造，显示查看NFT按钮 */}
+              {request.nftTokenId && (
+                <NFTViewButton 
+                  nftTokenId={request.nftTokenId}
+                  buttonText="查看NFT"
+                  buttonStyle="secondary"
+                  size="sm"
+                />
+              )}
+            </>
           )}
         </div>
         
@@ -228,9 +228,17 @@ export const AuditCenter: React.FC = () => {
               </span>
             )}
             {request.auditStatus === 'approved' && (
-              <span className="text-green-600">
-                ✅ 审计通过，等待用户铸造
-              </span>
+              <>
+                {request.nftTokenId ? (
+                  <span className="text-purple-600 font-medium">
+                    🎨 已铸造NFT {request.nftTokenId ? `#${request.nftTokenId}` : ''}
+                  </span>
+                ) : (
+                  <span className="text-green-600">
+                    ✅ 审计通过，等待用户铸造
+                  </span>
+                )}
+              </>
             )}
             {request.auditStatus === 'rejected' && (
               <span className="text-red-600">
@@ -248,9 +256,11 @@ export const AuditCenter: React.FC = () => {
             <div className="flex justify-between items-center">
               <span>申请状态: 基于区块链事件记录</span>
               <span>
-                {request.auditStatus === 'approved' 
-                  ? '注意：如已铸造NFT，审计记录可能已从合约中删除' 
-                  : '完整的申请历史记录'}
+                {request.nftTokenId 
+                  ? `🎨 NFT已铸造完成 (#${request.nftTokenId})`
+                  : request.auditStatus === 'approved' 
+                    ? '⏳ 已审核通过，等待铸造' 
+                    : '完整的申请历史记录'}
               </span>
             </div>
           </div>
@@ -383,7 +393,197 @@ export const AuditCenter: React.FC = () => {
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
               title="强制刷新所有历史数据"
             >
-              🔄
+              🔄 强制刷新
+            </button>
+            <button
+              onClick={async () => {
+                console.log('🔍 当前审计数据状态调试:');
+                console.log('所有审计记录:', getCompletedRequests().concat(getPendingRequests()));
+                const allRequests = getCompletedRequests().concat(getPendingRequests());
+                console.log('申请ID #2 的详细信息:', allRequests.find((r: AuditRequest) => r.tokenId === '2'));
+                const request2 = allRequests.find((r: AuditRequest) => r.tokenId === '2');
+                if (request2) {
+                  console.log('🎯 申请#2 详细状态:', {
+                    '申请ID': request2.tokenId,
+                    '审计状态': request2.auditStatus,
+                    'NFT Token ID': request2.nftTokenId,
+                    '是否已铸造': !!request2.nftTokenId,
+                    '应该显示的状态': request2.nftTokenId ? '🎨 已铸造' : '⏳ 等待铸造'
+                  });
+                  
+                  // 🔍 直接查询合约中的最新状态
+                  try {
+                    console.log('🔗 直接查询合约中申请#2的最新状态...');
+                    const { readContract } = await import('wagmi/actions');
+                    const { config } = await import('@/lib/wagmi');
+                    const { getGreenTraceABI } = await import('@/contracts/hooks/useGreenTrace');
+                    const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
+                    
+                    const contractAddress = CONTRACT_ADDRESSES.sepolia.GreenTrace as `0x${string}`;
+                    
+                    const contractData = await readContract(config, {
+                      address: contractAddress,
+                      abi: getGreenTraceABI(),
+                      functionName: 'getRequestById',
+                      args: [BigInt(2)]
+                    });
+                    
+                    console.log('📋 合约中申请#2的原始数据:', contractData);
+                    
+                    const auditData = contractData as any;
+                    console.log('🔬 合约状态详细分析:', {
+                      '合约原始响应': contractData,
+                      '申请者地址': auditData.requester,
+                      '申请状态': auditData.status,
+                      '状态说明': auditData.status === 0 ? 'Pending' : auditData.status === 1 ? 'Approved' : auditData.status === 2 ? 'Rejected' : 'Unknown',
+                      'NFT Token ID': auditData.nftTokenId,
+                      'NFT Token ID类型': typeof auditData.nftTokenId,
+                      'NFT Token ID数值': Number(auditData.nftTokenId || 0),
+                      '是否已铸造（合约判断）': auditData.nftTokenId !== undefined && auditData.nftTokenId !== null && Number(auditData.nftTokenId) >= 0,
+                      '碳价值': auditData.carbonValue?.toString(),
+                      '审计员': auditData.auditor,
+                      '审计意见': auditData.auditComment
+                    });
+                    
+                    // 🔍 额外验证：如果nftTokenId存在，检查NFT是否真实存在
+                    if (auditData.nftTokenId !== undefined && auditData.nftTokenId !== null) {
+                      try {
+                        console.log('🎨 验证NFT是否真实存在...');
+                        const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
+                        const nftAddress = CONTRACT_ADDRESSES.sepolia.NFT as `0x${string}`;
+                        
+                        const nftOwner = await readContract(config, {
+                          address: nftAddress,
+                          abi: [
+                            {
+                              name: 'ownerOf',
+                              type: 'function',
+                              stateMutability: 'view',
+                              inputs: [{ name: 'tokenId', type: 'uint256' }],
+                              outputs: [{ name: '', type: 'address' }]
+                            }
+                          ],
+                          functionName: 'ownerOf',
+                          args: [BigInt(auditData.nftTokenId.toString())]
+                        });
+                        
+                        console.log('🎨 NFT真实性验证结果:', {
+                          'NFT Token ID': auditData.nftTokenId.toString(),
+                          'NFT所有者': nftOwner,
+                          '是否真实存在': nftOwner !== '0x0000000000000000000000000000000000000000',
+                          '最终判断': nftOwner !== '0x0000000000000000000000000000000000000000' ? '✅ NFT确实已铸造' : '❌ NFT不存在，可能是初始值'
+                        });
+                        
+                        if (nftOwner === '0x0000000000000000000000000000000000000000') {
+                          console.log('⚠️ 检测到nftTokenId存在但NFT不存在，这是初始化值！');
+                        }
+                        
+                      } catch (nftError) {
+                        console.log('🔍 NFT验证失败，可能NFT确实不存在:', nftError);
+                      }
+                    }
+                    
+                    if (auditData.nftTokenId === undefined || auditData.nftTokenId === null) {
+                      console.log('❌ 确认：申请#2在合约中确实还没有铸造NFT！');
+                      console.log('💡 建议：');
+                      console.log('1. 检查您是否真的成功铸造了NFT');
+                      console.log('2. 查看区块链浏览器上的交易记录');
+                      console.log('3. 确认payAndMintNFT交易是否真的成功');
+                      console.log('4. 可能需要重新尝试铸造');
+                    } else {
+                      console.log('✅ 合约中显示NFT已铸造，但前端数据没有同步');
+                      console.log('🔄 建议强制刷新数据');
+                    }
+                    
+                  } catch (contractError) {
+                    console.error('❌ 查询合约状态失败:', contractError);
+                  }
+                  
+                } else {
+                  console.log('⚠️ 未找到申请ID #2');
+                }
+                
+                // 🔍 新增：检查所有申请的真实状态
+                console.log('\n🔍 开始检查所有申请的真实状态...');
+                for (const request of allRequests) {
+                  console.log(`\n📊 检查申请#${request.tokenId}:`);
+                  console.log('前端记录:', {
+                    '申请ID': request.tokenId,
+                    '标题': request.title,
+                    '审计状态': request.auditStatus,
+                    '前端nftTokenId': request.nftTokenId,
+                    '前端判断': request.nftTokenId ? '已铸造' : '未铸造'
+                  });
+                  
+                  try {
+                    const { readContract } = await import('wagmi/actions');
+                    const { config } = await import('@/lib/wagmi');
+                    const { getGreenTraceABI } = await import('@/contracts/hooks/useGreenTrace');
+                    const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
+                    
+                    const contractAddress = CONTRACT_ADDRESSES.sepolia.GreenTrace as `0x${string}`;
+                    
+                    const contractData = await readContract(config, {
+                      address: contractAddress,
+                      abi: getGreenTraceABI(),
+                      functionName: 'getRequestById',
+                      args: [BigInt(request.tokenId)]
+                    });
+                    
+                    const auditData = contractData as any;
+                    console.log(`📋 申请#${request.tokenId}合约数据:`, {
+                      '合约nftTokenId': auditData.nftTokenId?.toString(),
+                      '合约状态': auditData.status,
+                      '状态说明': auditData.status === 0 ? 'Pending' : auditData.status === 1 ? 'Approved' : 'Rejected'
+                    });
+                    
+                    // 验证NFT真实性
+                    if (auditData.nftTokenId !== undefined && auditData.nftTokenId !== null) {
+                      try {
+                        const nftAddress = CONTRACT_ADDRESSES.sepolia.NFT as `0x${string}`;
+                        
+                        const nftOwner = await readContract(config, {
+                          address: nftAddress,
+                          abi: [
+                            {
+                              name: 'ownerOf',
+                              type: 'function',
+                              stateMutability: 'view',
+                              inputs: [{ name: 'tokenId', type: 'uint256' }],
+                              outputs: [{ name: '', type: 'address' }]
+                            }
+                          ],
+                          functionName: 'ownerOf',
+                          args: [BigInt(auditData.nftTokenId.toString())]
+                        });
+                        
+                        const nftExists = nftOwner !== '0x0000000000000000000000000000000000000000';
+                        console.log(`🎨 申请#${request.tokenId}NFT验证:`, {
+                          'Token ID': auditData.nftTokenId.toString(),
+                          'NFT所有者': nftOwner,
+                          '真实存在': nftExists,
+                          '最终结论': nftExists ? '✅ 确实已铸造' : '❌ 未铸造（初始值）'
+                        });
+                        
+                      } catch (nftError) {
+                        console.log(`🔍 申请#${request.tokenId}NFT验证失败:`, nftError);
+                        console.log('→ 说明NFT确实不存在，nftTokenId是初始值');
+                      }
+                    } else {
+                      console.log(`→ 申请#${request.tokenId}的nftTokenId为空，确实未铸造`);
+                    }
+                    
+                  } catch (error) {
+                    console.error(`查询申请#${request.tokenId}失败:`, error);
+                  }
+                }
+                
+                alert('详细调试信息已输出到控制台，请按F12查看完整分析');
+              }}
+              className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+              title="调试数据状态"
+            >
+              🐛 深度调试
             </button>
           </div>
         </div>

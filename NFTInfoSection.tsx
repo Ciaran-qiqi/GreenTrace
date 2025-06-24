@@ -1,0 +1,1 @@
+           <div className={`mt-3 flex items-center justify-center space-x-4 text-sm ${themeClasses.congratsText}`}> 

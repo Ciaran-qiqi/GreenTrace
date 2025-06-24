@@ -3,6 +3,7 @@
 import React from 'react';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { formatTimestamp } from '@/utils/timeUtils';
+import { NFTInfoSection } from './NFTInfoSection';
 
 // 通用申请记录接口
 export interface RequestRecord {
@@ -75,6 +76,8 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     </span>
   );
 };
+
+
 
 // 通用申请详情弹窗组件
 interface RequestDetailModalProps {
@@ -295,6 +298,16 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                 )}
               </div>
             </div>
+          )}
+
+          {/* NFT详细信息 */}
+          {getDisplayStatus() === 'minted' && record.nftTokenId && (
+            <NFTInfoSection 
+              nftTokenId={record.nftTokenId} 
+              auditedValue={getAuditedValue()} 
+              tokenURI={record.tokenURI}
+              theme="blue"
+            />
           )}
         </div>
 
