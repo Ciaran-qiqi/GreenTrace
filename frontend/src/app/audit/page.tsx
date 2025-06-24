@@ -1,23 +1,30 @@
-'use client';
+import { Metadata } from 'next';
 
-import React from 'react';
+// 导入审计中心组件
 import { Navigation } from '@/components/Navigation';
 import { AuditCenter } from '@/components/AuditCenter';
+
+export const metadata: Metadata = {
+  title: '审计中心 - GreenTrace',
+  description: '审计NFT创建申请，确保碳减排数据的真实性和准确性',
+};
 
 // 审计中心页面 - 用于审计员审核NFT申请
 export default function AuditPage() {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          {/* 页面标题 */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">审计中心</h1>
-            <p className="text-gray-600">审核NFT申请，验证环保行为的真实性</p>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-4">
+              审计中心
+            </h1>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              专业审计员审核NFT创建申请和兑换申请，确保碳减排数据的真实性和准确性
+            </p>
           </div>
           
-          {/* 审计中心组件 */}
           <AuditCenter />
         </div>
       </div>

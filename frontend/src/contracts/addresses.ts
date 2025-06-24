@@ -45,4 +45,55 @@ export const CONTRACT_ADDRESSES = {
     GreenTalesLiquidityPool: process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS || '',
     CarbonUSDTMarket: process.env.NEXT_PUBLIC_CARBON_USDT_MARKET_ADDRESS || '',
   },
+};
+
+// Helper functions to get contract addresses based on chain ID
+// 根据链ID获取CarbonToken合约地址的辅助函数
+export const getCarbonTokenAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet.CarbonToken;
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia.CarbonToken;
+    case 31337: // 本地Foundry网络
+      return CONTRACT_ADDRESSES.foundry.CarbonToken;
+    default:
+      // 默认返回Sepolia测试网地址
+      return CONTRACT_ADDRESSES.sepolia.CarbonToken;
+  }
+};
+
+// 根据链ID获取GreenTalesNFT合约地址的辅助函数
+export const getGreenTalesNFTAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet.NFT;
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia.NFT;
+    case 31337: // 本地Foundry网络
+      return CONTRACT_ADDRESSES.foundry.NFT;
+    default:
+      // 默认返回Sepolia测试网地址
+      return CONTRACT_ADDRESSES.sepolia.NFT;
+  }
+};
+
+// 根据链ID获取GreenTrace合约地址的辅助函数
+export const getGreenTraceAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet.GreenTrace;
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia.GreenTrace;
+    case 31337: // 本地Foundry网络
+      return CONTRACT_ADDRESSES.foundry.GreenTrace;
+    default:
+      // 默认返回Sepolia测试网地址
+      return CONTRACT_ADDRESSES.sepolia.GreenTrace;
+  }
+};
+
+// 通用合约地址获取函数（保持向后兼容）
+export const getContractAddress = (chainId: number): string => {
+  return getGreenTraceAddress(chainId);
 }; 

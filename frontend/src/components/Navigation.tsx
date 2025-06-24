@@ -117,7 +117,7 @@ export const Navigation: React.FC = () => {
                   <div className="w-px h-6 bg-gray-200 mx-4 self-center"></div>
                   <div className="flex space-x-2">
                   <Link 
-                    href="/dashboard" 
+                    href="/assets" 
                     className="relative px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-blue-600 transition-all duration-200 hover:bg-blue-50 group"
                   >
                     <span className="relative z-10">💼 我的资产</span>

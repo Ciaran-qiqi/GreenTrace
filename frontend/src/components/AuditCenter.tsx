@@ -1,26 +1,49 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
+import { useChainId } from 'wagmi';
 import { useIsAuditor } from '@/contracts/hooks/useGreenTrace';
 import { useAuditData, AuditRequest } from '@/hooks/useAuditData';
+import { useExchangeAuditData, ExchangeAuditRequest } from '@/hooks/useExchangeAuditData';
 import { AuditForm } from './AuditForm';
+import { ExchangeAuditForm } from './ExchangeAuditForm';
 import { RequestDetailModal, type RequestRecord } from './RequestDetailModal';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { NFTViewButton } from './NFTViewButton';
+import { getGreenTalesNFTAddress } from '@/contracts/addresses';
+import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 
-// 标签页类型
-type TabType = 'pending' | 'history';
+// 标签页类型 - 分离铸造和兑换历史
+type TabType = 'mint-pending' | 'exchange-pending' | 'mint-history' | 'exchange-history';
+
+// 检查NFT是否存在的Hook（用于判断是否已被兑换销毁）
+const useCheckNFTExists = (tokenId: string | undefined) => {
+  const chainId = useChainId();
+  const nftContractAddress = getGreenTalesNFTAddress(chainId);
+  
+  return useReadContract({
+    address: nftContractAddress as `0x${string}`,
+    abi: GreenTalesNFTABI.abi,
+    functionName: 'ownerOf',
+    args: tokenId ? [BigInt(tokenId)] : undefined,
+    query: {
+      enabled: !!tokenId,
+      retry: false, // 不重试，因为NFT不存在会抛出错误
+    }
+  });
+};
 
 // 状态徽章组件
-const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] | ExchangeAuditRequest['auditStatus'] }> = ({ status }) => {
   const statusMap = {
     pending: { label: '待审计', className: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
     approved: { label: '已通过', className: 'bg-green-100 text-green-800', icon: '✅' },
     rejected: { label: '已拒绝', className: 'bg-red-100 text-red-800', icon: '❌' },
+    exchanged: { label: '已兑换', className: 'bg-blue-100 text-blue-800', icon: '🎉' },
   };
   
-  const config = statusMap[status] || statusMap.pending;
+  const config = statusMap[status as keyof typeof statusMap] || statusMap.pending;
   
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.className}`}>
@@ -34,15 +57,35 @@ const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] }> = ({ status
 export const AuditCenter: React.FC = () => {
   const { address, isConnected } = useAccount();
   const [selectedRequest, setSelectedRequest] = useState<AuditRequest | null>(null);
+  const [selectedExchangeRequest, setSelectedExchangeRequest] = useState<ExchangeAuditRequest | null>(null);
   const [showAuditForm, setShowAuditForm] = useState(false);
+  const [showExchangeAuditForm, setShowExchangeAuditForm] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [activeTab, setActiveTab] = useState<TabType>('mint-pending');
   
   // 检查是否为审计员
   const { data: isAuditor } = useIsAuditor(address as `0x${string}`);
   
-  // 获取审计数据
-  const { loading, refresh, forceRefresh, isClient, getAuditStats, getPendingRequests, getCompletedRequests } = useAuditData();
+  // 获取铸造审计数据
+  const { 
+    loading: mintLoading, 
+    refresh: refreshMint, 
+    forceRefresh: forceRefreshMint, 
+    isClient, 
+    getAuditStats, 
+    getPendingRequests, 
+    getCompletedRequests 
+  } = useAuditData();
+  
+  // 获取兑换审计数据
+  const { 
+    loading: exchangeLoading, 
+    refresh: refreshExchange, 
+    forceRefresh: forceRefreshExchange, 
+    getExchangeAuditStats, 
+    getPendingExchangeRequests, 
+    getCompletedExchangeRequests 
+  } = useExchangeAuditData();
 
   // 将AuditRequest转换为RequestRecord格式
   const convertToRequestRecord = (request: AuditRequest): RequestRecord => {
@@ -72,14 +115,32 @@ export const AuditCenter: React.FC = () => {
   };
   
   // 计算统计数据和获取分类数据
-  const stats = getAuditStats();
-  const pendingRequests = getPendingRequests();
-  const completedRequests = getCompletedRequests();
+  const mintStats = getAuditStats();
+  const exchangeStats = getExchangeAuditStats();
+  const pendingMintRequests = getPendingRequests();
+  const completedMintRequests = getCompletedRequests();
+  const pendingExchangeRequests = getPendingExchangeRequests();
+  const completedExchangeRequests = getCompletedExchangeRequests();
+  
+  // 合并统计数据
+  const totalStats = {
+    totalCount: mintStats.totalCount + exchangeStats.totalCount,
+    pendingCount: mintStats.pendingCount + exchangeStats.pendingCount,
+    approvedCount: mintStats.approvedCount + exchangeStats.approvedCount,
+    rejectedCount: mintStats.rejectedCount + exchangeStats.rejectedCount,
+    exchangedCount: 0, // 兑换特有的状态，暂时设为0
+  };
 
-  // 处理开始审计
-  const handleStartAudit = (request: AuditRequest) => {
+  // 处理开始铸造审计
+  const handleStartMintAudit = (request: AuditRequest) => {
     setSelectedRequest(request);
     setShowAuditForm(true);
+  };
+
+  // 处理开始兑换审计
+  const handleStartExchangeAudit = (request: ExchangeAuditRequest) => {
+    setSelectedExchangeRequest(request);
+    setShowExchangeAuditForm(true);
   };
 
   // 处理查看详情
@@ -88,12 +149,20 @@ export const AuditCenter: React.FC = () => {
     setShowDetailModal(true);
   };
 
-  // 处理审计完成
-  const handleAuditComplete = () => {
+  // 处理铸造审计完成
+  const handleMintAuditComplete = () => {
     setShowAuditForm(false);
     setSelectedRequest(null);
     // 刷新数据
-    refresh();
+    refreshMint();
+  };
+
+  // 处理兑换审计完成
+  const handleExchangeAuditComplete = () => {
+    setShowExchangeAuditForm(false);
+    setSelectedExchangeRequest(null);
+    // 刷新数据
+    refreshExchange();
   };
 
   // 关闭详情弹窗
@@ -101,6 +170,38 @@ export const AuditCenter: React.FC = () => {
     setShowDetailModal(false);
     setSelectedRequest(null);
   };
+
+  // 刷新所有数据
+  const refreshAll = () => {
+    refreshMint();
+    refreshExchange();
+  };
+
+  // 强制刷新所有数据
+  const forceRefreshAll = () => {
+    forceRefreshMint();
+    forceRefreshExchange();
+  };
+
+  // 监听全局NFT兑换事件，实时更新状态
+  React.useEffect(() => {
+    const handleNFTExchanged = (event: CustomEvent) => {
+      console.log('审计中心检测到NFT兑换事件:', event.detail);
+      // 立即强制刷新数据以反映兑换状态
+      forceRefreshAll();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('nft-exchanged', handleNFTExchanged as EventListener);
+      
+      return () => {
+        window.removeEventListener('nft-exchanged', handleNFTExchanged as EventListener);
+      };
+    }
+  }, [forceRefreshMint, forceRefreshExchange]);
+
+  // 当前是否在加载中
+  const loading = mintLoading || exchangeLoading;
 
   // 格式化时间 - 修复SSR hydration问题
   const formatTime = (timestamp: string) => {
@@ -117,156 +218,330 @@ export const AuditCenter: React.FC = () => {
       return date.toISOString().slice(0, 19).replace('T', ' ');
     }
     
-    // 在客户端渲染时，显示本地化时间
-    return date.toLocaleString('zh-CN');
+    // 客户端使用本地化时间
+    return date.toLocaleString();
   };
 
-  // 渲染申请卡片
-  const renderRequestCard = (request: AuditRequest, isPending: boolean = false) => (
-    <div
-      key={request.transactionHash || `${request.tokenId}-${request.blockTimestamp}`}
-      className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-    >
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-800">
-              #{request.tokenId} {request.title}
-            </h3>
-            <StatusBadge status={request.auditStatus} />
-          </div>
-          <p className="text-gray-600 text-sm line-clamp-2">
-            {request.details}
-          </p>
-        </div>
-        <div className="text-right text-sm text-gray-500">
-          <div>{formatTime(request.blockTimestamp)}</div>
-          <div className="mt-1">
-            费用: {formatFeeAmount(request.totalFee)} CARB
-          </div>
-        </div>
-      </div>
+  // 带NFT存在性检查的铸造申请卡片组件
+  const MintRequestCard: React.FC<{ request: AuditRequest; isPending: boolean }> = ({ request, isPending }) => {
+    const { error: nftError } = useCheckNFTExists(request.nftTokenId);
+    const nftExists = !nftError;
 
-      {/* 申请详情 */}
-      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-        <div>
-          <span className="text-gray-500">申请人:</span>
-          <span className="ml-2 font-medium">
-            {request.requester.slice(0, 6)}...{request.requester.slice(-4)}
-          </span>
+    return (
+      <div
+        className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-semibold text-gray-800">
+                #{request.tokenId} {request.title}
+              </h3>
+              <StatusBadge status={request.auditStatus} />
+              {/* 对于已兑换的NFT，显示额外的兑换标签 */}
+              {request.nftTokenId && !nftExists && request.auditStatus === 'approved' && (
+                <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
+                  🔥 已兑换
+                </span>
+              )}
+            </div>
+            <p className="text-gray-600 text-sm line-clamp-2">
+              {request.details}
+            </p>
+          </div>
+          <div className="text-right text-sm text-gray-500">
+            <div>{formatTime(request.blockTimestamp)}</div>
+            <div className="mt-1">
+              费用: {formatFeeAmount(request.totalFee)} CARB
+            </div>
+          </div>
         </div>
-        <div>
-          <span className="text-gray-500">申请碳减排量:</span>
-          <span className="ml-2 font-medium">{request.carbonReduction} tCO₂e</span>
-        </div>
-        <div>
-          <span className="text-gray-500">交易哈希:</span>
-          <span className="ml-2 font-medium">
-            {request.transactionHash.slice(0, 10)}...
-          </span>
-        </div>
-        {!isPending && request.auditStatus === 'approved' && (
+
+        {/* 申请详情 */}
+        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
           <div>
-            <span className="text-gray-500">审计确认价值:</span>
-            <span className="ml-2 font-medium text-green-600">
-              {request.auditedCarbonValue || request.carbonReduction} tCO₂e
+            <span className="text-gray-500">申请人:</span>
+            <span className="ml-2 font-medium">
+              {request.requester.slice(0, 6)}...{request.requester.slice(-4)}
             </span>
-            {request.auditedCarbonValue && request.auditedCarbonValue !== request.carbonReduction && (
-              <div className="text-xs text-gray-400 mt-1">
-                * 原申请: {request.carbonReduction} tCO₂e，审计员调整为: {request.auditedCarbonValue} tCO₂e
-              </div>
+          </div>
+          <div>
+            <span className="text-gray-500">申请碳减排量:</span>
+            <span className="ml-2 font-medium">{request.carbonReduction} tCO₂e</span>
+          </div>
+          <div>
+            <span className="text-gray-500">交易哈希:</span>
+            <span className="ml-2 font-medium">
+              {request.transactionHash.slice(0, 10)}...
+            </span>
+          </div>
+          {!isPending && request.auditStatus === 'approved' && (
+            <div>
+              <span className="text-gray-500">审计确认价值:</span>
+              <span className="ml-2 font-medium text-green-600">
+                {request.auditedCarbonValue || request.carbonReduction} tCO₂e
+              </span>
+              {request.auditedCarbonValue && request.auditedCarbonValue !== request.carbonReduction && (
+                <div className="text-xs text-gray-400 mt-1">
+                  * 原申请: {request.carbonReduction} tCO₂e，审计员调整为: {request.auditedCarbonValue} tCO₂e
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 操作按钮和状态说明 */}
+        <div className="flex justify-between items-center">
+          <div className="flex gap-3">
+            {isPending ? (
+              <>
+                <button
+                  onClick={() => handleStartMintAudit(request)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                >
+                  开始审计
+                </button>
+                <button 
+                  onClick={() => handleViewDetails(request)}
+                  className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                >
+                  查看详情
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => handleViewDetails(request)}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  查看详情
+                </button>
+                {/* 如果NFT已铸造，始终显示查看NFT按钮（NFTInfoSection会自动处理已销毁的情况） */}
+                {request.nftTokenId && (
+                  <NFTViewButton 
+                    nftTokenId={request.nftTokenId}
+                    buttonText="查看NFT"
+                    buttonStyle="secondary"
+                    size="sm"
+                    nftExists={nftExists}
+                  />
+                )}
+              </>
             )}
+          </div>
+          
+          {/* 状态说明 - 根据NFT存在性显示不同状态 */}
+          {!isPending && (
+            <div className="text-sm">
+              {request.auditStatus === 'pending' && (
+                <span className="text-yellow-600">
+                  ⏳ 等待审计
+                </span>
+              )}
+              {request.auditStatus === 'approved' && (
+                <>
+                  {request.nftTokenId ? (
+                    nftExists ? (
+                      <span className="text-purple-600 font-medium">
+                        🎨 已铸造NFT #{request.nftTokenId}
+                      </span>
+                    ) : (
+                      <span className="text-orange-600 font-medium">
+                        🔥 已销毁NFT #{request.nftTokenId}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-green-600">
+                      ✅ 审计通过，等待用户铸造
+                    </span>
+                  )}
+                </>
+              )}
+              {request.auditStatus === 'rejected' && (
+                <span className="text-red-600">
+                  ❌ 审计被拒绝
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* 历史申请特有的说明 */}
+        {!isPending && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="text-xs text-gray-500">
+              <div className="flex justify-between items-center">
+                <span>申请状态: 基于区块链事件记录</span>
+                <span>
+                  {request.nftTokenId 
+                    ? nftExists
+                      ? `🎨 NFT已铸造完成 (#${request.nftTokenId})`
+                      : `🔥 NFT已兑换销毁 (#${request.nftTokenId})`
+                    : request.auditStatus === 'approved' 
+                      ? '⏳ 已审核通过，等待铸造' 
+                      : '完整的申请历史记录'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
+    );
+  };
 
-      {/* 操作按钮和状态说明 */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-3">
-          {isPending ? (
-            <>
-              <button
-                onClick={() => handleStartAudit(request)}
-                className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
-              >
-                开始审计
-              </button>
-              <button 
-                onClick={() => handleViewDetails(request)}
-                className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-              >
-                查看详情
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                onClick={() => handleViewDetails(request)}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                查看详情
-              </button>
-              {/* 如果NFT已铸造，显示查看NFT按钮 */}
-              {request.nftTokenId && (
+  // 渲染铸造申请卡片
+  const renderMintRequestCard = (request: AuditRequest, isPending: boolean = false) => (
+    <MintRequestCard key={request.transactionHash || `${request.tokenId}-${request.blockTimestamp}`} request={request} isPending={isPending} />
+  );
+
+  // 带NFT存在性检查的兑换申请卡片组件
+  const ExchangeRequestCard: React.FC<{ request: ExchangeAuditRequest; isPending: boolean }> = ({ request, isPending }) => {
+    const { error: nftError } = useCheckNFTExists(request.nftTokenId);
+    const nftExists = !nftError;
+
+    return (
+      <div
+        className="border border-purple-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50/30 to-white"
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-semibold text-gray-800">
+                🔄 兑换申请 #{request.cashId}
+              </h3>
+              <StatusBadge status={request.auditStatus} />
+              {/* 显示NFT兑换状态 - 已兑换的申请显示额外的兑换标签 */}
+              {!nftExists && request.auditStatus === 'approved' && (
+                <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
+                  🔥 已兑换
+                </span>
+              )}
+            </div>
+            <p className="text-gray-600 text-sm">
+              NFT #{request.nftTokenId} 申请兑换
+            </p>
+          </div>
+          <div className="text-right text-sm text-gray-500">
+            <div>{formatTime(request.blockTimestamp)}</div>
+            <div className="mt-1">
+              手续费: {formatFeeAmount(request.requestFee)} CARB
+            </div>
+          </div>
+        </div>
+
+        {/* 申请详情 */}
+        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+          <div>
+            <span className="text-gray-500">申请人:</span>
+            <span className="ml-2 font-medium">
+              {request.requester.slice(0, 6)}...{request.requester.slice(-4)}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500">NFT Token ID:</span>
+            <span className="ml-2 font-medium">#{request.nftTokenId}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">NFT当前价格:</span>
+            <span className="ml-2 font-medium text-green-600">{formatFeeAmount(request.basePrice)} CARB</span>
+          </div>
+          {!isPending && request.auditStatus === 'approved' && request.auditedCarbonValue && (
+            <div>
+              <span className="text-gray-500">审计确认价值:</span>
+              <span className="ml-2 font-medium text-green-600">
+                {formatFeeAmount(request.auditedCarbonValue)} CARB
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 操作按钮和状态说明 */}
+        <div className="flex justify-between items-center">
+          <div className="flex gap-3">
+            {isPending ? (
+              <>
+                <button
+                  onClick={() => handleStartExchangeAudit(request)}
+                  className="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700 transition-colors"
+                >
+                  开始审计
+                </button>
+                <button 
+                  onClick={() => {
+                    // 查看NFT信息
+                  }}
+                  className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                >
+                  查看NFT
+                </button>
+              </>
+            ) : (
+              <>
                 <NFTViewButton 
                   nftTokenId={request.nftTokenId}
                   buttonText="查看NFT"
                   buttonStyle="secondary"
                   size="sm"
+                  nftExists={nftExists}
                 />
+              </>
+            )}
+          </div>
+          
+          {/* 状态说明 - 根据NFT存在性显示不同状态 */}
+          {!isPending && (
+            <div className="text-sm">
+              {request.auditStatus === 'pending' && (
+                <span className="text-yellow-600">
+                  ⏳ 等待审计
+                </span>
               )}
-            </>
+              {request.auditStatus === 'approved' && (
+                <>
+                  {nftExists ? (
+                    <span className="text-green-600">
+                      ✅ 审计通过，等待用户兑换
+                    </span>
+                  ) : (
+                    <span className="text-blue-600 font-medium">
+                      💰 兑换已完成，NFT已销毁
+                    </span>
+                  )}
+                </>
+              )}
+              {request.auditStatus === 'rejected' && (
+                <span className="text-red-600">
+                  ❌ 审计被拒绝
+                </span>
+              )}
+            </div>
           )}
         </div>
         
-        {/* 状态说明 */}
+        {/* 历史申请特有的说明 */}
         {!isPending && (
-          <div className="text-sm">
-            {request.auditStatus === 'pending' && (
-              <span className="text-yellow-600">
-                ⏳ 等待审计
-              </span>
-            )}
-            {request.auditStatus === 'approved' && (
-              <>
-                {request.nftTokenId ? (
-                  <span className="text-purple-600 font-medium">
-                    🎨 已铸造NFT {request.nftTokenId ? `#${request.nftTokenId}` : ''}
-                  </span>
-                ) : (
-                  <span className="text-green-600">
-                    ✅ 审计通过，等待用户铸造
-                  </span>
-                )}
-              </>
-            )}
-            {request.auditStatus === 'rejected' && (
-              <span className="text-red-600">
-                ❌ 审计被拒绝
-              </span>
-            )}
+          <div className="mt-3 pt-3 border-t border-purple-100">
+            <div className="text-xs text-gray-500">
+              <div className="flex justify-between items-center">
+                <span>兑换申请状态: 基于区块链事件记录</span>
+                <span>
+                  {request.auditStatus === 'approved' 
+                    ? nftExists 
+                      ? '✅ 已审核通过，等待兑换' 
+                      : '🎉 兑换已完成，NFT已销毁'
+                    : '完整的兑换申请历史记录'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
-      
-      {/* 历史申请特有的说明 */}
-      {!isPending && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="text-xs text-gray-500">
-            <div className="flex justify-between items-center">
-              <span>申请状态: 基于区块链事件记录</span>
-              <span>
-                {request.nftTokenId 
-                  ? `🎨 NFT已铸造完成 (#${request.nftTokenId})`
-                  : request.auditStatus === 'approved' 
-                    ? '⏳ 已审核通过，等待铸造' 
-                    : '完整的申请历史记录'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    );
+  };
+
+  // 渲染兑换审计申请卡片
+  const renderExchangeRequestCard = (request: ExchangeAuditRequest, isPending: boolean = false) => (
+    <ExchangeRequestCard key={request.transactionHash || `${request.cashId}-${request.blockTimestamp}`} request={request} isPending={isPending} />
   );
 
   // 等待客户端渲染
@@ -320,7 +595,7 @@ export const AuditCenter: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-600 mb-2">
-              {stats.totalCount}
+              {totalStats.totalCount}
             </div>
             <div className="text-gray-600">总申请数</div>
           </div>
@@ -328,7 +603,7 @@ export const AuditCenter: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-yellow-600 mb-2">
-              {stats.pendingCount}
+              {totalStats.pendingCount}
             </div>
             <div className="text-gray-600">待审计申请</div>
           </div>
@@ -336,7 +611,7 @@ export const AuditCenter: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600 mb-2">
-              {stats.approvedCount}
+              {totalStats.approvedCount}
             </div>
             <div className="text-gray-600">已通过审计</div>
           </div>
@@ -344,7 +619,7 @@ export const AuditCenter: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-red-600 mb-2">
-              {stats.rejectedCount}
+              {totalStats.rejectedCount}
             </div>
             <div className="text-gray-600">已拒绝申请</div>
           </div>
@@ -357,233 +632,55 @@ export const AuditCenter: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
             <button
-              onClick={() => setActiveTab('pending')}
+              onClick={() => setActiveTab('mint-pending')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'pending'
+                activeTab === 'mint-pending'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              待审计申请 ({stats.pendingCount})
+              铸造审计申请 ({mintStats.pendingCount})
             </button>
             <button
-              onClick={() => setActiveTab('history')}
+              onClick={() => setActiveTab('exchange-pending')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'history'
+                activeTab === 'exchange-pending'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
-              历史申请 ({stats.totalCount})
+              兑换审计申请 ({exchangeStats.pendingCount})
+            </button>
+            <button
+              onClick={() => setActiveTab('mint-history')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'mint-history'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              铸造历史 ({completedMintRequests.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('exchange-history')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'exchange-history'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              兑换历史 ({completedExchangeRequests.length})
             </button>
           </div>
           
           {/* 刷新按钮 */}
           <div className="flex gap-2">
             <button
-              onClick={() => refresh()}
+              onClick={() => refreshAll()}
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {loading ? '刷新中...' : '刷新'}
-            </button>
-            <button
-              onClick={() => forceRefresh()}
-              disabled={loading}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-              title="强制刷新所有历史数据"
-            >
-              🔄 强制刷新
-            </button>
-            <button
-              onClick={async () => {
-                console.log('🔍 当前审计数据状态调试:');
-                console.log('所有审计记录:', getCompletedRequests().concat(getPendingRequests()));
-                const allRequests = getCompletedRequests().concat(getPendingRequests());
-                console.log('申请ID #2 的详细信息:', allRequests.find((r: AuditRequest) => r.tokenId === '2'));
-                const request2 = allRequests.find((r: AuditRequest) => r.tokenId === '2');
-                if (request2) {
-                  console.log('🎯 申请#2 详细状态:', {
-                    '申请ID': request2.tokenId,
-                    '审计状态': request2.auditStatus,
-                    'NFT Token ID': request2.nftTokenId,
-                    '是否已铸造': !!request2.nftTokenId,
-                    '应该显示的状态': request2.nftTokenId ? '🎨 已铸造' : '⏳ 等待铸造'
-                  });
-                  
-                  // 🔍 直接查询合约中的最新状态
-                  try {
-                    console.log('🔗 直接查询合约中申请#2的最新状态...');
-                    const { readContract } = await import('wagmi/actions');
-                    const { config } = await import('@/lib/wagmi');
-                    const { getGreenTraceABI } = await import('@/contracts/hooks/useGreenTrace');
-                    const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
-                    
-                    const contractAddress = CONTRACT_ADDRESSES.sepolia.GreenTrace as `0x${string}`;
-                    
-                    const contractData = await readContract(config, {
-                      address: contractAddress,
-                      abi: getGreenTraceABI(),
-                      functionName: 'getRequestById',
-                      args: [BigInt(2)]
-                    });
-                    
-                    console.log('📋 合约中申请#2的原始数据:', contractData);
-                    
-                    const auditData = contractData as any;
-                    console.log('🔬 合约状态详细分析:', {
-                      '合约原始响应': contractData,
-                      '申请者地址': auditData.requester,
-                      '申请状态': auditData.status,
-                      '状态说明': auditData.status === 0 ? 'Pending' : auditData.status === 1 ? 'Approved' : auditData.status === 2 ? 'Rejected' : 'Unknown',
-                      'NFT Token ID': auditData.nftTokenId,
-                      'NFT Token ID类型': typeof auditData.nftTokenId,
-                      'NFT Token ID数值': Number(auditData.nftTokenId || 0),
-                      '是否已铸造（合约判断）': auditData.nftTokenId !== undefined && auditData.nftTokenId !== null && Number(auditData.nftTokenId) >= 0,
-                      '碳价值': auditData.carbonValue?.toString(),
-                      '审计员': auditData.auditor,
-                      '审计意见': auditData.auditComment
-                    });
-                    
-                    // 🔍 额外验证：如果nftTokenId存在，检查NFT是否真实存在
-                    if (auditData.nftTokenId !== undefined && auditData.nftTokenId !== null) {
-                      try {
-                        console.log('🎨 验证NFT是否真实存在...');
-                        const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
-                        const nftAddress = CONTRACT_ADDRESSES.sepolia.NFT as `0x${string}`;
-                        
-                        const nftOwner = await readContract(config, {
-                          address: nftAddress,
-                          abi: [
-                            {
-                              name: 'ownerOf',
-                              type: 'function',
-                              stateMutability: 'view',
-                              inputs: [{ name: 'tokenId', type: 'uint256' }],
-                              outputs: [{ name: '', type: 'address' }]
-                            }
-                          ],
-                          functionName: 'ownerOf',
-                          args: [BigInt(auditData.nftTokenId.toString())]
-                        });
-                        
-                        console.log('🎨 NFT真实性验证结果:', {
-                          'NFT Token ID': auditData.nftTokenId.toString(),
-                          'NFT所有者': nftOwner,
-                          '是否真实存在': nftOwner !== '0x0000000000000000000000000000000000000000',
-                          '最终判断': nftOwner !== '0x0000000000000000000000000000000000000000' ? '✅ NFT确实已铸造' : '❌ NFT不存在，可能是初始值'
-                        });
-                        
-                        if (nftOwner === '0x0000000000000000000000000000000000000000') {
-                          console.log('⚠️ 检测到nftTokenId存在但NFT不存在，这是初始化值！');
-                        }
-                        
-                      } catch (nftError) {
-                        console.log('🔍 NFT验证失败，可能NFT确实不存在:', nftError);
-                      }
-                    }
-                    
-                    if (auditData.nftTokenId === undefined || auditData.nftTokenId === null) {
-                      console.log('❌ 确认：申请#2在合约中确实还没有铸造NFT！');
-                      console.log('💡 建议：');
-                      console.log('1. 检查您是否真的成功铸造了NFT');
-                      console.log('2. 查看区块链浏览器上的交易记录');
-                      console.log('3. 确认payAndMintNFT交易是否真的成功');
-                      console.log('4. 可能需要重新尝试铸造');
-                    } else {
-                      console.log('✅ 合约中显示NFT已铸造，但前端数据没有同步');
-                      console.log('🔄 建议强制刷新数据');
-                    }
-                    
-                  } catch (contractError) {
-                    console.error('❌ 查询合约状态失败:', contractError);
-                  }
-                  
-                } else {
-                  console.log('⚠️ 未找到申请ID #2');
-                }
-                
-                // 🔍 新增：检查所有申请的真实状态
-                console.log('\n🔍 开始检查所有申请的真实状态...');
-                for (const request of allRequests) {
-                  console.log(`\n📊 检查申请#${request.tokenId}:`);
-                  console.log('前端记录:', {
-                    '申请ID': request.tokenId,
-                    '标题': request.title,
-                    '审计状态': request.auditStatus,
-                    '前端nftTokenId': request.nftTokenId,
-                    '前端判断': request.nftTokenId ? '已铸造' : '未铸造'
-                  });
-                  
-                  try {
-                    const { readContract } = await import('wagmi/actions');
-                    const { config } = await import('@/lib/wagmi');
-                    const { getGreenTraceABI } = await import('@/contracts/hooks/useGreenTrace');
-                    const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
-                    
-                    const contractAddress = CONTRACT_ADDRESSES.sepolia.GreenTrace as `0x${string}`;
-                    
-                    const contractData = await readContract(config, {
-                      address: contractAddress,
-                      abi: getGreenTraceABI(),
-                      functionName: 'getRequestById',
-                      args: [BigInt(request.tokenId)]
-                    });
-                    
-                    const auditData = contractData as any;
-                    console.log(`📋 申请#${request.tokenId}合约数据:`, {
-                      '合约nftTokenId': auditData.nftTokenId?.toString(),
-                      '合约状态': auditData.status,
-                      '状态说明': auditData.status === 0 ? 'Pending' : auditData.status === 1 ? 'Approved' : 'Rejected'
-                    });
-                    
-                    // 验证NFT真实性
-                    if (auditData.nftTokenId !== undefined && auditData.nftTokenId !== null) {
-                      try {
-                        const nftAddress = CONTRACT_ADDRESSES.sepolia.NFT as `0x${string}`;
-                        
-                        const nftOwner = await readContract(config, {
-                          address: nftAddress,
-                          abi: [
-                            {
-                              name: 'ownerOf',
-                              type: 'function',
-                              stateMutability: 'view',
-                              inputs: [{ name: 'tokenId', type: 'uint256' }],
-                              outputs: [{ name: '', type: 'address' }]
-                            }
-                          ],
-                          functionName: 'ownerOf',
-                          args: [BigInt(auditData.nftTokenId.toString())]
-                        });
-                        
-                        const nftExists = nftOwner !== '0x0000000000000000000000000000000000000000';
-                        console.log(`🎨 申请#${request.tokenId}NFT验证:`, {
-                          'Token ID': auditData.nftTokenId.toString(),
-                          'NFT所有者': nftOwner,
-                          '真实存在': nftExists,
-                          '最终结论': nftExists ? '✅ 确实已铸造' : '❌ 未铸造（初始值）'
-                        });
-                        
-                      } catch (nftError) {
-                        console.log(`🔍 申请#${request.tokenId}NFT验证失败:`, nftError);
-                        console.log('→ 说明NFT确实不存在，nftTokenId是初始值');
-                      }
-                    } else {
-                      console.log(`→ 申请#${request.tokenId}的nftTokenId为空，确实未铸造`);
-                    }
-                    
-                  } catch (error) {
-                    console.error(`查询申请#${request.tokenId}失败:`, error);
-                  }
-                }
-                
-                alert('详细调试信息已输出到控制台，请按F12查看完整分析');
-              }}
-              className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
-              title="调试数据状态"
-            >
-              🐛 深度调试
             </button>
           </div>
         </div>
@@ -596,50 +693,50 @@ export const AuditCenter: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {activeTab === 'pending' ? (
-              // 待审计申请
-              pendingRequests.length === 0 ? (
+            {activeTab === 'mint-pending' ? (
+              // 铸造审计申请
+              pendingMintRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">✅</div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无待审计申请</h3>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无待审计铸造申请</h3>
+                  <p className="text-gray-500">所有铸造申请都已处理完成</p>
+                </div>
+              ) : (
+                pendingMintRequests.map((request) => renderMintRequestCard(request, true))
+              )
+            ) : activeTab === 'exchange-pending' ? (
+              // 待兑换审计申请
+              pendingExchangeRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">✅</div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无待兑换审计申请</h3>
                   <p className="text-gray-500">所有申请都已处理完成</p>
                 </div>
               ) : (
-                pendingRequests.map((request) => renderRequestCard(request, true))
+                pendingExchangeRequests.map((request) => renderExchangeRequestCard(request, true))
+              )
+            ) : activeTab === 'mint-history' ? (
+              // 铸造历史申请
+              completedMintRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📋</div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无铸造历史申请</h3>
+                  <p className="text-gray-500">还没有任何铸造申请记录</p>
+                </div>
+              ) : (
+                completedMintRequests.map((request) => renderMintRequestCard(request, false))
               )
             ) : (
-              <>
-                {/* 历史申请说明 */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-start">
-                    <div className="text-blue-600 text-xl mr-3">ℹ️</div>
-                    <div>
-                      <h4 className="text-blue-800 font-semibold mb-2">历史申请说明</h4>
-                      <div className="text-blue-700 text-sm space-y-1">
-                        <p>• <strong>数据来源</strong>：直接从智能合约查询，结合实时事件监听，确保数据准确性和实时性</p>
-                        <p>• <strong>数据范围</strong>：包含待审计和已审计的所有申请记录，提供完整的审计历史档案</p>
-                        <p>• <strong>状态同步</strong>：实时监听区块链事件，自动更新申请状态变化（提交审计、审计完成等）</p>
-                        <p>• <strong>排序方式</strong>：按申请时间倒序排列，最新申请在前，便于审计员优先处理</p>
-                        <p>• <strong>缓存优化</strong>：智能本地缓存机制，提升加载速度，后台自动刷新保持数据同步</p>
-                      </div>
-                    </div>
-                  </div>
+              // 兑换历史申请
+              completedExchangeRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📋</div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无兑换历史申请</h3>
+                  <p className="text-gray-500">还没有任何兑换申请记录</p>
                 </div>
-
-                {/* 历史申请列表 */}
-                {(pendingRequests.length + completedRequests.length) === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-6xl mb-4">📋</div>
-                    <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无历史申请</h3>
-                    <p className="text-gray-500">还没有任何NFT申请记录</p>
-                  </div>
-                ) : (
-                  // 显示所有申请：待审计 + 已完成的
-                  [...pendingRequests, ...completedRequests]
-                    .sort((a, b) => parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp))
-                    .map((request) => renderRequestCard(request, false))
-                )}
-              </>
+              ) : (
+                completedExchangeRequests.map((request) => renderExchangeRequestCard(request, false))
+              )
             )}
           </div>
         )}
@@ -650,7 +747,17 @@ export const AuditCenter: React.FC = () => {
         <AuditForm
           request={selectedRequest}
           onClose={() => setShowAuditForm(false)}
-          onComplete={handleAuditComplete}
+          onComplete={handleMintAuditComplete}
+        />
+      )}
+
+      {/* 兑换审计表单弹窗 */}
+      {showExchangeAuditForm && selectedExchangeRequest && (
+        <ExchangeAuditForm
+          request={selectedExchangeRequest}
+          isOpen={showExchangeAuditForm}
+          onClose={() => setShowExchangeAuditForm(false)}
+          onComplete={handleExchangeAuditComplete}
         />
       )}
 

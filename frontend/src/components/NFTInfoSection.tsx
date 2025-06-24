@@ -11,7 +11,8 @@ export const NFTInfoSection: React.FC<{
   tokenURI?: string;
   className?: string;
   theme?: 'blue' | 'purple';
-}> = ({ nftTokenId, tokenURI, className = '', theme = 'purple' }) => {
+  nftExists?: boolean; // 可选：NFT是否存在的预检查结果
+}> = ({ nftTokenId, tokenURI, className = '', theme = 'purple', nftExists }) => {
   const [nftInfo, setNftInfo] = useState<{
     storyTitle: string;
     storyDetail: string;
@@ -65,6 +66,12 @@ export const NFTInfoSection: React.FC<{
       try {
         setLoading(true);
         setError(null);
+
+        // 如果预检查显示NFT不存在，直接设置错误状态
+        if (nftExists === false) {
+          setError('NFT_NOT_EXISTS');
+          return;
+        }
 
         const { readContract } = await import('wagmi/actions');
         const { config } = await import('@/lib/wagmi');
@@ -128,7 +135,14 @@ export const NFTInfoSection: React.FC<{
 
       } catch (err) {
         console.error('获取NFT信息失败:', err);
-        setError(err instanceof Error ? err.message : '获取NFT信息失败');
+        const errorMsg = err instanceof Error ? err.message : '获取NFT信息失败';
+        
+        // 特殊处理NFT不存在的情况
+        if (errorMsg.includes('Token does not exist') || errorMsg.includes('reverted')) {
+          setError('NFT_NOT_EXISTS');
+        } else {
+          setError(errorMsg);
+        }
       } finally {
         setLoading(false);
       }
@@ -137,7 +151,7 @@ export const NFTInfoSection: React.FC<{
     if (nftTokenId) {
       fetchNFTInfo();
     }
-  }, [nftTokenId]);
+  }, [nftTokenId, nftExists]);
 
   if (loading) {
     return (
@@ -155,6 +169,62 @@ export const NFTInfoSection: React.FC<{
   }
 
   if (error) {
+    // 如果是NFT不存在，显示已兑换销毁状态
+    if (error === 'NFT_NOT_EXISTS') {
+      return (
+        <div className={`bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-200/30 shadow-sm ${className}`}>
+          <div className="flex items-center space-x-2 mb-6">
+            <span className="text-lg">🔥</span>
+            <h3 className="text-xl font-bold text-orange-800">NFT已兑换销毁</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {/* 状态指示 */}
+            <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 border border-orange-200/50">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm">💰</span>
+                </div>
+                <div>
+                  <div className="font-bold text-orange-800">兑换完成</div>
+                  <div className="text-orange-600 text-sm">此NFT已被成功兑换为CARB代币</div>
+                </div>
+              </div>
+              
+              <div className="text-sm text-orange-700 space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span>🎨</span>
+                  <span>原NFT Token ID: #{nftTokenId}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>🔥</span>
+                  <span>状态: 已永久销毁</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>💸</span>
+                  <span>CARB代币已发放到用户钱包</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 说明信息 */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="text-sm text-gray-700">
+                <div className="font-medium mb-2">ℹ️ 关于NFT兑换销毁</div>
+                <ul className="space-y-1 text-xs ml-4">
+                  <li>• NFT兑换后会被永久销毁，无法恢复</li>
+                  <li>• 用户已获得相应的CARB代币作为兑换回报</li>
+                  <li>• 这是区块链上的不可逆操作</li>
+                  <li>• 销毁确保了碳信用的唯一性和可追溯性</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 其他错误情况
     return (
       <div className={`${themeClasses.background} rounded-xl p-6 ${themeClasses.border} shadow-sm ${className}`}>
         <div className="flex items-center space-x-2 mb-4">

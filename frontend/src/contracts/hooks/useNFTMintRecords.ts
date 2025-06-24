@@ -196,6 +196,21 @@ export const useNFTMintRecords = () => {
     enabled: isConnected && !!address && eventListeningEnabled,
   });
 
+  // NFT兑换事件监听：更新NFT状态为已兑换
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
+    abi: getGreenTraceABI(),
+    eventName: 'NFTExchanged',
+    onLogs: () => {
+      console.log('创建中心检测到NFTExchanged事件，刷新合约数据');
+      // 立即刷新数据以显示兑换状态变化
+      setTimeout(() => {
+        refreshRecords(true);
+      }, 1000);
+    },
+    enabled: isConnected && !!address && eventListeningEnabled,
+  });
+
   // 合约查询：批量获取用户所有申请ID，再并发获取详情
   const fetchRecordsFromContract = useCallback(async () => {
     if (!isConnected || !address) {

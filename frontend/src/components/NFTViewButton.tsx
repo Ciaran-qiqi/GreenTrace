@@ -10,6 +10,7 @@ interface NFTViewButtonProps {
   buttonStyle?: 'primary' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  nftExists?: boolean; // 可选：NFT是否存在的预检查结果
 }
 
 // NFT查看按钮组件
@@ -18,7 +19,8 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
   buttonText = '查看NFT',
   buttonStyle = 'primary',
   size = 'md',
-  className = ''
+  className = '',
+  nftExists
 }) => {
   const [showNFTModal, setShowNFTModal] = useState(false);
 
@@ -116,6 +118,7 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
                 nftTokenId={nftTokenId}
                 theme={buttonStyle === 'primary' || buttonStyle === 'outline' ? 'blue' : 'purple'}
                 className="border-0 shadow-none bg-transparent p-0"
+                nftExists={nftExists}
               />
             </div>
           </div>

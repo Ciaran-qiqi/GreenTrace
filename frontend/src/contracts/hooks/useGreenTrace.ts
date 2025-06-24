@@ -425,17 +425,45 @@ export const useExchangeNFT = () => {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = 
     useWaitForTransactionReceipt({ hash });
 
-  const exchangeNFT = (tokenId: bigint) => {
+  const exchangeNFT = (cashId: bigint) => {
     writeContract({
       address: contractAddress,
       abi: getGreenTraceABI(),
       functionName: 'exchangeNFT',
-      args: [tokenId],
+      args: [cashId],
     });
   };
 
   return {
     exchangeNFT,
+    hash,
+    error,
+    isPending,
+    isConfirming,
+    isConfirmed,
+  };
+};
+
+// 提交兑换审计
+export const useSubmitExchangeAudit = () => {
+  const { writeContract, data: hash, error, isPending } = useWriteContract();
+  const chainId = useChainId();
+  const contractAddress = getContractAddress(chainId);
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = 
+    useWaitForTransactionReceipt({ hash });
+
+  const submitExchangeAudit = (cashId: bigint, carbonValue: bigint, comment: string) => {
+    writeContract({
+      address: contractAddress,
+      abi: getGreenTraceABI(),
+      functionName: 'submitExchangeAudit',
+      args: [cashId, carbonValue, comment],
+    });
+  };
+
+  return {
+    submitExchangeAudit,
     hash,
     error,
     isPending,
@@ -476,36 +504,7 @@ export const useSubmitMintAudit = () => {
   };
 };
 
-// 提交兑换审计
-export const useSubmitExchangeAudit = () => {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
-  const chainId = useChainId();
-  const contractAddress = getContractAddress(chainId);
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = 
-    useWaitForTransactionReceipt({ hash });
-
-  const submitExchangeAudit = (
-    tokenId: bigint,
-    carbonValue: bigint
-  ) => {
-    writeContract({
-      address: contractAddress,
-      abi: getGreenTraceABI(),
-      functionName: 'submitExchangeAudit',
-      args: [tokenId, carbonValue],
-    });
-  };
-
-  return {
-    submitExchangeAudit,
-    hash,
-    error,
-    isPending,
-    isConfirming,
-    isConfirmed,
-  };
-};
 
 // 完成兑换审计
 export const useCompleteExchangeAudit = () => {

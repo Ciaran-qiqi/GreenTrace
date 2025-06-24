@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
+import { useChainId } from 'wagmi';
 import { useNFTMintRecords, type MintRecord } from '@/contracts/hooks/useNFTMintRecords';
 import { RequestDetailModal, type RequestRecord } from './RequestDetailModal';
 import { usePayAndMintNFT } from '@/contracts/hooks/useGreenTrace';
@@ -9,11 +10,30 @@ import { useRouter } from 'next/navigation';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { formatTimestamp } from '@/utils/timeUtils';
 import { NFTViewButton } from './NFTViewButton';
+import { getGreenTalesNFTAddress } from '@/contracts/addresses';
+import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 
 // NFT创建记录列表组件Props接口
 interface NFTMintRecordsProps {
   autoRefresh?: boolean; // 是否自动刷新数据
 }
+
+// 检查NFT是否存在的Hook（用于判断是否已被兑换销毁）
+const useCheckNFTExists = (tokenId: string | undefined) => {
+  const chainId = useChainId();
+  const nftContractAddress = getGreenTalesNFTAddress(chainId);
+  
+  return useReadContract({
+    address: nftContractAddress as `0x${string}`,
+    abi: GreenTalesNFTABI.abi,
+    functionName: 'ownerOf',
+    args: tokenId ? [BigInt(tokenId)] : undefined,
+    query: {
+      enabled: !!tokenId,
+      retry: false, // 不重试，因为NFT不存在会抛出错误
+    }
+  });
+};
 
 // NFT创建记录列表组件（只保留链上数据源）
 export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = false }) => {
@@ -38,6 +58,23 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
 
   // 只在客户端渲染
   useEffect(() => { setIsClient(true); }, []);
+
+  // 监听全局NFT兑换事件，实时更新状态
+  useEffect(() => {
+    const handleNFTExchanged = (event: CustomEvent) => {
+      console.log('创建中心检测到NFT兑换事件:', event.detail);
+      // 立即强制刷新数据以反映兑换状态
+      refreshRecords(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('nft-exchanged', handleNFTExchanged as EventListener);
+      
+      return () => {
+        window.removeEventListener('nft-exchanged', handleNFTExchanged as EventListener);
+      };
+    }
+  }, [refreshRecords]);
 
   // 将MintRecord转换为RequestRecord格式
   const convertToRequestRecord = (record: MintRecord): RequestRecord => {
@@ -217,69 +254,96 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                   </button>
                 </div>
               ) : (
-                records.map((record, index) => (
-                  <div key={record.transactionHash || `${record.tokenId}-${record.timestamp}-${index}`}
-                    className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-800">#{record.tokenId} {record.title}</h3>
-                          {/* 显示状态标签 */}
-                          {record.status === 'minted' ? (
-                            <div className="flex items-center gap-2">
-                              <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-200">
-                                🎨 已铸造
+                records.map((record) => {
+                  // 带NFT存在性检查的记录卡片组件
+                  const RecordCard = () => {
+                    const { error: nftError } = useCheckNFTExists(
+                      record.status === 'minted' ? (record as any).nftTokenId || '0' : undefined
+                    );
+                    const nftExists = !nftError;
+
+                    return (
+                                             <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-gray-800">#{record.tokenId} {record.title}</h3>
+                              {/* 状态徽章 */}
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                record.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                record.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                record.status === 'minted' ? 'bg-purple-100 text-purple-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {record.status === 'pending' ? '⏳ 待审计' :
+                                 record.status === 'approved' ? '✅ 已批准' :
+                                 record.status === 'minted' ? '🎨 已铸造' :
+                                 '❌ 已拒绝'}
                               </span>
-                              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-blue-200">
-                                NFT #{(record as any).nftTokenId || '0'}
-                              </span>
+                              {/* 已兑换标签 */}
+                              {record.status === 'minted' && !nftExists && (
+                                <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
+                                  🔥 已兑换
+                                </span>
+                              )}
                             </div>
-                          ) : record.status === 'approved' ? (
-                            <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-yellow-200">
-                              ⏳ 等待铸造
-                            </span>
-                          ) : record.status === 'pending' ? (
-                            <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-gray-200">
-                              ⏱️ 待审核
-                            </span>
-                          ) : record.status === 'rejected' ? (
-                            <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-red-200">
-                              ❌ 已拒绝
-                            </span>
-                          ) : null}
+                            <p className="text-gray-600 text-sm line-clamp-2">{record.details}</p>
+                          </div>
+                          <div className="text-right text-sm text-gray-500">
+                            <div>{formatTimestamp(record.timestamp)}</div>
+                            <div className="mt-1">费用: {formatFeeAmount(record.totalFee)} CARB</div>
+                          </div>
                         </div>
-                        <p className="text-gray-600 text-sm line-clamp-2">{record.details}</p>
+
+                        {/* 申请详情 */}
+                        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">碳减排量:</span>
+                            <span className="ml-2 font-medium text-green-600">{record.carbonReduction} tCO₂e</span>
+                          </div>
+                          {record.carbonValue && (
+                            <div>
+                              <span className="text-gray-500">审计确认价值:</span>
+                              <span className="ml-2 font-medium text-green-600">{record.carbonValue} tCO₂e</span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-gray-500">申请时间:</span>
+                            <span className="ml-2 font-medium">{formatTimestamp(record.timestamp)}</span>
+                          </div>
+                          {record.auditor && (
+                            <div>
+                              <span className="text-gray-500">审计员:</span>
+                              <span className="ml-2 font-medium">{record.auditor.slice(0, 6)}...{record.auditor.slice(-4)}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 操作按钮 */}
+                        <div className="flex gap-3">
+                          <button onClick={() => handleViewDetails(record)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">查看详情</button>
+                          {record.status === 'approved' && (
+                            <button onClick={() => handleContinueMint(convertToRequestRecord(record))} className="bg-green-600 text-white px-4 py-1 rounded text-sm hover:bg-green-700 transition-colors">继续铸造</button>
+                          )}
+                          {record.status === 'minted' && (
+                            <NFTViewButton 
+                              nftTokenId={(record as any).nftTokenId || '0'}
+                              buttonText="查看NFT"
+                              buttonStyle="primary"
+                              size="sm"
+                              nftExists={nftExists}
+                            />
+                          )}
+                          {record.status === 'rejected' && (
+                            <button className="bg-gray-600 text-white px-4 py-1 rounded text-sm hover:bg-gray-700 transition-colors">重新申请</button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right text-sm text-gray-500">
-                        <div>{formatTimestamp(record.timestamp)}</div>
-                        <div className="mt-1">费用: {formatFeeAmount(record.totalFee)} CARB</div>
-                      </div>
-                    </div>
-                    {/* 详细信息 */}
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                      <div><span className="text-gray-500">碳减排量:</span><span className="ml-2 font-medium">{record.carbonReduction} CARB</span></div>
-                      {record.carbonValue && (<div><span className="text-gray-500">审计确认价值:</span><span className="ml-2 font-medium">{record.carbonValue} CARB</span></div>)}
-                    </div>
-                    {/* 操作按钮 */}
-                    <div className="flex gap-3">
-                      <button onClick={() => handleViewDetails(record)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">查看详情</button>
-                      {record.status === 'approved' && (
-                        <button onClick={() => handleContinueMint(convertToRequestRecord(record))} className="bg-green-600 text-white px-4 py-1 rounded text-sm hover:bg-green-700 transition-colors">继续铸造</button>
-                      )}
-                      {record.status === 'minted' && (
-                        <NFTViewButton 
-                          nftTokenId={(record as any).nftTokenId || '0'}
-                          buttonText="查看NFT"
-                          buttonStyle="primary"
-                          size="sm"
-                        />
-                      )}
-                      {record.status === 'rejected' && (
-                        <button className="bg-gray-600 text-white px-4 py-1 rounded text-sm hover:bg-gray-700 transition-colors">重新申请</button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                    );
+                  };
+
+                                     return <RecordCard key={record.transactionHash || `${record.tokenId}-${record.timestamp}`} />;
+                })
               )}
             </div>
           )}

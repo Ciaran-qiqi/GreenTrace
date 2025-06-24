@@ -196,6 +196,20 @@ export const useAuditData = () => {
     enabled: isConnected,
   });
 
+  // NFT兑换事件监听：当NFT被兑换时更新状态
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
+    abi: getGreenTraceABI(),
+    eventName: 'NFTExchanged',
+    onLogs: () => {
+      console.log('审计中心检测到NFTExchanged事件，刷新合约数据');
+      setTimeout(() => {
+        refreshAuditData(true);
+      }, 1000);
+    },
+    enabled: isConnected,
+  });
+
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
