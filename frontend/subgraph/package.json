@@ -1,0 +1,24 @@
+{
+  "name": "greentrace-subgraph",
+  "version": "1.0.0",
+  "description": "GreenTrace NFT Platform Subgraph",
+  "scripts": {
+    "copy-abi": "node copy-abi.js",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ greentrace-subgraph",
+    "deploy:hosted": "graph deploy --product hosted-service greentrace-subgraph",
+    "create-local": "graph create --node http://localhost:8020/ greentrace-subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ greentrace-subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 greentrace-subgraph",
+    "setup": "npm run copy-abi && npm run codegen && npm run build"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.60.0",
+    "@graphprotocol/graph-ts": "^0.31.0"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-register": "^6.26.0"
+  }
+} 

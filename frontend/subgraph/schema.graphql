@@ -1,0 +1,247 @@
+type MintRequest @entity(immutable: false) {
+  id: ID! # tokenId
+  tokenId: BigInt!
+  requester: Bytes!
+  title: String!
+  details: String!
+  carbonReduction: BigInt!
+  tokenURI: String!
+  totalFee: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # 审计信息
+  auditor: Bytes
+  carbonValue: BigInt
+  auditStatus: String # "pending", "approved", "rejected"
+  auditTimestamp: BigInt
+  auditReason: String
+  
+  # NFT状态
+  isMinted: Boolean!
+  mintTimestamp: BigInt
+  owner: Bytes
+  
+  # 创建时间
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type Audit @entity(immutable: false) {
+  id: ID! # tokenId
+  tokenId: BigInt!
+  auditor: Bytes!
+  carbonValue: BigInt!
+  status: String! # "pending", "approved", "rejected"
+  auditType: String! # "mint", "exchange"
+  timestamp: BigInt!
+  reason: String
+  
+  # 关联的铸造请求
+  mintRequest: MintRequest!
+}
+
+type ExchangeRequest @entity(immutable: false) {
+  id: ID! # tokenId
+  tokenId: BigInt!
+  requester: Bytes!
+  basePrice: BigInt!
+  totalFee: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # 审计信息
+  auditor: Bytes
+  carbonValue: BigInt
+  auditStatus: String
+  auditTimestamp: BigInt
+  
+  # 兑换状态
+  isExchanged: Boolean!
+  exchangeTimestamp: BigInt
+  returnAmount: BigInt
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# 碳代币相关实体
+type CarbonTokenTransfer @entity(immutable: false) {
+  id: ID! # transactionHash + logIndex
+  from: Bytes!
+  to: Bytes!
+  amount: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # 关联的合约
+  contract: CarbonToken!
+}
+
+type CarbonToken @entity(immutable: false) {
+  id: ID! # 合约地址
+  address: Bytes!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  totalSupply: BigInt!
+  
+  # 转账记录
+  transfers: [CarbonTokenTransfer!]! @derivedFrom(field: "contract")
+  
+  # 统计信息
+  totalTransfers: BigInt!
+  totalVolume: BigInt!
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# 碳价预言机相关实体
+type CarbonPriceUpdate @entity(immutable: false) {
+  id: ID! # transactionHash + logIndex
+  price: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+  
+  # 关联的预言机
+  oracle: CarbonPriceOracle!
+}
+
+type CarbonPriceOracle @entity(immutable: false) {
+  id: ID! # 合约地址
+  address: Bytes!
+  currentPrice: BigInt!
+  lastUpdateTime: BigInt!
+  
+  # 价格更新记录
+  priceUpdates: [CarbonPriceUpdate!]! @derivedFrom(field: "oracle")
+  
+  # 统计信息
+  totalUpdates: BigInt!
+  priceHistory: [BigInt!]!
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# 交易市场相关实体
+type MarketTrade @entity(immutable: false) {
+  id: ID! # transactionHash + logIndex
+  seller: Bytes!
+  buyer: Bytes!
+  tokenId: BigInt!
+  price: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # 关联的市场
+  market: GreenTalesMarket!
+}
+
+type GreenTalesMarket @entity(immutable: false) {
+  id: ID! # 合约地址
+  address: Bytes!
+  
+  # 交易记录
+  trades: [MarketTrade!]! @derivedFrom(field: "market")
+  
+  # 统计信息
+  totalTrades: BigInt!
+  totalVolume: BigInt!
+  activeListings: BigInt!
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# 流动性池相关实体
+type LiquidityPoolEvent @entity(immutable: false) {
+  id: ID! # transactionHash + logIndex
+  eventType: String! # "add", "remove", "swap"
+  user: Bytes!
+  amount0: BigInt!
+  amount1: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # 关联的流动性池
+  pool: GreenTalesLiquidityPool!
+}
+
+type GreenTalesLiquidityPool @entity(immutable: false) {
+  id: ID! # 合约地址
+  address: Bytes!
+  token0: Bytes!
+  token1: Bytes!
+  reserve0: BigInt!
+  reserve1: BigInt!
+  totalSupply: BigInt!
+  
+  # 事件记录
+  events: [LiquidityPoolEvent!]! @derivedFrom(field: "pool")
+  
+  # 统计信息
+  totalEvents: BigInt!
+  totalVolume: BigInt!
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# USDT市场相关实体
+type USDTMarketTrade @entity(immutable: false) {
+  id: ID! # transactionHash + logIndex
+  user: Bytes!
+  action: String! # "buy", "sell"
+  carbonAmount: BigInt!
+  usdtAmount: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  
+  # 关联的市场
+  market: CarbonUSDTMarket!
+}
+
+type CarbonUSDTMarket @entity(immutable: false) {
+  id: ID! # 合约地址
+  address: Bytes!
+  
+  # 交易记录
+  trades: [USDTMarketTrade!]! @derivedFrom(field: "market")
+  
+  # 统计信息
+  totalTrades: BigInt!
+  totalCarbonVolume: BigInt!
+  totalUSDTVolume: BigInt!
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# 统计信息
+type Statistics @entity(immutable: false) {
+  id: ID! # "global"
+  totalMintRequests: BigInt!
+  totalApprovedMints: BigInt!
+  totalRejectedMints: BigInt!
+  totalMintedNFTs: BigInt!
+  totalExchangeRequests: BigInt!
+  totalExchangedNFTs: BigInt!
+  totalCarbonReduction: BigInt!
+  totalFeesCollected: BigInt!
+  
+  # 新增统计
+  totalCarbonTransfers: BigInt!
+  totalMarketTrades: BigInt!
+  totalLiquidityEvents: BigInt!
+  totalUSDTTrades: BigInt!
+  currentCarbonPrice: BigInt!
+} 
