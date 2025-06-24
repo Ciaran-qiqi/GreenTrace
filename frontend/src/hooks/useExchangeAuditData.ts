@@ -231,6 +231,7 @@ export const useExchangeAuditData = () => {
         contracts: [
           {
             ...contractConfig,
+            abi: contractConfig.abi as any,
             functionName: 'getPendingCashAudits',
             args: [],
           }
@@ -242,13 +243,14 @@ export const useExchangeAuditData = () => {
         contracts: [
           {
             ...contractConfig,
+            abi: contractConfig.abi as any,
             functionName: 'getAllAuditedCashRequests',
             args: [],
           }
         ]
       });
 
-      let allCashIds: bigint[] = [];
+              const allCashIds: bigint[] = [];
 
       if (pendingResult[0].status === 'success' && pendingResult[0].result) {
         const pendingIds = pendingResult[0].result as bigint[];
@@ -275,6 +277,7 @@ export const useExchangeAuditData = () => {
       // 3. 批量查询每个兑换申请的详情
       const detailContracts = allCashIds.map((id: bigint) => ({
         ...contractConfig,
+        abi: contractConfig.abi as any,
         functionName: 'getCashById',
         args: [id],
       }));

@@ -259,8 +259,8 @@ export const useMintPrerequisites = (userAddress: Address | undefined, requiredA
   const { data: balance, isLoading: balanceLoading } = useCarbonTokenBalance(userAddress);
   const { data: allowance, isLoading: allowanceLoading } = useCarbonTokenAllowance(userAddress);
 
-  const hasBalance = balance && requiredAmount ? balance >= requiredAmount : false;
-  const hasAllowance = allowance && requiredAmount ? allowance >= requiredAmount : false;
+  const hasBalance = balance && requiredAmount ? BigInt(balance.toString()) >= BigInt(requiredAmount.toString()) : false;
+  const hasAllowance = allowance && requiredAmount ? BigInt(allowance.toString()) >= BigInt(requiredAmount.toString()) : false;
   const isReady = hasBalance && hasAllowance;
 
   return {

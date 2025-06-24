@@ -58,7 +58,7 @@ export default function CreatedPage() {
                           <br />
                           ⏱️ 通常需要1-2个区块确认时间（约15-30秒）。
                           <br />
-                          🔄 如果没有显示，请点击"刷新"按钮手动更新。
+                          🔄 如果没有显示，请点击&ldquo;刷新&rdquo;按钮手动更新。
                         </div>
                       </div>
                     </div>

@@ -124,6 +124,14 @@ export const Navigation: React.FC = () => {
                     <div className="absolute inset-0 bg-blue-100 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                   </Link>
                   
+                  <Link 
+                    href="/my-listings" 
+                    className="relative px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-blue-600 transition-all duration-200 hover:bg-blue-50 group"
+                  >
+                    <span className="relative z-10">🏪 我的挂单</span>
+                    <div className="absolute inset-0 bg-blue-100 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                  </Link>
+                  
                     <Link 
                       href="/liquidity" 
                       className="relative px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-blue-600 transition-all duration-200 hover:bg-blue-50 group"

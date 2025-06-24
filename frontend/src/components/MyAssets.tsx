@@ -9,6 +9,7 @@ import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { NFTViewButton } from './NFTViewButton';
 import { NFTExchangeButton } from './NFTExchangeButton';
+import { ListNFTModal } from './market/ListNFTModal';
 
 // NFT信息接口
 interface NFTInfo {
@@ -29,6 +30,10 @@ export const MyAssets: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const [userNFTs, setUserNFTs] = useState<NFTInfo[]>([]);
   const [loadingNFTs, setLoadingNFTs] = useState(false);
+  
+  // 挂单模态框状态
+  const [showListModal, setShowListModal] = useState(false);
+  const [selectedNFTForList, setSelectedNFTForList] = useState<NFTInfo | null>(null);
 
   // 获取合约地址
   const carbonTokenAddress = getCarbonTokenAddress(chainId);
@@ -60,6 +65,19 @@ export const MyAssets: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // 处理挂单
+  const handleListNFT = (nft: NFTInfo) => {
+    setSelectedNFTForList(nft);
+    setShowListModal(true);
+  };
+
+  // 挂单成功回调
+  const handleListSuccess = () => {
+    setShowListModal(false);
+    setSelectedNFTForList(null);
+    refreshAssets(); // 刷新资产数据
+  };
 
   // 使用改进的NFT查询逻辑
   const fetchUserNFTs = async () => {
@@ -435,6 +453,12 @@ export const MyAssets: React.FC = () => {
                       buttonStyle="primary"
                       size="sm"
                     />
+                    <button
+                      onClick={() => handleListNFT(nft)}
+                      className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      🏪 挂单
+                    </button>
                     <NFTExchangeButton
                       nft={nft}
                       onExchangeSuccess={() => {
@@ -480,6 +504,16 @@ export const MyAssets: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* 挂单模态框 */}
+      {showListModal && selectedNFTForList && (
+        <ListNFTModal
+          nft={selectedNFTForList}
+          isOpen={showListModal}
+          onClose={() => setShowListModal(false)}
+          onSuccess={handleListSuccess}
+        />
+      )}
     </div>
   );
 }; 
