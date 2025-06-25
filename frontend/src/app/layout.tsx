@@ -8,6 +8,7 @@ const notoSansSC = Noto_Sans_SC({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  variable: "--font-noto-sans-sc",
 });
 
 export const metadata: Metadata = {
@@ -21,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={notoSansSC.className}>
-      <body suppressHydrationWarning={true}>
+    <html lang="zh-CN" className={`${notoSansSC.variable} antialiased`}>
+      <body suppressHydrationWarning={true} className={notoSansSC.className}>
         <Providers>
           {children}
         </Providers>

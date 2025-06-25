@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { useMarketNFTs } from '@/hooks/market/useMarketNFTs';
 import { NFTGrid } from './NFTGrid';
 import { MarketStats } from './MarketStats';
-// import { MarketFilters } from './MarketFilters'; // 暂时注释，后续启用
+import { MarketFilters, FilterOptions } from './MarketFilters';
+import { formatCarbonReduction, formatContractPrice } from '@/utils/formatUtils';
 
 /**
  * NFT交易市场主页面组件
@@ -12,10 +13,15 @@ import { MarketStats } from './MarketStats';
  */
 export const NFTMarketplace: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [filters, setFilters] = useState<FilterOptions>({
+    searchTerm: '',
+    priceRange: [0, Number.MAX_SAFE_INTEGER], // 默认不限制价格
+    sortBy: 'time_desc',
+  });
   
   // 使用市场NFT数据Hook
   const {
-    nfts,
+    nfts: rawNfts,
     isLoading,
     error,
     totalCount,
@@ -23,6 +29,64 @@ export const NFTMarketplace: React.FC = () => {
     loadMore,
     refetch,
   } = useMarketNFTs(12);
+
+  // 应用筛选和排序逻辑
+  const filteredAndSortedNfts = React.useMemo(() => {
+    if (!rawNfts || !Array.isArray(rawNfts)) return [];
+    
+    let filtered = [...rawNfts];
+
+    // 搜索筛选
+    if (filters.searchTerm) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(nft => 
+        nft.title?.toLowerCase().includes(searchLower) ||
+        nft.description?.toLowerCase().includes(searchLower) ||
+        nft.tokenId?.includes(filters.searchTerm)
+      );
+    }
+
+    // 价格范围筛选（只有当设置了有意义的价格范围时才筛选）
+    if (filters.priceRange && filters.priceRange[1] < Number.MAX_SAFE_INTEGER) {
+      const [minPrice, maxPrice] = filters.priceRange;
+      filtered = filtered.filter(nft => {
+        const price = parseFloat(formatContractPrice(nft.price || '0'));
+        return price >= minPrice && price <= maxPrice;
+      });
+    }
+
+    // 碳减排量筛选
+    if (filters.minCarbonReduction && filters.minCarbonReduction > 0) {
+      filtered = filtered.filter(nft => {
+        const carbonReduction = parseFloat(formatCarbonReduction(nft.carbonReduction || '0'));
+        return carbonReduction >= (filters.minCarbonReduction || 0);
+      });
+    }
+
+    // 排序
+    filtered.sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'price_asc':
+          return parseFloat(formatContractPrice(a.price || '0')) - parseFloat(formatContractPrice(b.price || '0'));
+        case 'price_desc':
+          return parseFloat(formatContractPrice(b.price || '0')) - parseFloat(formatContractPrice(a.price || '0'));
+        case 'time_asc':
+          return parseInt(a.timestamp || '0') - parseInt(b.timestamp || '0');
+        case 'time_desc':
+          return parseInt(b.timestamp || '0') - parseInt(a.timestamp || '0');
+        case 'carbon_asc':
+          return parseFloat(formatCarbonReduction(a.carbonReduction || '0')) - parseFloat(formatCarbonReduction(b.carbonReduction || '0'));
+        case 'carbon_desc':
+          return parseFloat(formatCarbonReduction(b.carbonReduction || '0')) - parseFloat(formatCarbonReduction(a.carbonReduction || '0'));
+        default:
+          return parseInt(b.timestamp || '0') - parseInt(a.timestamp || '0');
+      }
+    });
+
+    return filtered;
+  }, [rawNfts, filters]);
+
+  const filteredCount = filteredAndSortedNfts.length;
 
   // 处理购买成功，刷新数据
   const handleBuySuccess = () => {
@@ -50,9 +114,16 @@ export const NFTMarketplace: React.FC = () => {
             🏪 NFT市场
           </h2>
           {totalCount > 0 && (
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              {totalCount} 个NFT在售
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                总计 {totalCount} 个NFT在售
+              </span>
+              {filteredCount !== totalCount && (
+                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                  筛选后 {filteredCount} 个结果
+                </span>
+              )}
+            </div>
           )}
         </div>
 
@@ -75,18 +146,43 @@ export const NFTMarketplace: React.FC = () => {
         </div>
       </div>
 
-      {/* 筛选器组件（未来扩展） */}
-      {/* <MarketFilters /> */}
+      {/* 筛选器组件 */}
+      <MarketFilters 
+        onFiltersChange={setFilters} 
+        totalCount={filteredCount}
+        isLoading={isLoading}
+      />
 
       {/* NFT网格展示 */}
       <NFTGrid
-        nfts={nfts}
+        nfts={filteredAndSortedNfts}
         isLoading={isLoading}
         error={error}
         hasMore={hasMore}
         onLoadMore={loadMore}
         onBuySuccess={handleBuySuccess}
       />
+
+      {/* 筛选结果为空时的提示 */}
+      {!isLoading && !error && filteredAndSortedNfts.length === 0 && totalCount > 0 && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <div className="text-gray-400 text-4xl mb-4">🔍</div>
+          <div className="text-gray-600 text-lg mb-2">没有找到符合条件的NFT</div>
+          <div className="text-gray-500 text-sm mb-4">
+            尝试调整筛选条件或{' '}
+            <button 
+                           onClick={() => setFilters({
+               searchTerm: '',
+               priceRange: [0, Number.MAX_SAFE_INTEGER],
+               sortBy: 'time_desc',
+             })}
+              className="text-green-600 hover:text-green-700 underline"
+            >
+              重置筛选
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 底部说明信息 */}
       {!error && (

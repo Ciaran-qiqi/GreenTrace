@@ -62,24 +62,48 @@ export function formatContractTimestamp(timestampStr: string | number | bigint):
     if (typeof timestampStr === 'bigint') {
       timestamp = Number(timestampStr);
     } else if (typeof timestampStr === 'string') {
-      timestamp = parseInt(timestampStr);
+      // 如果字符串包含小数点，先取整数部分
+      const cleanTimestamp = timestampStr.split('.')[0];
+      timestamp = parseInt(cleanTimestamp);
     } else {
       timestamp = timestampStr;
     }
     
     if (isNaN(timestamp) || timestamp <= 0) {
+      console.warn('无效时间戳:', { timestampStr, parsed: timestamp });
       return '未知时间';
     }
 
-    // 转换为毫秒
-    const timestampMs = timestamp * 1000;
+    // 智能合约时间戳通常是秒，但JavaScript时间戳是毫秒
+    let timestampMs: number;
+    
+    // 通过时间戳的位数判断单位
+    const timestampStr2 = timestamp.toString();
+    if (timestampStr2.length === 13) {
+      // 13位数字，已经是毫秒
+      timestampMs = timestamp;
+    } else if (timestampStr2.length === 10) {
+      // 10位数字，是秒，需要转换为毫秒
+      timestampMs = timestamp * 1000;
+    } else if (timestamp > 1e12) {
+      // 大于1e12，认为是毫秒
+      timestampMs = timestamp;
+    } else {
+      // 其他情况，认为是秒
+      timestampMs = timestamp * 1000;
+    }
+    
     const now = Date.now();
     const diffMs = now - timestampMs;
 
-    // 如果时间戳在未来，显示具体日期（可能是测试数据）
-    if (diffMs < 0) {
-      console.warn('时间戳在未来:', { timestamp, timestampMs, now });
+    // 如果时间戳在未来或者相差过大，显示具体日期
+    if (diffMs < 0 || diffMs > 365 * 24 * 60 * 60 * 1000) {
       const date = new Date(timestampMs);
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        console.warn('无效日期:', { timestamp, timestampMs, timestampStr });
+        return '时间格式错误';
+      }
       return `${date.toLocaleDateString('zh-CN')} ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
     }
 
@@ -88,8 +112,8 @@ export function formatContractTimestamp(timestampStr: string | number | bigint):
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffDays > 365) {
-      // 超过一年，显示具体日期
+    if (diffDays > 30) {
+      // 超过30天，显示具体日期
       const date = new Date(timestampMs);
       return date.toLocaleDateString('zh-CN');
     } else if (diffDays > 0) {

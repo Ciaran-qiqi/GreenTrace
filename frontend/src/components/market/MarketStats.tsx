@@ -5,7 +5,7 @@ import { useMarketStats } from '@/hooks/market/useMarketStats';
 
 /**
  * 市场统计信息展示组件
- * @description 展示市场的关键统计数据，如总挂单数、用户数等
+ * @description 展示市场的关键统计数据，包括实时计算的交易额和价格统计
  */
 export const MarketStats: React.FC = () => {
   const { stats, isLoading, error } = useMarketStats();
@@ -69,27 +69,43 @@ export const MarketStats: React.FC = () => {
       </div>
 
       {/* 总交易额 */}
-      <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow" title="已完成交易的NFT总价值">
         <div className="flex items-center">
           <div className="text-2xl mr-3">💰</div>
           <div>
             <div className="text-2xl font-bold text-purple-600">
-              {stats.totalVolume ? `${(Number(stats.totalVolume) / 1e18).toFixed(0)}` : '0'}
+              {(() => {
+                const volume = Number(stats.totalVolume) / 1e18;
+                return volume > 0 ? volume.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0';
+              })()}
             </div>
-            <div className="text-sm text-gray-600">总交易额 CARB</div>
+            <div className="text-sm text-gray-600">
+              总交易额 CARB
+              {Number(stats.totalVolume) === 0 && (
+                <div className="text-xs text-gray-400 mt-1">暂无交易记录</div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 平均价格 */}
-      <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+      <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow" title="当前在售NFT的平均价格">
         <div className="flex items-center">
           <div className="text-2xl mr-3">📊</div>
           <div>
             <div className="text-2xl font-bold text-orange-600">
-              {stats.averagePrice ? `${(Number(stats.averagePrice) / 1e18).toFixed(1)}` : '0'}
+              {(() => {
+                const price = Number(stats.averagePrice) / 1e18;
+                return price > 0 ? price.toFixed(1) : '0';
+              })()}
             </div>
-            <div className="text-sm text-gray-600">平均价格 CARB</div>
+            <div className="text-sm text-gray-600">
+              平均价格 CARB
+              {Number(stats.averagePrice) === 0 && (
+                <div className="text-xs text-gray-400 mt-1">基于在售NFT计算</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

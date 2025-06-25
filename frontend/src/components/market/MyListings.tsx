@@ -5,6 +5,10 @@ import { useAccount } from 'wagmi';
 
 import { formatCarbonReduction, formatContractTimestamp, formatContractPrice } from '@/utils/formatUtils';
 import { useMyListings, MyListing } from '@/hooks/market/useMyListings';
+import { useUserSalesHistory } from '@/hooks/market/useUserSalesHistory';
+import { useEventBasedCancelHistory } from '@/hooks/market/useEventBasedCancelHistory';
+import { PriceUpdateModal } from './PriceUpdateModal';
+import { CancelListingModal } from './CancelListingModal';
 
 // MyListing接口已从useMyListings导入
 
@@ -22,12 +26,34 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
   const [selectedTab, setSelectedTab] = useState<'active' | 'sold' | 'cancelled'>('active');
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   
   // 使用真实的挂单数据
   const { listings, isLoading, error, refetch } = useMyListings();
+  
+  // 获取销售历史数据（支持缓存）
+  const { 
+    salesHistory, 
+    isLoading: salesLoading, 
+    refetch: refetchSales,
+    forceRefresh: forceRefreshSales,
+    clearCache: clearSalesCache
+  } = useUserSalesHistory();
 
+  // 获取取消挂单历史数据（支持缓存）
+  const { 
+    cancelHistory, 
+    isLoading: cancelLoading, 
+    refetch: refetchCancel,
+    forceRefresh: forceRefreshCancel,
+    clearCache: clearCancelCache
+  } = useEventBasedCancelHistory();
+
+  // 合并所有数据（包括销售历史和取消记录）
+  const allListings = [...listings, ...salesHistory, ...cancelHistory];
+  
   // 过滤挂单
-  const filteredListings = listings.filter(listing => listing.status === selectedTab);
+  const filteredListings = allListings.filter(listing => listing.status === selectedTab);
 
   // 获取状态颜色
   const getStatusColor = (status: string) => {
@@ -50,21 +76,9 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
   };
 
   // 处理取消挂单
-  const handleCancelListing = async (listing: MyListing) => {
-    if (!window.confirm('确定要取消挂单吗？')) return;
-    
-    try {
-      // 这里调用智能合约取消挂单
-      console.log(`取消挂单: ${listing.listingId}`);
-      // TODO: 实现取消挂单功能
-      // await cancelListing(listing.listingId);
-      
-      alert('取消挂单功能开发中...');
-      refetch(); // 刷新数据
-    } catch (error) {
-      console.error('取消挂单失败:', error);
-      alert('取消挂单失败');
-    }
+  const handleCancelListing = (listing: MyListing) => {
+    setSelectedListing(listing);
+    setShowCancelModal(true);
   };
 
   // 处理价格更新
@@ -73,11 +87,11 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
     setShowUpdateModal(true);
   };
 
-  // 标签数据
+  // 标签数据（包含销售历史）
   const tabs = [
-    { key: 'active', label: '挂单中', count: listings.filter(l => l.status === 'active').length },
-    { key: 'sold', label: '已售出', count: listings.filter(l => l.status === 'sold').length },
-    { key: 'cancelled', label: '已取消', count: listings.filter(l => l.status === 'cancelled').length },
+    { key: 'active', label: '挂单中', count: allListings.filter(l => l.status === 'active').length },
+    { key: 'sold', label: '已售出', count: allListings.filter(l => l.status === 'sold').length },
+    { key: 'cancelled', label: '已取消', count: allListings.filter(l => l.status === 'cancelled').length },
   ] as const;
 
   if (!address) {
@@ -96,13 +110,52 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-2xl font-bold text-gray-800">我的挂单</h2>
-          <button
-            onClick={refetch}
-            disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {isLoading ? '刷新中...' : '🔄 刷新'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                refetch();
+                refetchSales(); // 增量刷新，保留历史记录
+                refetchCancel(); // 刷新取消记录
+              }}
+              disabled={isLoading || salesLoading || cancelLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {(isLoading || salesLoading || cancelLoading) ? '刷新中...' : '🔄 快速刷新'}
+            </button>
+            <div className="relative group">
+              <button
+                className="px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                ⚙️
+              </button>
+              {/* 下拉菜单 */}
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                <div className="p-1">
+                  <button
+                    onClick={() => {
+                      refetch();
+                      forceRefreshSales(); // 强制全量刷新
+                      forceRefreshCancel(); // 强制刷新取消记录
+                    }}
+                    disabled={isLoading || salesLoading || cancelLoading}
+                    className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded disabled:opacity-50"
+                  >
+                    🔄 强制全量刷新
+                  </button>
+                  <button
+                    onClick={() => {
+                      clearSalesCache();
+                      clearCancelCache();
+                    }}
+                    disabled={isLoading || salesLoading || cancelLoading}
+                    className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                  >
+                    🗑️ 清理所有缓存
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <p className="text-gray-600">管理您在市场上的NFT挂单</p>
         
@@ -114,6 +167,31 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
             </div>
           </div>
         )}
+
+        {/* 标签页说明提示 */}
+        <div className="mt-4">
+          {selectedTab === 'active' && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-blue-700 text-sm">
+                🏪 这里显示您正在挂单中的NFT。您可以随时调整价格或取消挂单。
+              </div>
+            </div>
+          )}
+          {selectedTab === 'sold' && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="text-green-700 text-sm">
+                💰 这里显示您已成功售出的NFT记录。恭喜您的环保故事得到了认可！
+              </div>
+            </div>
+          )}
+          {selectedTab === 'cancelled' && (
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="text-gray-700 text-sm">
+                ❌ 这里显示您已取消的挂单记录。取消的NFT仍归您所有，可以重新挂单。
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 标签页 */}
@@ -235,47 +313,38 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
         </div>
       )}
 
-      {/* 价格更新模态框 - 简化版本 */}
+      {/* 价格更新模态框 */}
       {showUpdateModal && selectedListing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              调整价格 - #{selectedListing.tokenId}
-            </h3>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                新价格 (CARB)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                defaultValue={selectedListing.currentPrice}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="请输入新价格"
-              />
-            </div>
+        <PriceUpdateModal
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+          onSuccess={() => {
+            refetch(); // 刷新挂单数据
+          }}
+          listing={{
+            tokenId: selectedListing.tokenId,
+            title: selectedListing.title,
+            currentPrice: selectedListing.currentPrice,
+            originalPrice: selectedListing.originalPrice,
+          }}
+        />
+      )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowUpdateModal(false)}
-                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={() => {
-                  // 这里处理价格更新逻辑
-                  setShowUpdateModal(false);
-                  alert('价格更新功能开发中...');
-                }}
-                className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                确认更新
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* 取消挂单模态框 */}
+      {showCancelModal && selectedListing && (
+        <CancelListingModal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onSuccess={() => {
+            refetch(); // 刷新挂单数据
+          }}
+          listing={{
+            tokenId: selectedListing.tokenId,
+            title: selectedListing.title,
+            currentPrice: selectedListing.currentPrice,
+            carbonReduction: selectedListing.carbonReduction,
+          }}
+        />
       )}
     </div>
   );

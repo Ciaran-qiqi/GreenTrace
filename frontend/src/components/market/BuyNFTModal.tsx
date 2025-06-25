@@ -1,16 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { useChainId } from 'wagmi';
-// viem imports handled in hooks
-import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
-import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
-import CarbonTokenABI from '@/contracts/abi/CarbonToken.json';
+import React from 'react';
+import { useBuyNFT } from '@/hooks/market/useBuyNFT';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { formatCarbonReduction } from '@/utils/formatUtils';
 import { MarketNFT } from '@/hooks/market/useMarketNFTs';
-import { toast } from 'react-hot-toast';
 
 interface BuyNFTModalProps {
   nft: MarketNFT;
@@ -33,165 +27,32 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { address } = useAccount();
-  const chainId = useChainId();
-  const [currentStep, setCurrentStep] = useState<'check' | 'approve' | 'buy' | 'success' | 'error'>('check');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
-  // 获取合约地址
-  const getMarketAddress = (chainId: number): string => {
-    switch (chainId) {
-      case 1: return CONTRACT_ADDRESSES.mainnet.Market;
-      case 11155111: return CONTRACT_ADDRESSES.sepolia.Market;
-      case 31337: return CONTRACT_ADDRESSES.foundry.Market;
-      default: return CONTRACT_ADDRESSES.sepolia.Market;
-    }
-  };
-
-  const getCarbonTokenAddress = (chainId: number): string => {
-    switch (chainId) {
-      case 1: return CONTRACT_ADDRESSES.mainnet.CarbonToken;
-      case 11155111: return CONTRACT_ADDRESSES.sepolia.CarbonToken;
-      case 31337: return CONTRACT_ADDRESSES.foundry.CarbonToken;
-      default: return CONTRACT_ADDRESSES.sepolia.CarbonToken;
-    }
-  };
-
-  const marketAddress = getMarketAddress(chainId);
-  const carbonTokenAddress = getCarbonTokenAddress(chainId);
-
-  // 检查CARB余额
-  const { data: carbBalance } = useReadContract({
-    address: carbonTokenAddress as `0x${string}`,
-    abi: CarbonTokenABI.abi,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address }
-  });
-
-  // 检查CARB授权额度
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: carbonTokenAddress as `0x${string}`,
-    abi: CarbonTokenABI.abi,
-    functionName: 'allowance',
-    args: address ? [address, marketAddress] : undefined,
-    query: { enabled: !!address && !!marketAddress }
-  });
-
-  // 授权CARB合约调用
-  const { writeContract: approveCarb, data: approveHash } = useWriteContract();
-  
-  // 购买NFT合约调用
-  const { writeContract: buyNFT, data: buyHash } = useWriteContract();
-
-  // 监听授权交易状态（包括错误）
-  const { isSuccess: approveSuccess, isError: approveError, error: approveErrorDetails } = useWaitForTransactionReceipt({
-    hash: approveHash,
-  });
-
-  // 监听购买交易状态（包括错误）
-  const { isSuccess: buySuccess, isError: buyError, error: buyErrorDetails } = useWaitForTransactionReceipt({
-    hash: buyHash,
-  });
-
-  // 计算是否需要授权 - 修复逻辑：当没有授权或授权不足时都需要授权
-  const needsApproval = !allowance || BigInt(nft.price) > BigInt(allowance.toString());
-  const hasEnoughBalance = Boolean(carbBalance && BigInt(nft.price) <= BigInt(carbBalance.toString()));
-
-  // 处理授权
-  const handleApprove = async () => {
-    if (!address) return;
-    
-    try {
-      setCurrentStep('approve');
-      // 授权稍微多一点的代币，以防价格波动或手续费
-      const approveAmount = BigInt(nft.price) * BigInt(110) / BigInt(100); // 多授权10%
-      await approveCarb({
-        address: carbonTokenAddress as `0x${string}`,
-        abi: CarbonTokenABI.abi,
-        functionName: 'approve',
-        args: [marketAddress, approveAmount],
-      });
-    } catch (error) {
-      console.error('授权失败:', error);
-      toast.error('授权失败，请重试');
-      setCurrentStep('check');
-    }
-  };
-
-  // 处理购买
-  const handleBuy = async () => {
-    if (!address) return;
-    
-    try {
-      setCurrentStep('buy');
-      await buyNFT({
-        address: marketAddress as `0x${string}`,
-        abi: GreenTalesMarketABI.abi,
-        functionName: 'buyNFT',
-        args: [BigInt(nft.tokenId)],
-      });
-    } catch (error) {
-      console.error('购买失败:', error);
-      toast.error('购买失败，请重试');
-      setCurrentStep('check');
-    }
-  };
-
-  // 监听交易完成和错误
-  React.useEffect(() => {
-    if (approveSuccess) {
-      refetchAllowance();
-      setCurrentStep('check');
-      toast.success('授权成功！现在可以购买NFT');
-    }
-  }, [approveSuccess, refetchAllowance]);
-
-  React.useEffect(() => {
-    if (buySuccess) {
-      setCurrentStep('success');
-      toast.success('🎉 NFT购买成功！');
+  // 使用重构后的useBuyNFT Hook
+  const {
+    currentStep,
+    isLoading,
+    errorMessage,
+    carbBalance,
+    allowance,
+    hasEnoughBalance,
+    needsApproval,
+    handleApprove,
+    handleBuy,
+    reset
+  } = useBuyNFT({
+    tokenId: nft.tokenId,
+    price: nft.price,
+    onSuccess: () => {
       onSuccess?.();
+      handleClose();
     }
-  }, [buySuccess, onSuccess]);
+  });
 
-  // 监听授权错误
-  React.useEffect(() => {
-    if (approveError && approveErrorDetails) {
-      console.error('授权交易失败:', approveErrorDetails);
-      let errorMsg = '授权失败';
-      if (approveErrorDetails.message?.includes('insufficient allowance')) {
-        errorMsg = '授权额度不足，请重新授权';
-      } else if (approveErrorDetails.message?.includes('user rejected')) {
-        errorMsg = '用户取消了授权';
-      } else if (approveErrorDetails.message?.includes('insufficient funds')) {
-        errorMsg = 'ETH余额不足，无法支付Gas费';
-      }
-      setErrorMessage(errorMsg);
-      setCurrentStep('error');
-      toast.error(errorMsg);
-    }
-  }, [approveError, approveErrorDetails]);
-
-  // 监听购买错误
-  React.useEffect(() => {
-    if (buyError && buyErrorDetails) {
-      console.error('购买交易失败:', buyErrorDetails);
-      let errorMsg = '购买失败';
-      if (buyErrorDetails.message?.includes('insufficient allowance')) {
-        errorMsg = 'CARB授权不足，请先授权足够的代币';
-      } else if (buyErrorDetails.message?.includes('user rejected')) {
-        errorMsg = '用户取消了购买';
-      } else if (buyErrorDetails.message?.includes('insufficient funds')) {
-        errorMsg = 'ETH余额不足，无法支付Gas费';
-      } else if (buyErrorDetails.message?.includes('not listed')) {
-        errorMsg = '该NFT已下架或不存在';
-      }
-      setErrorMessage(errorMsg);
-      setCurrentStep('error');
-      toast.error(errorMsg);
-    }
-  }, [buyError, buyErrorDetails]);
+  // 关闭模态框
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
 
   return isOpen ? (
     <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
@@ -206,7 +67,7 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
               购买 NFT #{nft.tokenId}
             </h3>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="w-8 h-8 rounded-full bg-white/80 hover:bg-white/90 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all duration-200 backdrop-blur-sm shadow-lg text-lg"
             >
               ×
@@ -256,7 +117,8 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
                       </div>
                       <button
                         onClick={handleApprove}
-                        className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        disabled={isLoading}
+                        className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
                       >
                         1️⃣ 授权 CARB 代币
                       </button>
@@ -264,7 +126,8 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
                   ) : (
                     <button
                       onClick={handleBuy}
-                      className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      disabled={isLoading}
+                      className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
                     >
                       💰 立即购买
                     </button>
@@ -272,7 +135,7 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
                 </>
               )}
 
-              {currentStep === 'approve' && (
+              {(currentStep === 'approve' || (isLoading && needsApproval)) && (
                 <div className="text-center py-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
                   <div className="text-blue-600 font-medium">正在授权...</div>
@@ -286,7 +149,7 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
                 </div>
               )}
 
-              {currentStep === 'buy' && (
+              {(currentStep === 'buy' || (isLoading && !needsApproval)) && (
                 <div className="text-center py-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-3"></div>
                   <div className="text-green-600 font-medium">正在购买...</div>
