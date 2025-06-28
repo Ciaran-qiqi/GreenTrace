@@ -181,9 +181,7 @@ contract Deploy is Script {
             carbonTokenAddress,
             SEPOLIA_USDT,
             liquidityPoolAddress,
-            100, // 平台手续费率 1% (100基点)
-            50,  // 限价单挂单手续费率 0.5% (50基点)
-            30,  // 限价单成交手续费率 0.3% (30基点)
+            carbonPriceOracleAddress,
             deployer
         );
         address usdtMarketAddress = address(usdtMarket);

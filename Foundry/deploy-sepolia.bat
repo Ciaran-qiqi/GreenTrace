@@ -37,7 +37,7 @@ dotenv -e .env -- forge script script/DeployRemainingContracts.s.sol:DeployRemai
     --verify \
     -vvvv
 
-dotenv -e .env -- forge script script/VerifyRedeployment.s.sol:VerifyDeployment \
+dotenv -e .env -- forge script script/DeployCarbonUSDTMarket.s.sol\
     --chain-id 11155111 \
     --rpc-url sepolia  \
     --etherscan-api-key sepolia \

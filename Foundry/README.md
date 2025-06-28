@@ -61,33 +61,225 @@ GreenTrace 是一个基于区块链的碳减排项目，旨在通过 NFT 和碳�
 
 欢迎提交 Issue 和 Pull Request，一起完善 GreenTrace 项目！
 
+# GreenTrace 碳币交易平台
+
+## 前端订单簿数据处理示例
+
+### JavaScript 排序示例
+
+由于合约中的 `getOrderBook()` 和 `getOrderBookPaginated()` 函数不进行排序（为节省gas费用），前端需要自行处理排序逻辑：
+
+```javascript
+// 获取订单簿数据
+async function getOrderBookData() {
+    const [buyOrders, sellOrders] = await carbonMarket.getOrderBook();
+    
+    // 买单排序：按价格从高到低（价格优先的买单在前）
+    const sortedBuyOrders = buyOrders.sort((a, b) => {
+        const priceA = parseFloat(ethers.utils.formatUnits(a.price, 18));
+        const priceB = parseFloat(ethers.utils.formatUnits(b.price, 18));
+        return priceB - priceA; // 降序
+    });
+    
+    // 卖单排序：按价格从低到高（价格优势的卖单在前）
+    const sortedSellOrders = sellOrders.sort((a, b) => {
+        const priceA = parseFloat(ethers.utils.formatUnits(a.price, 18));
+        const priceB = parseFloat(ethers.utils.formatUnits(b.price, 18));
+        return priceA - priceB; // 升序
+    });
+    
+    return { buyOrders: sortedBuyOrders, sellOrders: sortedSellOrders };
+}
+
+// 分页获取数据（推荐，特别是订单量大时）
+async function getOrderBookPaginated(offset = 0, limit = 20, orderType = 2) {
+    // orderType: 0=买单, 1=卖单, 2=全部
+    const [orders, hasMore] = await carbonMarket.getOrderBookPaginated(offset, limit, orderType);
+    
+    // 根据订单类型进行排序
+    const sortedOrders = orders.sort((a, b) => {
+        const priceA = parseFloat(ethers.utils.formatUnits(a.price, 18));
+        const priceB = parseFloat(ethers.utils.formatUnits(b.price, 18));
+        
+        if (a.orderType === 0) { // 买单：价格高的在前
+            return priceB - priceA;
+        } else { // 卖单：价格低的在前
+            return priceA - priceB;
+        }
+    });
+    
+    return { orders: sortedOrders, hasMore };
+}
+
+// 高级排序：支持多种排序方式
+function sortOrders(orders, sortBy = 'price', order = 'desc') {
+    return orders.sort((a, b) => {
+        let valueA, valueB;
+        
+        switch (sortBy) {
+            case 'price':
+                valueA = parseFloat(ethers.utils.formatUnits(a.price, 18));
+                valueB = parseFloat(ethers.utils.formatUnits(b.price, 18));
+                break;
+            case 'amount':
+                valueA = parseFloat(ethers.utils.formatUnits(a.remainingAmount, 18));
+                valueB = parseFloat(ethers.utils.formatUnits(b.remainingAmount, 18));
+                break;
+            case 'timestamp':
+                valueA = a.timestamp.toNumber();
+                valueB = b.timestamp.toNumber();
+                break;
+            case 'total':
+                valueA = parseFloat(ethers.utils.formatUnits(a.price, 18)) * parseFloat(ethers.utils.formatUnits(a.remainingAmount, 18));
+                valueB = parseFloat(ethers.utils.formatUnits(b.price, 18)) * parseFloat(ethers.utils.formatUnits(b.remainingAmount, 18));
+                break;
+            default:
+                return 0;
+        }
+        
+        if (order === 'desc') {
+            return valueB - valueA;
+        } else {
+            return valueA - valueB;
+        }
+    });
+}
+
+// 实际使用示例
+async function displayOrderBook() {
+    try {
+        // 方法1：获取全部数据
+        const { buyOrders, sellOrders } = await getOrderBookData();
+        
+        // 方法2：分页获取（推荐）
+        const buyOrdersPage = await getOrderBookPaginated(0, 20, 0); // 买单
+        const sellOrdersPage = await getOrderBookPaginated(0, 20, 1); // 卖单
+        
+        // 显示最优价格
+        if (buyOrders.length > 0) {
+            console.log('最高买价:', ethers.utils.formatUnits(buyOrders[0].price, 18));
+        }
+        if (sellOrders.length > 0) {
+            console.log('最低卖价:', ethers.utils.formatUnits(sellOrders[0].price, 18));
+        }
+        
+        // 计算价差
+        if (buyOrders.length > 0 && sellOrders.length > 0) {
+            const bestBid = parseFloat(ethers.utils.formatUnits(buyOrders[0].price, 18));
+            const bestAsk = parseFloat(ethers.utils.formatUnits(sellOrders[0].price, 18));
+            const spread = bestAsk - bestBid;
+            console.log('买卖价差:', spread.toFixed(4), 'USDT');
+        }
+        
+    } catch (error) {
+        console.error('获取订单簿数据失败:', error);
+    }
+}
 ```
 
+### React组件示例
 
-这是一个名为 GreenTrace 的智能合约项目，主要包含以下内容：
-主要合约文件（在 src 目录下）：
-GreenTrace.sol - 主合约文件
-CarbonToken.sol - 碳代币合约
-GreenTalesNFT.sol - NFT 合约
-GreenTalesAuction.sol - 拍卖合约
-对应的测试文件（在 test 目录下）：
-GreenTrace.t.sol
-CarbonToken.t.sol
-GreenTalesNFT.t.sol
-GreenTalesAuction.t.sol
-项目配置文件：
-foundry.toml - Foundry 框架配置文件
-.gitignore - Git 忽略文件配置
-.gitmodules - Git 子模块配置
-文档文件：
-README.md - 项目说明文档
-Programming_Plan.md - 编程计划文档
-其他目录：
-cache/ - Foundry 缓存目录
-out/ - 编译输出目录
-script/ - 部署脚本目录
-lib/ - 依赖库目录
-.wake/ - Wake 工具配置目录
-.vscode/ - VS Code 配置目录
-.github/ - GitHub 配置目录
+```jsx
+import React, { useState, useEffect } from 'react';
+
+const OrderBook = ({ contract }) => {
+    const [buyOrders, setBuyOrders] = useState([]);
+    const [sellOrders, setSellOrders] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const loadOrderBook = async () => {
+        setLoading(true);
+        try {
+            // 使用分页API
+            const [buyOrdersData] = await contract.getOrderBookPaginated(0, 50, 0);
+            const [sellOrdersData] = await contract.getOrderBookPaginated(0, 50, 1);
+
+            // 排序
+            const sortedBuyOrders = buyOrdersData
+                .map(order => ({
+                    ...order,
+                    priceFormatted: parseFloat(ethers.utils.formatUnits(order.price, 18)),
+                    amountFormatted: parseFloat(ethers.utils.formatUnits(order.remainingAmount, 18))
+                }))
+                .sort((a, b) => b.priceFormatted - a.priceFormatted);
+
+            const sortedSellOrders = sellOrdersData
+                .map(order => ({
+                    ...order,
+                    priceFormatted: parseFloat(ethers.utils.formatUnits(order.price, 18)),
+                    amountFormatted: parseFloat(ethers.utils.formatUnits(order.remainingAmount, 18))
+                }))
+                .sort((a, b) => a.priceFormatted - b.priceFormatted);
+
+            setBuyOrders(sortedBuyOrders);
+            setSellOrders(sortedSellOrders);
+        } catch (error) {
+            console.error('加载订单簿失败:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadOrderBook();
+        const interval = setInterval(loadOrderBook, 5000); // 每5秒刷新
+        return () => clearInterval(interval);
+    }, [contract]);
+
+    return (
+        <div className="order-book">
+            <h3>订单簿</h3>
+            {loading && <p>加载中...</p>}
+            
+            {/* 卖单区域 */}
+            <div className="sell-orders">
+                <h4>卖单 (Ask)</h4>
+                {sellOrders.slice(0, 10).map((order, index) => (
+                    <div key={index} className="order-row sell">
+                        <span>{order.priceFormatted.toFixed(4)}</span>
+                        <span>{order.amountFormatted.toFixed(2)}</span>
+                        <span>{(order.priceFormatted * order.amountFormatted).toFixed(2)}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* 价差显示 */}
+            {buyOrders.length > 0 && sellOrders.length > 0 && (
+                <div className="spread">
+                    价差: {(sellOrders[0].priceFormatted - buyOrders[0].priceFormatted).toFixed(4)} USDT
+                </div>
+            )}
+
+            {/* 买单区域 */}
+            <div className="buy-orders">
+                <h4>买单 (Bid)</h4>
+                {buyOrders.slice(0, 10).map((order, index) => (
+                    <div key={index} className="order-row buy">
+                        <span>{order.priceFormatted.toFixed(4)}</span>
+                        <span>{order.amountFormatted.toFixed(2)}</span>
+                        <span>{(order.priceFormatted * order.amountFormatted).toFixed(2)}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default OrderBook;
 ```
+
+## Gas费用优化效果
+
+通过移除链上排序，我们实现了：
+
+- **大幅降低gas费用**：原来O(n²)的排序算法被完全移除
+- **更好的用户体验**：前端排序更快，更灵活
+- **支持多种排序方式**：价格、数量、时间、总额等
+- **分页支持**：处理大量订单时更高效
+
+### 建议的最佳实践
+
+1. **优先使用分页API**：`getOrderBookPaginated()` 
+2. **前端缓存**：减少重复调用
+3. **实时更新**：监听订单事件自动更新
+4. **用户自定义排序**：提供多种排序选项
