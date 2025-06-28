@@ -435,7 +435,15 @@
       "orderCreated": "Order Created Successfully",
       "orderFilled": "Order Filled Successfully",
       "orderCancelled": "Order Cancelled Successfully",
-      "marketOrderSuccess": "Market Order Executed Successfully"
+      "marketOrderSuccess": "Market Order Executed Successfully",
+      "congratulations": "Congratulations!",
+      "buySuccess": "Buy order submitted successfully!",
+      "sellSuccess": "Sell order submitted successfully!",
+      "orderType": "Order Type",
+      "amount": "Amount",
+      "price": "Price",
+      "close": "Close",
+      "viewTransaction": "View Transaction"
     },
     "index": {
       "title": "Carbon Price Index",

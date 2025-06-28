@@ -258,7 +258,15 @@
       "orderCreated": "订单创建成功",
       "orderFilled": "订单成交成功",
       "orderCancelled": "订单取消成功",
-      "marketOrderSuccess": "市价单执行成功"
+      "marketOrderSuccess": "市价单执行成功",
+      "congratulations": "恭喜！",
+      "buySuccess": "买入订单提交成功！",
+      "sellSuccess": "卖出订单提交成功！",
+      "orderType": "订单类型",
+      "amount": "数量",
+      "price": "价格",
+      "close": "关闭",
+      "viewTransaction": "查看交易"
     },
     "page": {
       "title": "💰 碳币交易市场",

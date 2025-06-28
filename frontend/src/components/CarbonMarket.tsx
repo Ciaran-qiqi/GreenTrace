@@ -45,6 +45,15 @@ export default function CarbonMarket() {
   const [isApprovingCarbon, setIsApprovingCarbon] = useState(false)
   const [isApprovingUsdt, setIsApprovingUsdt] = useState(false)
 
+  // 交易成功弹窗状态
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    type: 'buy' | 'sell';
+    orderType: 'market' | 'limit';
+    amount: string;
+    price: string;
+  } | null>(null);
+
   // 图表数据状态类型定义
   type PriceHistoryItem = {
     timestamp: number
@@ -984,6 +993,16 @@ export default function CarbonMarket() {
         toast.loading('正在执行市价买入...', { id: 'market-buy' })
         await swapUsdtToCarbon(marketUsdtAmount)
         toast.success('📈 市价买入已提交！等待确认...', { id: 'market-buy', duration: 3000 })
+        
+        // 显示成功弹窗
+        const currentPrice = Number(poolData?.currentPrice) || 88;
+        setSuccessData({
+          type: 'buy',
+          orderType: 'market',
+          amount: marketUsdtAmount,
+          price: currentPrice.toFixed(2)
+        });
+        setShowSuccessModal(true);
       } else {
         // 市价卖出碳币 - 使用碳币数量（碳币换USDT）
         if (Number(marketCarbonAmount) > Number(carbonBalance)) {
@@ -1004,6 +1023,16 @@ export default function CarbonMarket() {
         toast.loading('正在执行市价卖出...', { id: 'market-sell' })
         await swapCarbonToUsdt(marketCarbonAmount)
         toast.success('📉 市价卖出已提交！等待确认...', { id: 'market-sell', duration: 3000 })
+        
+        // 显示成功弹窗
+        const currentPrice = Number(poolData?.currentPrice) || 88;
+        setSuccessData({
+          type: 'sell',
+          orderType: 'market',
+          amount: marketCarbonAmount,
+          price: currentPrice.toFixed(2)
+        });
+        setShowSuccessModal(true);
       }
       
       setMarketCarbonAmount('')
@@ -1077,6 +1106,15 @@ export default function CarbonMarket() {
         await createBuyOrder(limitAmount, limitPrice)
         toast.success('📝 限价买单已提交！等待区块链确认...', { id: 'create-buy-order', duration: 3000 })
         
+        // 显示成功弹窗
+        setSuccessData({
+          type: 'buy',
+          orderType: 'limit',
+          amount: limitAmount,
+          price: limitPrice
+        });
+        setShowSuccessModal(true);
+        
       } else {
         // 限价卖单 - 需要碳币 + USDT（挂单费）
         if (Number(limitAmount) > Number(carbonBalance)) {
@@ -1133,6 +1171,15 @@ export default function CarbonMarket() {
         toast.loading('正在创建限价卖单...', { id: 'create-sell-order' })
         await createSellOrder(limitAmount, limitPrice)
         toast.success('📝 限价卖单已提交！等待区块链确认...', { id: 'create-sell-order', duration: 3000 })
+        
+        // 显示成功弹窗
+        setSuccessData({
+          type: 'sell',
+          orderType: 'limit',
+          amount: limitAmount,
+          price: limitPrice
+        });
+        setShowSuccessModal(true);
       }
       
       setLimitAmount('')
@@ -1164,12 +1211,6 @@ export default function CarbonMarket() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* 页面标题 */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">{t('carbon.carbonMarket')}</h1>
-          <p className="text-gray-600">{t('carbon.page.subtitle', '去中心化碳信用交易平台')}</p>
-        </div>
-
         {/* 用户余额信息 */}
         {isConnected && (
           <div className="bg-white/90 rounded-2xl shadow-xl p-6 mb-6 border border-white/20 relative">
@@ -2604,6 +2645,72 @@ export default function CarbonMarket() {
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{formatTokenAmount(marketStats.totalVolumeTraded)}</div>
               <div className="text-sm text-gray-600">{t('carbon.marketStats.totalVolume')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 交易成功弹窗 */}
+      {showSuccessModal && successData && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-white/20">
+            {/* 成功图标 */}
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">🎉</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                {t('carbon.success.congratulations')}
+              </h2>
+              <p className="text-gray-600">
+                {successData?.type === 'buy' 
+                  ? t('carbon.success.buySuccess') 
+                  : t('carbon.success.sellSuccess')
+                }
+              </p>
+            </div>
+
+            {/* 交易详情 */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 mb-6">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">{t('carbon.success.orderType')}:</span>
+                  <span className="font-semibold text-gray-800">
+                    {successData?.orderType === 'market' ? t('carbon.marketOrder') : t('carbon.limitOrder')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">{t('carbon.success.amount')}:</span>
+                  <span className="font-semibold text-gray-800">
+                    {Number(successData?.amount || 0).toFixed(2)} {successData?.type === 'buy' ? 'USDT' : 'CARB'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">{t('carbon.success.price')}:</span>
+                  <span className="font-semibold text-gray-800">
+                    {successData?.price || '0'} USDT
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                {t('carbon.success.close')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // 可以添加查看交易记录的跳转
+                }}
+                className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors"
+              >
+                {t('carbon.success.viewTransaction')}
+              </button>
             </div>
           </div>
         </div>
