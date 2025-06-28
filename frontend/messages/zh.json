@@ -1,0 +1,458 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "confirm": "确认",
+    "cancel": "取消",
+    "submit": "提交",
+    "save": "保存",
+    "edit": "编辑",
+    "delete": "删除",
+    "view": "查看",
+    "back": "返回",
+    "close": "关闭",
+    "search": "搜索",
+    "filter": "筛选",
+    "refresh": "刷新",
+    "connect": "连接",
+    "disconnect": "断开连接",
+    "stats": "平台统计"
+  },
+  "navigation": {
+    "home": "🏠 首页",
+    "carbonMarket": "📈 碳币市场",
+    "create": "🌱 创建NFT", 
+    "created": "🌱 NFT创建",
+    "nftMarket": "🛒 NFT市场",
+    "assets": "💼 我的资产", 
+    "myListings": "🏪 我的挂单",
+    "liquidityPool": "💧 流动性池",
+    "nftExchange": "🔄 NFT兑换",
+    "auditCenter": "🔍 审计中心",
+    "adminCenter": "⚙️ 管理中心",
+    "currentRole": "✨ 当前权限",
+    "roles": {
+      "admin": "管理员",
+      "auditor": "审计员"
+    }
+  },
+  "auth": {
+    "connectWallet": "连接钱包",
+    "walletConnected": "钱包已连接",
+    "pleaseConnectWallet": "请连接钱包",
+    "networkError": "网络错误",
+    "switchNetwork": "切换网络"
+  },
+  "nft": {
+    "title": "绿色碳足迹NFT",
+    "description": "描述",
+    "price": "价格",
+    "owner": "拥有者",
+    "creator": "创建者",
+    "tokenId": "代币ID",
+    "metadata": "元数据",
+    "properties": "属性",
+    "history": "历史记录",
+    "mint": "铸造",
+    "transfer": "转账",
+    "approve": "授权",
+    "burn": "销毁"
+  },
+  "market": {
+    "marketplace": "NFT市场",
+    "buyNow": "立即购买",
+    "listForSale": "挂单出售",
+    "updatePrice": "更新价格",
+    "cancelListing": "取消挂单",
+    "purchaseHistory": "购买历史",
+    "salesHistory": "销售历史",
+    "tradeHistory": "交易历史",
+    "marketStats": "市场统计",
+    "totalVolume": "总交易量",
+    "floorPrice": "地板价",
+    "totalSales": "总销售数",
+    "averagePrice": "平均价格"
+  },
+  "audit": {
+    "auditCenter": "审计中心",
+    "auditForm": "审计表单",
+    "auditData": "审计数据",
+    "auditStatus": "审计状态",
+    "pending": "待审计",
+    "approved": "已通过",
+    "rejected": "已拒绝",
+    "auditor": "审计员",
+    "auditTime": "审计时间",
+    "auditResult": "审计结果",
+    "auditComment": "审计意见"
+  },
+  "carbon": {
+    "carbonMarket": "碳币交易市场",
+    "carbonToken": "碳币",
+    "carbonPrice": "碳币价格",
+    "buyCarbon": "购买碳币",
+    "sellCarbon": "出售碳币",
+    "orderBook": "订单簿",
+    "tradingPairs": "交易对",
+    "priceChart": "价格图表",
+    "volume24h": "24小时交易量",
+    "lastPrice": "最新价格",
+    "change24h": "24小时涨跌",
+    "marketOrder": "市价单",
+    "limitOrder": "限价单",
+    "buyOrder": "买单",
+    "sellOrder": "卖单",
+    "orderType": "订单类型",
+    "orderAmount": "订单数量",
+    "orderPrice": "订单价格",
+    "remainingAmount": "剩余数量",
+    "orderStatus": "订单状态",
+    "orderFee": "订单手续费",
+    "fillOrder": "成交订单",
+    "cancelOrder": "取消订单",
+    "createOrder": "创建订单",
+    "orderHistory": "订单历史",
+    "activeOrders": "活跃订单",
+    "filledOrders": "已成交订单",
+    "cancelledOrders": "已取消订单",
+    "priceProtection": "价格保护",
+    "autoMatching": "自动撮合",
+    "marketStats": {
+      "title": "市场统计",
+      "totalOrders": "总订单数",
+      "totalVolume": "总交易量",
+      "totalFees": "总手续费",
+      "limitOrderFees": "限价单手续费",
+      "fillOrderFees": "成交手续费"
+    },
+    "balances": {
+      "carbonBalance": "碳币余额",
+      "usdtBalance": "USDT余额",
+      "insufficientBalance": "余额不足"
+    },
+    "approval": {
+      "approveCarbon": "授权碳币",
+      "approveUsdt": "授权USDT",
+      "approvalNeeded": "需要授权",
+      "approvalSuccess": "授权成功",
+      "approvalFailed": "授权失败"
+    },
+    "errors": {
+      "invalidAmount": "无效数量",
+      "invalidPrice": "无效价格",
+      "insufficientBalance": "余额不足",
+      "orderNotFound": "订单不存在",
+      "orderNotActive": "订单不活跃",
+      "notOrderOwner": "非订单所有者",
+      "priceTooLow": "价格过低",
+      "priceDeviationBlocked": "价格偏离过大"
+    },
+    "success": {
+      "orderCreated": "订单创建成功",
+      "orderFilled": "订单成交成功",
+      "orderCancelled": "订单取消成功",
+      "marketOrderSuccess": "市价单执行成功"
+    }
+  },
+  "liquidity": {
+    "title": "碳币流动性池",
+    "description": "提供流动性，获得交易手续费分成",
+    "liquidityPool": "流动性池",
+    "addLiquidity": "添加流动性",
+    "removeLiquidity": "移除流动性",
+    "lpTokens": "LP代币",
+    "rewards": "奖励",
+    "apy": "年化收益率",
+    "totalValueLocked": "总锁仓价值",
+    "myLiquidity": "我的流动性",
+    "earnings": "收益",
+    "priceInfo": {
+      "title": "价格信息",
+      "currentPrice": "当前池子价格",
+      "oraclePrice": "预言机参考价",
+      "priceDeviation": "价格偏离",
+      "totalLiquidity": "总流动性",
+      "ammPrice": "AMM价格",
+      "referencePrice": "参考价格",
+      "deviation": "偏离度",
+      "tvl": "TVL"
+    },
+    "tabs": {
+      "swap": "市价兑换",
+      "liquidityManagement": "流动性管理",
+      "marketMaking": "做市收益"
+    },
+    "management": {
+      "title": "流动性管理"
+    },
+    "add": {
+      "title": "LP目标添加流动性",
+      "targetAmount": "目标LP代币数量",
+      "helpText": "输入想要获得的LP代币数量，系统按AMM池子价格自动计算需要的代币数量",
+      "calculationResult": "计算结果",
+      "carbonNeeded": "需要碳币",
+      "usdtNeeded": "需要USDT",
+      "carbonBalance": "CARB余额",
+      "usdtBalance": "USDT余额",
+      "enterAmount": "请输入LP目标数量",
+      "insufficientCarbon": "CARB余额不足",
+      "insufficientUsdt": "USDT余额不足",
+      "approvingCarbon": "正在授权CARB...",
+      "approvingUsdt": "正在授权USDT...",
+      "step1ApproveCarbon": "第1步：授权CARB代币",
+      "step2ApproveUsdt": "第2步：授权USDT代币",
+      "addLiquidity": "添加流动性",
+      "adding": "正在添加流动性...",
+      "carbonApproveSuccess": "CARB授权成功！请再次点击添加流动性",
+      "usdtApproveSuccess": "USDT授权成功！请再次点击添加流动性",
+      "errors": {
+        "invalidAmount": "请输入有效的LP代币数量",
+        "enterTargetFirst": "请先输入LP目标数量以计算所需代币",
+        "insufficientCarbon": "CARB余额不足",
+        "insufficientUsdt": "USDT余额不足",
+        "addFailed": "添加流动性失败"
+      }
+    },
+    "remove": {
+      "title": "移除流动性",
+      "lpAmount": "LP代币数量",
+      "available": "可用",
+      "preview": "移除预览",
+      "recoverCarbon": "可取回碳币",
+      "recoverUsdt": "可取回USDT",
+      "remainingLP": "移除后剩余LP",
+      "removeRatio": "移除比例",
+      "enterAmount": "请输入LP代币数量",
+      "insufficientLP": "LP余额不足",
+      "removeLiquidity": "移除流动性",
+      "errors": {
+        "invalidAmount": "请输入有效的数量"
+      }
+    },
+         "errors": {
+       "emptyPoolAdd": "池子为空，无法计算所需代币数量",
+       "emptyPoolRemove": "池子为空，无法计算移除数量",
+       "calculationFailed": "计算失败，请检查输入"
+     },
+     "userStats": {
+       "title": "我的流动性",
+       "subtitle": "LP代币对应的实际资产",
+       "lpTokens": "LP代币",
+       "poolShare": "池子份额",
+       "carbonAmount": "碳币数量",
+       "usdtAmount": "USDT数量"
+     }
+   },
+   "swap": {
+     "title": "市价兑换",
+     "carbonBalance": "碳币余额",
+     "usdtBalance": "USDT余额",
+     "carbonToUsdt": {
+       "title": "碳币换USDT",
+       "placeholder": "输入碳币数量",
+       "enterAmount": "请输入碳币数量",
+       "swap": "兑换为USDT"
+     },
+     "usdtToCarbon": {
+       "title": "USDT换碳币",
+       "placeholder": "输入USDT数量",
+       "enterAmount": "请输入USDT数量",
+       "swap": "兑换为碳币"
+     },
+     "estimate": {
+       "receiveUsdt": "可获得USDT",
+       "receiveCarbon": "可获得碳币",
+       "fee": "手续费",
+       "priceImpact": "价格影响",
+       "priceImpactExplanation": "价格影响说明：bp（基点）= 0.01%，数值越小对池子价格影响越小",
+       "calculating": "正在计算预估数据..."
+     },
+     "button": {
+       "approving": "正在授权...",
+       "approve": "先授权"
+     },
+     "errors": {
+       "invalidCarbonAmount": "请输入有效碳币数量",
+       "invalidUsdtAmount": "请输入有效USDT数量",
+       "insufficientCarbon": "碳币余额不足",
+       "insufficientUsdt": "USDT余额不足"
+     },
+     "success": {
+       "approvalSuccess": "授权成功，请再次点击兑换"
+     }
+   },
+   "earnings": {
+     "explanation": {
+       "title": "做市收益说明",
+       "description": "作为流动性提供者（LP），你可以获得平台每笔交易手续费的",
+       "share": "分成，剩余",
+       "platform": "归平台所有。手续费来源于所有碳币/USDT兑换操作，随时可领取。"
+     },
+     "feeShare": {
+       "title": "手续费分成比例",
+       "platform": "平台"
+     },
+     "claimable": {
+       "title": "当前可领取收益",
+       "carbonFees": "碳币手续费",
+       "usdtFees": "USDT手续费",
+       "claimButton": "一键领取手续费收益"
+     },
+     "claimed": {
+       "title": "累计已领取收益",
+       "carbonFees": "碳币手续费",
+       "usdtFees": "USDT手续费"
+     },
+     "stats": {
+       "platformTotal": "平台累计手续费",
+       "lpTotal": "LP累计手续费",
+       "carbon": "碳币"
+     },
+     "faq": {
+       "title": "常见问题 FAQ",
+       "q1": "为什么有时收益为0？",
+       "a1": "可能近期没有相关方向的兑换，或手续费尚未累计到最小单位。",
+       "q2": "收益多久结算一次？",
+       "a2": "每次兑换后实时结算，可随时领取。",
+       "q3": "平台和LP分成比例可以调整吗？",
+       "a3": "支持，需管理员操作。",
+       "q4": "支持多币种收益吗？",
+       "a4": "是，碳币和USDT均可获得手续费分成。"
+     }
+   },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "confirm": "确认",
+    "cancel": "取消",
+    "submit": "提交",
+    "save": "保存",
+    "edit": "编辑",
+    "delete": "删除",
+    "view": "查看",
+    "back": "返回",
+    "close": "关闭",
+    "search": "搜索",
+    "filter": "过滤",
+    "refresh": "刷新",
+    "connect": "连接",
+    "disconnect": "断开连接",
+    "stats": "平台统计",
+    "connectWallet": "请连接钱包",
+    "calculating": "计算中...",
+    "processing": "处理中..."
+  },
+  "admin": {
+    "dashboard": "管理员面板",
+    "userManagement": "用户管理",
+    "auditManagement": "审计管理",
+    "systemSettings": "系统设置",
+    "contractManagement": "合约管理",
+    "dataManagement": "数据管理"
+  },
+  "form": {
+    "projectName": "项目名称",
+    "projectDescription": "项目描述",
+    "carbonReduction": "碳减排量",
+    "location": "位置",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "verificationMethod": "验证方法",
+    "documents": "相关文档",
+    "images": "图片",
+    "required": "必填项",
+    "optional": "可选项"
+  },
+  "messages": {
+    "transactionPending": "交易待确认",
+    "transactionSuccess": "交易成功",
+    "transactionFailed": "交易失败",
+    "insufficientBalance": "余额不足",
+    "approvalRequired": "需要授权",
+    "networkNotSupported": "不支持的网络",
+    "walletNotFound": "未找到钱包",
+    "connectionFailed": "连接失败"
+  },
+  "language": {
+    "selectLanguage": "选择语言",
+    "chinese": "中文",
+    "english": "English"
+  },
+  "home": {
+    "hero": {
+      "title": "记录绿色碳迹，创造可续未来",
+      "description": "通过区块链技术记录您的环保行为，将绿色行动转化为有价值的NFT资产，为地球贡献一份力量，同时获得碳信用奖励。"
+    },
+    "features": {
+      "createNFT": {
+        "title": "创建绿色NFT",
+        "description": "记录您的环保行为，创建独特的绿色NFT，包括出行方式、能源使用、废物处理等环保行动。",
+        "action": "开始创建"
+      },
+      "audit": {
+        "title": "专业审计验证",
+        "description": "专业审计员验证您的绿色行为真实性，确保每个NFT都代表真实的环保贡献。",
+        "subtitle": "透明可信的审计流程"
+      },
+      "exchange": {
+        "title": "碳代币兑换",
+        "description": "将审核通过的NFT兑换为有价值的碳代币，参与碳信用交易，实现环保价值变现。",
+        "subtitle": "环保行为的经济激励"
+      }
+    },
+    "stats": {
+      "nftsCreated": "已创建NFT",
+      "activeUsers": "活跃用户",
+      "auditors": "专业审计员",
+      "carbonReduction": "碳减排量(kg)"
+    }
+  },
+  "created": {
+    "title": "NFT创建记录",
+    "subtitle": "查看您的NFT创建历史和状态",
+    "noRecords": "暂无创建记录",
+    "table": {
+      "nftId": "NFT ID",
+      "title": "标题",
+      "status": "状态",
+      "carbonAmount": "碳减排量",
+      "createTime": "创建时间",
+      "auditTime": "审计时间",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "待审计",
+      "approved": "已通过",
+      "rejected": "已拒绝",
+      "minted": "已铸造"
+    },
+    "filters": {
+      "all": "全部",
+      "pending": "待审计",
+      "approved": "已通过",
+      "rejected": "已拒绝",
+      "minted": "已铸造"
+    },
+    "actions": {
+      "viewDetails": "查看详情",
+      "mintNFT": "铸造NFT",
+      "resubmit": "重新提交"
+    },
+    "details": {
+      "basicInfo": "基本信息",
+      "auditInfo": "审计信息",
+      "transactionInfo": "交易信息",
+      "carbonReduction": "碳减排量",
+      "description": "描述",
+      "image": "图片",
+      "auditor": "审计员",
+      "auditComment": "审计意见",
+      "transactionHash": "交易哈希",
+      "blockNumber": "区块号",
+      "gasUsed": "Gas消耗",
+      "mintingFee": "铸造费用"
+    }
+  }
+} 

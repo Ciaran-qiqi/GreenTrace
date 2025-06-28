@@ -40,8 +40,8 @@ export const NFTMarketplace: React.FC = () => {
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
       filtered = filtered.filter(nft => 
-        nft.title?.toLowerCase().includes(searchLower) ||
-        nft.description?.toLowerCase().includes(searchLower) ||
+        nft.storyTitle?.toLowerCase().includes(searchLower) ||
+        nft.storyDetail?.toLowerCase().includes(searchLower) ||
         nft.tokenId?.includes(filters.searchTerm)
       );
     }

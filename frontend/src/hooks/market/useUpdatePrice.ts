@@ -72,14 +72,14 @@ export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpd
     try {
       setErrorMessage('');
       
-      // 将价格转换为wei (假设输入的是以太单位)
-      const priceInWei = BigInt(Math.floor(priceValue * 1e18));
+      // 价格是整数格式，直接使用（不需要转换为Wei）
+      const priceInInteger = BigInt(Math.floor(priceValue));
       
       await writeContract({
         address: marketAddress as `0x${string}`,
         abi: GreenTalesMarketABI.abi,
         functionName: 'updatePrice',
-        args: [BigInt(tokenId), priceInWei],
+        args: [BigInt(tokenId), priceInInteger],
       });
     } catch (error) {
       console.error('更新价格失败:', error);

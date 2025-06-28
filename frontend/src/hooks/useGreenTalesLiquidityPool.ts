@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useChainId } from 'wagmi'
 import toast from 'react-hot-toast'
 import { parseUnits, formatUnits } from 'viem'
@@ -50,6 +50,7 @@ interface PoolData {
   priceDeviation: string
   isDeviated: boolean
   referencePrice: string
+  priceDeviationThreshold: number // 价格偏离阈值（百分比）
 }
 
 interface UserLiquidityInfo {
@@ -128,6 +129,13 @@ export const useGreenTalesLiquidityPool = () => {
     functionName: 'getPriceDeviationDetails',
   })
 
+  // 读取价格偏离阈值
+  const { data: priceDeviationThreshold } = useReadContract({
+    address: liquidityPoolAddress as `0x${string}`,
+    abi: GreenTalesLiquidityPoolABI.abi,
+    functionName: 'priceDeviationThreshold',
+  })
+
   // 读取用户流动性信息
   const { data: userLiquidityInfo, refetch: refetchUserInfo } = useReadContract({
     address: liquidityPoolAddress as `0x${string}`,
@@ -198,6 +206,7 @@ export const useGreenTalesLiquidityPool = () => {
         priceDeviation: '0',
         isDeviated: false,
         referencePrice: '88', // 默认预言机价格
+        priceDeviationThreshold: 0,
       }
     }
 
@@ -205,10 +214,6 @@ export const useGreenTalesLiquidityPool = () => {
       const [carbonBalance, usdtBalance] = contractBalances as [bigint, bigint]
       const poolPrice = currentPrice as bigint
       const oracle = oraclePrice as bigint || BigInt(8800000000) // 默认88.00 USDT，8位小数
-
-      // 根据合约的实际返回结构处理价格偏离详情
-      // getPriceDeviationDetails返回: [referencePrice, marketPrice, deviation, threshold, isDeviated]
-      const deviation = priceDeviationDetails as [bigint, bigint, bigint, bigint, boolean] || [BigInt(8800000000), BigInt(8800000000), BigInt(0), BigInt(500), false]
 
       // 处理当前市场价格 - 智能检测小数位数
       let formattedPrice: string = '88.00' // 默认价格
@@ -268,9 +273,10 @@ export const useGreenTalesLiquidityPool = () => {
         usdtBalanceFormatted = parseFloat(formatUnits(usdtBalance, 6))
       }
       
-      // 总流动性就是USDT的价值，因为在AMM中，流动性通常以稳定币计价
-      // 或者可能需要特殊的计算方式，这里直接使用USDT余额作为TVL
-      const totalLiquidityValue = usdtBalanceFormatted
+      // 计算总流动性：USDT余额 + (碳币余额 × 当前价格)
+      const currentPriceNum = parseFloat(formattedPrice)
+      const carbonValueInUsdt = carbonBalanceFormatted * currentPriceNum
+      const totalLiquidityValue = usdtBalanceFormatted + carbonValueInUsdt
 
       // 实时计算价格偏离度（强制使用实时计算，不依赖合约返回值）
       let deviationPercentage = '0'
@@ -297,6 +303,14 @@ export const useGreenTalesLiquidityPool = () => {
         isDeviated = false
       }
 
+      // 调试：显示阈值获取情况
+      console.log('🔍 Hook中阈值调试:', {
+        rawThreshold: priceDeviationThreshold,
+        thresholdType: typeof priceDeviationThreshold,
+        thresholdValue: priceDeviationThreshold as number,
+        isBigInt: priceDeviationThreshold instanceof BigInt
+      })
+
       return {
         totalLiquidity: totalLiquidityValue.toString(),
         carbonBalance: formatUnits(carbonBalance, 18),
@@ -305,6 +319,7 @@ export const useGreenTalesLiquidityPool = () => {
         priceDeviation: deviationPercentage,
         isDeviated: isDeviated, // 使用实时计算的偏离状态
         referencePrice: formattedOraclePrice,
+        priceDeviationThreshold: priceDeviationThreshold ? Number(priceDeviationThreshold) : 10,
       }
     } catch (error) {
       console.error('解析池子数据失败:', error)
@@ -316,9 +331,10 @@ export const useGreenTalesLiquidityPool = () => {
         priceDeviation: '0',
         isDeviated: false,
         referencePrice: '88',
+        priceDeviationThreshold: 0,
       }
     }
-  }, [contractBalances, currentPrice, oraclePrice, priceDeviationDetails])
+  }, [contractBalances, currentPrice, oraclePrice, priceDeviationDetails, priceDeviationThreshold])
 
   // 获取用户流动性信息
   const getUserLiquidityInfo = useCallback((): UserLiquidityInfo => {
@@ -450,62 +466,56 @@ export const useGreenTalesLiquidityPool = () => {
     }
   }, [address, isConnected, userCarbonBalance, userUsdtBalance])
 
-  /**
-   * 获取兑换预估信息
-   */
+  // 获取兑换估算
   const getSwapEstimate = useCallback(async (amountIn: string, isCarbonToUsdt: boolean): Promise<SwapEstimate | null> => {
-    if (!amountIn || isNaN(Number(amountIn)) || Number(amountIn) <= 0) return null;
     try {
+      if (!amountIn || isNaN(Number(amountIn)) || Number(amountIn) <= 0) {
+        return null
+      }
+
       const amountInBigInt = parseUnits(amountIn, 18)
-      // 使用 readContract 直接调用合约方法
+      
       const result = await readContract(config, {
         address: liquidityPoolAddress as `0x${string}`,
         abi: GreenTalesLiquidityPoolABI.abi,
         functionName: 'getSwapEstimate',
         args: [amountInBigInt, isCarbonToUsdt],
       })
-      
-      // 解析返回结果
+
       const [amountOut, fee, priceImpact] = result as [bigint, bigint, bigint]
       
-      // 格式化结果
       return {
         amountOut: formatUnits(amountOut, 18),
         fee: formatUnits(fee, 18),
-        priceImpact: formatUnits(priceImpact, 4) // 价格影响一般用基点
+        priceImpact: formatUnits(priceImpact, 2), // 价格影响以基点为单位
       }
-    } catch (e) {
-      console.error('获取兑换预估失败', e)
+    } catch (error) {
+      console.error('获取兑换估算失败:', error)
       return null
     }
   }, [liquidityPoolAddress])
 
-  /**
-   * 获取兑换预估信息（详细版，含新价格）
-   */
-  const getDetailedSwapEstimate = useCallback(async (amountIn: string, isCarbonToUsdt: boolean): Promise<SwapEstimate | null> => {
-    if (!amountIn || isNaN(Number(amountIn)) || Number(amountIn) <= 0) return null;
+  // 获取详细兑换估算
+  const getDetailedSwapEstimate = useCallback(async (amountIn: string, isCarbonToUsdt: boolean) => {
     try {
+      if (!amountIn || isNaN(Number(amountIn)) || Number(amountIn) <= 0) {
+        return null
+      }
+
       const amountInBigInt = parseUnits(amountIn, 18)
-      // 使用 readContract 直接调用合约方法
+      
       const result = await readContract(config, {
         address: liquidityPoolAddress as `0x${string}`,
         abi: GreenTalesLiquidityPoolABI.abi,
         functionName: 'getDetailedSwapEstimate',
         args: [amountInBigInt, isCarbonToUsdt],
       })
-      
-      // 解析返回结果
-      const [amountOut, fee, priceImpact, newPrice] = result as [bigint, bigint, bigint, bigint]
-      
-      return {
-        amountOut: formatUnits(amountOut, 18),
-        fee: formatUnits(fee, 18),
-        priceImpact: formatUnits(priceImpact, 4),
-        newPrice: formatUnits(newPrice, 18)
-      }
-    } catch (e) {
-      console.error('获取详细兑换预估失败', e)
+
+      // 根据合约返回的数据结构解析结果
+      // 这里需要根据实际的合约ABI来调整
+      return result
+    } catch (error) {
+      console.error('获取详细兑换估算失败:', error)
       return null
     }
   }, [liquidityPoolAddress])
@@ -612,6 +622,27 @@ export const useGreenTalesLiquidityPool = () => {
       return null
     }
   }, [liquidityPoolAddress])
+
+  // 获取当前碳币价格
+  const getCarbonPrice = useCallback(async (): Promise<string> => {
+    try {
+      if (currentPrice) {
+        return formatUnits(currentPrice as bigint, 18)
+      }
+      
+      // 如果没有实时价格，尝试直接从合约读取
+      const result = await readContract(config, {
+        address: liquidityPoolAddress as `0x${string}`,
+        abi: GreenTalesLiquidityPoolABI.abi,
+        functionName: 'getCarbonPrice',
+      })
+      
+      return formatUnits(result as bigint, 18)
+    } catch (error) {
+      console.error('获取碳币价格失败:', error)
+      return '88' // 返回默认价格
+    }
+  }, [currentPrice, liquidityPoolAddress])
 
   // 获取流动性添加估算（自由输入模式）
   const getLiquidityEstimate = useCallback((carbonAmount: string, usdtAmount: string) => {
@@ -744,6 +775,7 @@ export const useGreenTalesLiquidityPool = () => {
     getUserEarnings,
     claimFees,
     getFeeStats,
+    getCarbonPrice,
     
     // 状态
     isLoading: isPending || isConfirming,

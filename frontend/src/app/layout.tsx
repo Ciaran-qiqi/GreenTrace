@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { I18nProvider } from "@/hooks/useI18n";
 
 // 使用支持中文的字体
 const notoSansSC = Noto_Sans_SC({ 
@@ -22,11 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${notoSansSC.variable} antialiased`}>
+    <html lang="zh-CN" className={`${notoSansSC.variable} antialiased`} suppressHydrationWarning>
       <body suppressHydrationWarning={true} className={notoSansSC.className}>
-        <Providers>
-          {children}
-        </Providers>
+        <I18nProvider>
+          <Providers>
+            {children}
+          </Providers>
+        </I18nProvider>
       </body>
     </html>
   );

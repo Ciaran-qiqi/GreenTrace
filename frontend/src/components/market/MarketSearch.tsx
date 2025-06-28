@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useI18n';
 
 interface MarketSearchProps {
   value: string;
@@ -16,9 +17,11 @@ interface MarketSearchProps {
 export const MarketSearch: React.FC<MarketSearchProps> = ({
   value,
   onChange,
-  placeholder = "搜索NFT标题、描述或Token ID...",
+  placeholder,
   className = "",
 }) => {
+  const { t } = useTranslation();
+  const defaultPlaceholder = placeholder || t('market.search.placeholder', '搜索NFT标题、描述或Token ID...');
   const [isFocused, setIsFocused] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -32,7 +35,7 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
         setSearchHistory(JSON.parse(history));
       }
     } catch (error) {
-      console.error('加载搜索历史失败:', error);
+      console.error(t('market.search.loadHistoryError', '加载搜索历史失败'), error);
     }
   }, []);
 
@@ -49,7 +52,7 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
     try {
       localStorage.setItem('nft_search_history', JSON.stringify(newHistory));
     } catch (error) {
-      console.error('保存搜索历史失败:', error);
+      console.error(t('market.search.saveHistoryError', '保存搜索历史失败'), error);
     }
   };
 

@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { useChainId } from 'wagmi';
-import { useIsAuditor } from '@/contracts/hooks/useGreenTrace';
+import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
+import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
 import { useAuditData, AuditRequest } from '@/hooks/useAuditData';
 import { useExchangeAuditData, ExchangeAuditRequest } from '@/hooks/useExchangeAuditData';
 import { AuditForm } from './AuditForm';
@@ -53,9 +54,24 @@ const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] | ExchangeAudi
   );
 };
 
+// 根据链ID获取GreenTrace合约地址
+const getGreenTraceAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet.GreenTrace;
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia.GreenTrace;
+    case 31337: // 本地Foundry测试网
+      return CONTRACT_ADDRESSES.foundry.GreenTrace;
+    default:
+      return CONTRACT_ADDRESSES.sepolia.GreenTrace;
+  }
+};
+
 // 审计中心组件
 export const AuditCenter: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const [selectedRequest, setSelectedRequest] = useState<AuditRequest | null>(null);
   const [selectedExchangeRequest, setSelectedExchangeRequest] = useState<ExchangeAuditRequest | null>(null);
   const [showAuditForm, setShowAuditForm] = useState(false);
@@ -63,8 +79,19 @@ export const AuditCenter: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('mint-pending');
   
-  // 检查是否为审计员
-  const { data: isAuditor } = useIsAuditor(address as `0x${string}`);
+  // 获取合约地址
+  const greenTraceAddress = getGreenTraceAddress(chainId);
+  
+  // 检查是否为审计员 - 使用和Navigation相同的逻辑
+  const { data: isAuditor } = useReadContract({
+    address: greenTraceAddress as `0x${string}`,
+    abi: GreenTraceABI.abi,
+    functionName: 'auditors',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isConnected,
+    }
+  });
   
   // 获取铸造审计数据
   const { 
@@ -573,8 +600,36 @@ export const AuditCenter: React.FC = () => {
     );
   }
 
+  // 判断用户权限 - 和Navigation组件保持一致
+  const isAuthorizedAuditor = Boolean(address && isAuditor);
+  
+  // 调试信息
+  console.log('AuditCenter权限检查:', {
+    address,
+    isConnected,
+    isAuditor,
+    isAuthorizedAuditor,
+    chainId,
+    greenTraceAddress
+  });
+  
+  // 如果未连接钱包
+  if (!isConnected) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔌</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">未连接钱包</h3>
+            <p className="text-gray-500">请先连接钱包以访问审计中心</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 如果不是审计员
-  if (!isAuditor) {
+  if (!isAuthorizedAuditor) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg p-8">
@@ -582,6 +637,11 @@ export const AuditCenter: React.FC = () => {
             <div className="text-6xl mb-4">🔒</div>
             <h3 className="text-xl font-semibold text-gray-700 mb-2">权限不足</h3>
             <p className="text-gray-500">您不是授权的审计员，无法访问审计中心</p>
+            <div className="mt-4 text-sm text-gray-400">
+              <p>当前地址: {address}</p>
+              <p>审计员状态: {isAuditor ? '是' : '否'}</p>
+              <p>合约地址: {greenTraceAddress}</p>
+            </div>
           </div>
         </div>
       </div>

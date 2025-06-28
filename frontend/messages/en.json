@@ -1,0 +1,509 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "back": "Back",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "stats": "Platform Statistics"
+  },
+  "navigation": {
+    "home": "🏠 Home",
+    "carbonMarket": "📈 Carbon",
+    "create": "🌱 Create",
+    "created": "🌱 Create",
+    "nftMarket": "🛒 Market", 
+    "assets": "💼 Assets",
+    "myListings": "🏪 Listings",
+    "liquidityPool": "💧 Liquidity",
+    "nftExchange": "🔄 Exchange",
+    "auditCenter": "🔍 Audit",
+    "adminCenter": "⚙️ Admin",
+    "currentRole": "✨ Role",
+    "roles": {
+      "admin": "Admin",
+      "auditor": "Auditor"
+    }
+  },
+  "auth": {
+    "connectWallet": "Connect Wallet",
+    "walletConnected": "Wallet Connected",
+    "pleaseConnectWallet": "Please Connect Wallet",
+    "networkError": "Network Error",
+    "switchNetwork": "Switch Network"
+  },
+  "nft": {
+    "title": "Green Carbon Footprint NFT",
+    "description": "Description",
+    "price": "Price",
+    "owner": "Owner",
+    "creator": "Creator",
+    "tokenId": "Token ID",
+    "metadata": "Metadata",
+    "properties": "Properties",
+    "history": "History",
+    "mint": "Mint",
+    "transfer": "Transfer",
+    "approve": "Approve",
+    "burn": "Burn"
+  },
+  "market": {
+    "marketplace": "NFT Marketplace",
+    "buyNow": "Buy Now",
+    "listForSale": "List for Sale",
+    "updatePrice": "Update Price",
+    "cancelListing": "Cancel Listing",
+    "purchaseHistory": "Purchase History",
+    "salesHistory": "Sales History",
+    "tradeHistory": "Trade History",
+    "marketStats": "Market Stats",
+    "totalVolume": "Total Volume",
+    "floorPrice": "Floor Price",
+    "totalSales": "Total Sales",
+    "averagePrice": "Average Price"
+  },
+  "audit": {
+    "auditCenter": "Audit Center",
+    "auditForm": "Audit Form",
+    "auditData": "Audit Data",
+    "auditStatus": "Audit Status",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "auditor": "Auditor",
+    "auditTime": "Audit Time",
+    "auditResult": "Audit Result",
+    "auditComment": "Audit Comment"
+  },
+  "carbon": {
+    "carbonMarket": "Carbon Token Market",
+    "carbonToken": "Carbon Token",
+    "carbonPrice": "Carbon Price",
+    "buyCarbon": "Buy Carbon",
+    "sellCarbon": "Sell Carbon",
+    "orderBook": "Order Book",
+    "tradingPairs": "Trading Pairs",
+    "priceChart": "Price Chart",
+    "volume24h": "24h Volume",
+    "lastPrice": "Last Price",
+    "change24h": "24h Change",
+    "marketOrder": "Market Order",
+    "limitOrder": "Limit Order",
+    "buyOrder": "Buy Order",
+    "sellOrder": "Sell Order",
+    "orderType": "Order Type",
+    "orderAmount": "Order Amount",
+    "orderPrice": "Order Price",
+    "remainingAmount": "Remaining Amount",
+    "orderStatus": "Order Status",
+    "orderFee": "Order Fee",
+    "fillOrder": "Fill Order",
+    "cancelOrder": "Cancel Order",
+    "createOrder": "Create Order",
+    "orderHistory": "Order History",
+    "activeOrders": "Active Orders",
+    "filledOrders": "Filled Orders",
+    "cancelledOrders": "Cancelled Orders",
+    "priceProtection": "Price Protection",
+    "autoMatching": "Auto Matching",
+    "marketStats": {
+      "title": "Market Statistics",
+      "totalOrders": "Total Orders",
+      "totalVolume": "Total Volume",
+      "totalFees": "Total Fees",
+      "limitOrderFees": "Limit Order Fees",
+      "fillOrderFees": "Fill Order Fees"
+    },
+    "balances": {
+      "carbonBalance": "Carbon Balance",
+      "usdtBalance": "USDT Balance",
+      "insufficientBalance": "Insufficient Balance"
+    },
+    "approval": {
+      "approveCarbon": "Approve Carbon",
+      "approveUsdt": "Approve USDT",
+      "approvalNeeded": "Approval Needed",
+      "approvalSuccess": "Approval Success",
+      "approvalFailed": "Approval Failed"
+    },
+    "errors": {
+      "invalidAmount": "Invalid Amount",
+      "invalidPrice": "Invalid Price",
+      "insufficientBalance": "Insufficient Balance",
+      "orderNotFound": "Order Not Found",
+      "orderNotActive": "Order Not Active",
+      "notOrderOwner": "Not Order Owner",
+      "priceTooLow": "Price Too Low",
+      "priceDeviationBlocked": "Price Deviation Blocked"
+    },
+    "success": {
+      "orderCreated": "Order Created Successfully",
+      "orderFilled": "Order Filled Successfully",
+      "orderCancelled": "Order Cancelled Successfully",
+      "marketOrderSuccess": "Market Order Executed Successfully"
+    },
+    "index": {
+      "title": "Carbon Price Index",
+      "subtitle": "EEX European Carbon Exchange Index",
+      "loadError": "Failed to load data"
+    },
+    "currencies": {
+      "eur": "Euro",
+      "usd": "US Dollar", 
+      "cny": "Chinese Yuan"
+    },
+    "changes": {
+      "daily": "Daily",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "lastUpdated": "Last Updated"
+  },
+  "liquidity": {
+    "title": "Carbon Token Liquidity Pool",
+    "description": "Provide liquidity and earn trading fee rewards",
+    "liquidityPool": "Liquidity Pool",
+    "addLiquidity": "Add Liquidity",
+    "removeLiquidity": "Remove Liquidity",
+    "lpTokens": "LP Tokens",
+    "rewards": "Rewards",
+    "apy": "APY",
+    "totalValueLocked": "Total Value Locked",
+    "myLiquidity": "My Liquidity",
+    "earnings": "Earnings",
+    "priceInfo": {
+      "title": "Price Information",
+      "currentPrice": "Current Pool Price",
+      "oraclePrice": "Oracle Reference Price",
+      "priceDeviation": "Price Deviation",
+      "totalLiquidity": "Total Liquidity",
+      "ammPrice": "AMM Price",
+      "referencePrice": "Reference Price",
+      "deviation": "Deviation",
+      "tvl": "TVL"
+    },
+    "tabs": {
+      "swap": "Market Swap",
+      "liquidityManagement": "Liquidity Management",
+      "marketMaking": "Market Making Rewards"
+    },
+    "management": {
+      "title": "Liquidity Management"
+    },
+    "add": {
+      "title": "Target LP Liquidity Addition",
+      "targetAmount": "Target LP Token Amount",
+      "helpText": "Enter the desired LP token amount, system will auto-calculate required tokens at AMM pool price",
+      "calculationResult": "Calculation Result",
+      "carbonNeeded": "Carbon Required",
+      "usdtNeeded": "USDT Required",
+      "carbonBalance": "CARB Balance",
+      "usdtBalance": "USDT Balance",
+      "enterAmount": "Please enter target LP amount",
+      "insufficientCarbon": "Insufficient CARB balance",
+      "insufficientUsdt": "Insufficient USDT balance",
+      "approvingCarbon": "Approving CARB...",
+      "approvingUsdt": "Approving USDT...",
+      "step1ApproveCarbon": "Step 1: Approve CARB Token",
+      "step2ApproveUsdt": "Step 2: Approve USDT Token",
+      "addLiquidity": "Add Liquidity",
+      "adding": "Adding liquidity...",
+      "carbonApproveSuccess": "CARB approval successful! Please click add liquidity again",
+      "usdtApproveSuccess": "USDT approval successful! Please click add liquidity again",
+      "errors": {
+        "invalidAmount": "Please enter valid LP token amount",
+        "enterTargetFirst": "Please enter target LP amount first to calculate required tokens",
+        "insufficientCarbon": "Insufficient CARB balance",
+        "insufficientUsdt": "Insufficient USDT balance",
+        "addFailed": "Failed to add liquidity"
+      }
+    },
+    "remove": {
+      "title": "Remove Liquidity",
+      "lpAmount": "LP Token Amount",
+      "available": "Available",
+      "preview": "Removal Preview",
+      "recoverCarbon": "Recoverable Carbon",
+      "recoverUsdt": "Recoverable USDT",
+      "remainingLP": "Remaining LP after removal",
+      "removeRatio": "Removal Ratio",
+      "enterAmount": "Please enter LP token amount",
+      "insufficientLP": "Insufficient LP balance",
+      "removeLiquidity": "Remove Liquidity",
+      "errors": {
+        "invalidAmount": "Please enter valid amount"
+      }
+    },
+         "errors": {
+       "emptyPoolAdd": "Pool is empty, cannot calculate required token amounts",
+       "emptyPoolRemove": "Pool is empty, cannot calculate removal amounts",
+       "calculationFailed": "Calculation failed, please check input"
+     },
+     "userStats": {
+       "title": "My Liquidity",
+       "subtitle": "Actual assets represented by LP tokens",
+       "lpTokens": "LP Tokens",
+       "poolShare": "Pool Share",
+       "carbonAmount": "Carbon Holdings",
+       "usdtAmount": "USDT Holdings"
+     }
+   },
+   "swap": {
+     "title": "Market Swap",
+     "carbonBalance": "Carbon Balance",
+     "usdtBalance": "USDT Balance",
+     "carbonToUsdt": {
+       "title": "CARB → USDT",
+       "placeholder": "Enter CARB amount",
+       "enterAmount": "Please enter CARB amount",
+       "swap": "Swap to USDT"
+     },
+     "usdtToCarbon": {
+       "title": "USDT → CARB",
+       "placeholder": "Enter USDT amount",
+       "enterAmount": "Please enter USDT amount",
+       "swap": "Swap to CARB"
+     },
+     "estimate": {
+       "receiveUsdt": "Receive USDT",
+       "receiveCarbon": "Receive CARB",
+       "fee": "Trading Fee",
+       "priceImpact": "Price Impact",
+       "priceImpactExplanation": "Price Impact Info: bp (basis points) = 0.01%, lower values mean less impact on pool price",
+       "calculating": "Calculating estimates..."
+     },
+     "button": {
+       "approving": "Approving...",
+       "approve": "Approve First"
+     },
+     "errors": {
+       "invalidCarbonAmount": "Please enter valid CARB amount",
+       "invalidUsdtAmount": "Please enter valid USDT amount",
+       "insufficientCarbon": "Insufficient CARB balance",
+       "insufficientUsdt": "Insufficient USDT balance"
+     },
+     "success": {
+       "approvalSuccess": "Approval successful, please click swap again"
+     }
+   },
+   "earnings": {
+     "explanation": {
+       "title": "Market Making Yield Info",
+       "description": "As a Liquidity Provider (LP), you earn",
+       "share": "% of every trading fee, with the remaining",
+       "platform": "% going to the platform. Fees are generated from all CARB/USDT swaps and can be claimed anytime."
+     },
+     "feeShare": {
+       "title": "Fee Distribution Ratio",
+       "platform": "Platform"
+     },
+     "claimable": {
+       "title": "Claimable Rewards",
+       "carbonFees": "CARB Trading Fees",
+       "usdtFees": "USDT Trading Fees",
+       "claimButton": "Claim All Rewards"
+     },
+     "claimed": {
+       "title": "Total Claimed Rewards",
+       "carbonFees": "CARB Trading Fees",
+       "usdtFees": "USDT Trading Fees"
+     },
+     "stats": {
+       "platformTotal": "Platform Total Fees",
+       "lpTotal": "LP Total Fees",
+       "carbon": "Carbon"
+     },
+     "faq": {
+       "title": "Frequently Asked Questions",
+       "q1": "Why are rewards sometimes 0?",
+       "a1": "There may be no recent trades in that direction, or fees haven't accumulated to minimum units yet.",
+       "q2": "How often are rewards settled?",
+       "a2": "Real-time settlement after each swap, claimable anytime.",
+       "q3": "Can platform/LP fee ratios be adjusted?",
+       "a3": "Yes, requires admin operation.",
+       "q4": "Multi-token rewards supported?",
+       "a4": "Yes, both CARB and USDT trading fees are distributed."
+     }
+   },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "back": "Back",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "stats": "Platform Statistics",
+    "connectWallet": "Please connect wallet",
+    "calculating": "Calculating...",
+    "processing": "Processing..."
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "userManagement": "User Management",
+    "auditManagement": "Audit Management",
+    "systemSettings": "System Settings",
+    "contractManagement": "Contract Management",
+    "dataManagement": "Data Management"
+  },
+  "form": {
+    "projectName": "Project Name",
+    "projectDescription": "Project Description",
+    "carbonReduction": "Carbon Reduction",
+    "location": "Location",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "verificationMethod": "Verification Method",
+    "documents": "Documents",
+    "images": "Images",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "messages": {
+    "transactionPending": "Transaction Pending",
+    "transactionSuccess": "Transaction Success",
+    "transactionFailed": "Transaction Failed",
+    "insufficientBalance": "Insufficient Balance",
+    "approvalRequired": "Approval Required",
+    "networkNotSupported": "Network Not Supported",
+    "walletNotFound": "Wallet Not Found",
+    "connectionFailed": "Connection Failed"
+  },
+  "language": {
+    "selectLanguage": "Select Language",
+    "chinese": "中文",
+    "english": "English"
+  },
+  "home": {
+    "hero": {
+      "title": "Tokenize Your Green Impact, Build a Sustainable Future",
+      "description": "Leverage blockchain technology to tokenize your environmental actions into verifiable NFT assets. Turn your green initiatives into tradeable carbon credits and contribute to the decentralized sustainability ecosystem.",
+      "startCreating": "Launch NFT",
+      "exploreMarket": "Explore Marketplace",
+      "tags": {
+        "blockchain": "Blockchain",
+        "nft": "NFT",
+        "defi": "DeFi", 
+        "carbon": "Carbon Credits"
+      },
+      "trust": {
+        "decentralized": "Decentralized",
+        "verified": "Verified",
+        "transparent": "Transparent"
+      }
+    },
+    "tech": {
+      "title": "Built on Cutting-Edge Technology",
+      "subtitle": "Powered by the most advanced blockchain technology and Web3 infrastructure",
+      "blockchain": {
+        "title": "Blockchain",
+        "desc": "Immutable ledger"
+      },
+      "security": {
+        "title": "Zero-Knowledge",
+        "desc": "Privacy-first"
+      },
+      "speed": {
+        "title": "Lightning Fast",
+        "desc": "Optimized gas"
+      },
+      "interop": {
+        "title": "Cross-Chain",
+        "desc": "Multi-network"
+      }
+    },
+    "features": {
+      "createNFT": {
+        "title": "Mint Green NFTs",
+        "description": "Tokenize your environmental initiatives as verifiable on-chain assets. Document transportation choices, energy efficiency measures, waste reduction, and sustainability projects with immutable blockchain records.",
+        "action": "Start Minting"
+      },
+      "audit": {
+        "title": "Decentralized Verification",
+        "description": "Independent validators authenticate your environmental claims using cryptographic proof systems, ensuring each NFT represents verifiable real-world impact with full transparency.",
+        "subtitle": "Trustless verification protocol"
+      },
+      "exchange": {
+        "title": "Carbon Credit DeFi",
+        "description": "Trade verified green NFTs for carbon tokens in our decentralized marketplace. Participate in carbon credit liquidity pools and yield farming while driving environmental impact.",
+        "subtitle": "DeFi-powered green economy"
+      }
+    },
+    "stats": {
+      "title": "Platform Metrics",
+      "subtitle": "Real-time on-chain data",
+      "nftsCreated": "NFTs Minted",
+      "activeUsers": "Active Wallets",
+      "auditors": "Network Validators",
+      "carbonReduction": "CO₂ Offset (kg)"
+    }
+  },
+  "created": {
+    "title": "NFT Creation Records",
+    "subtitle": "View your NFT creation history and status",
+    "noRecords": "No creation records found",
+    "table": {
+      "nftId": "NFT ID",
+      "title": "Title",
+      "status": "Status",
+      "carbonAmount": "Carbon Reduction",
+      "createTime": "Creation Time",
+      "auditTime": "Audit Time",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "minted": "Minted"
+    },
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "minted": "Minted"
+    },
+    "actions": {
+      "viewDetails": "View Details",
+      "mintNFT": "Mint NFT",
+      "resubmit": "Resubmit"
+    },
+    "details": {
+      "basicInfo": "Basic Information",
+      "auditInfo": "Audit Information",
+      "transactionInfo": "Transaction Information",
+      "carbonReduction": "Carbon Reduction",
+      "description": "Description",
+      "image": "Image",
+      "auditor": "Auditor",
+      "auditComment": "Audit Comment",
+      "transactionHash": "Transaction Hash",
+      "blockNumber": "Block Number",
+      "gasUsed": "Gas Used",
+      "mintingFee": "Minting Fee"
+    }
+  }
+} 

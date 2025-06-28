@@ -122,20 +122,8 @@ export default function AdminPage() {
                 <span className="text-3xl">🛡️</span>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800">GreenTrace 管理中心</h1>
-                  <p className="text-gray-600 flex items-center gap-2">
+                  <p className="text-gray-600">
                     系统管理和数据分析平台
-                    {isOwner && (
-                      <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full border border-red-200 flex items-center gap-1">
-                        <span>👑</span>
-                        <span>管理员</span>
-                      </span>
-                    )}
-                    {isAuditor && (
-                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full border border-purple-200 flex items-center gap-1">
-                        <span>🔍</span>
-                        <span>审计员</span>
-                      </span>
-                    )}
                   </p>
                 </div>
               </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '@/components/Navigation'
+import { useTranslation } from '@/hooks/useI18n'
 import { useGreenTalesLiquidityPool } from '@/hooks/useGreenTalesLiquidityPool'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { formatTokenAmount, formatPercentage, validateNumberInput, debounce, formatPrice } from '@/utils/formatters'
@@ -16,6 +17,8 @@ import LiquidityEarningsPanel from '@/components/LiquidityEarningsPanel'
 import LiquidityUserStatsPanel from '@/components/LiquidityUserStatsPanel'
 
 export default function LiquidityPoolPage() {
+  const { t } = useTranslation();
+  
   // 使用hooks
   const {
     poolData,
@@ -80,7 +83,7 @@ export default function LiquidityPoolPage() {
       }) as bigint
 
       if (totalLPSupply === BigInt(0)) {
-        toast.error('池子为空，无法计算所需代币数量')
+        toast.error(t('liquidity.errors.emptyPoolAdd', '池子为空，无法计算所需代币数量'))
         return
       }
 
@@ -95,7 +98,7 @@ export default function LiquidityPoolPage() {
 
     } catch (error) {
       console.error('计算LP目标失败:', error)
-      toast.error('计算失败，请检查输入')
+      toast.error(t('liquidity.errors.calculationFailed', '计算失败，请检查输入'))
     }
   }, [liquidityPoolAddress])
 
@@ -127,7 +130,7 @@ export default function LiquidityPoolPage() {
       }) as bigint
 
       if (totalLPSupply === BigInt(0)) {
-        toast.error('池子为空，无法计算移除数量')
+        toast.error(t('liquidity.errors.emptyPoolRemove', '池子为空，无法计算移除数量'))
         return
       }
 
@@ -142,7 +145,7 @@ export default function LiquidityPoolPage() {
 
     } catch (error) {
       console.error('计算移除LP失败:', error)
-      toast.error('计算失败，请检查输入')
+      toast.error(t('liquidity.errors.calculationFailed', '计算失败，请检查输入'))
     }
   }, [liquidityPoolAddress])
 
@@ -219,47 +222,47 @@ export default function LiquidityPoolPage() {
   // 处理添加流动性
   const handleAddLiquidity = async () => {
     if (!validateNumberInput(targetLPAmount)) {
-      toast.error('请输入有效的LP代币数量')
+      toast.error(t('liquidity.add.errors.invalidAmount', '请输入有效的LP代币数量'))
       return
     }
 
     if (!carbonAmount || !usdtAmount) {
-      toast.error('请先输入LP目标数量以计算所需代币')
+      toast.error(t('liquidity.add.errors.enterTargetFirst', '请先输入LP目标数量以计算所需代币'))
       return
     }
 
     try {
       // 检查余额
       if (parseFloat(carbonAmount) > userBalances.carbonBalanceRaw) {
-        toast.error('CARB余额不足')
+        toast.error(t('liquidity.add.errors.insufficientCarbon', 'CARB余额不足'))
         return
       }
       if (parseFloat(usdtAmount) > userBalances.usdtBalanceRaw) {
-        toast.error('USDT余额不足')
+        toast.error(t('liquidity.add.errors.insufficientUsdt', 'USDT余额不足'))
         return
       }
 
       // 授权检查和流程
       const carbonNeedsApproval = checkCarbonApprovalNeeded(carbonAmount, 18)
       if (carbonNeedsApproval) {
-        toast.loading('🔑 正在授权CARB代币...')
+        toast.loading(`🔑 ${t('liquidity.add.approvingCarbon', '正在授权CARB代币...')}`)
         await approveCarbonMax()
         toast.dismiss()
-        toast.success('✅ CARB授权成功！请再次点击添加流动性')
+        toast.success(`✅ ${t('liquidity.add.carbonApproveSuccess', 'CARB授权成功！请再次点击添加流动性')}`)
         return
       }
 
       const usdtNeedsApproval = checkUsdtApprovalNeeded(usdtAmount, 18)
       if (usdtNeedsApproval) {
-        toast.loading('🔑 正在授权USDT代币...')
+        toast.loading(`🔑 ${t('liquidity.add.approvingUsdt', '正在授权USDT代币...')}`)
         await approveUsdtMax()
         toast.dismiss()
-        toast.success('✅ USDT授权成功！请再次点击添加流动性')
+        toast.success(`✅ ${t('liquidity.add.usdtApproveSuccess', 'USDT授权成功！请再次点击添加流动性')}`)
         return
       }
 
       // 执行添加流动性
-      toast.loading('💧 正在添加流动性...')
+      toast.loading(`💧 ${t('liquidity.add.adding', '正在添加流动性...')}`)
       await addLiquidity(carbonAmount, usdtAmount)
       
       // 清空表单
@@ -270,14 +273,14 @@ export default function LiquidityPoolPage() {
     } catch (error) {
       console.error('添加流动性失败:', error)
       toast.dismiss()
-      toast.error('❌ 添加流动性失败: ' + (error as Error).message)
+      toast.error(`❌ ${t('liquidity.add.errors.addFailed', '添加流动性失败')}: ${(error as Error).message}`)
     }
   }
 
   // 处理移除流动性
   const handleRemoveLiquidity = async () => {
     if (!validateNumberInput(removeAmount)) {
-      toast.error('请输入有效的数量')
+      toast.error(t('liquidity.remove.errors.invalidAmount', '请输入有效的数量'))
       return
     }
     try {
@@ -289,7 +292,7 @@ export default function LiquidityPoolPage() {
   }
 
   // Tab切换相关状态
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState(1)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50">
@@ -299,8 +302,8 @@ export default function LiquidityPoolPage() {
         <div className="container mx-auto px-4 max-w-7xl">
           {/* 页面标题 */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">💧 碳币流动性池</h1>
-            <p className="text-lg text-gray-600">提供流动性，获得交易手续费分成</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">💧 {t('liquidity.title', '碳币流动性池')}</h1>
+            <p className="text-lg text-gray-600">{t('liquidity.description', '提供流动性，获得交易手续费分成')}</p>
           </div>
 
           {/* 价格信息卡片：始终显示在最上方 */}
@@ -309,28 +312,28 @@ export default function LiquidityPoolPage() {
               <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                 <span className="text-white text-lg">📊</span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">价格信息</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('liquidity.priceInfo.title', '价格信息')}</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl border border-green-200 shadow-lg">
-                <p className="text-sm text-gray-600 mb-2">当前池子价格</p>
+                <p className="text-sm text-gray-600 mb-2">{t('liquidity.priceInfo.currentPrice', '当前池子价格')}</p>
                 <p className="text-3xl font-bold text-green-600">
                   {formatPrice(poolData.currentPrice)} / CARB
                 </p>
-                <div className="mt-2 text-xs text-green-500">💹 AMM价格</div>
+                <div className="mt-2 text-xs text-green-500">💹 {t('liquidity.priceInfo.ammPrice', 'AMM价格')}</div>
               </div>
               
               <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200 shadow-lg">
-                <p className="text-sm text-gray-600 mb-2">预言机参考价</p>
+                <p className="text-sm text-gray-600 mb-2">{t('liquidity.priceInfo.oraclePrice', '预言机参考价')}</p>
                 <p className="text-2xl font-semibold text-blue-600">
                   {formatPrice(poolData.referencePrice)} / CARB
                 </p>
-                <div className="mt-2 text-xs text-blue-500">🔮 参考价格</div>
+                <div className="mt-2 text-xs text-blue-500">🔮 {t('liquidity.priceInfo.referencePrice', '参考价格')}</div>
               </div>
 
               <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-slate-100 rounded-xl border border-gray-200 shadow-lg">
-                <p className="text-sm text-gray-600 mb-2">价格偏离</p>
+                <p className="text-sm text-gray-600 mb-2">{t('liquidity.priceInfo.priceDeviation', '价格偏离')}</p>
                 <div className="flex items-center justify-center gap-2">
                   <p className={`text-2xl font-semibold ${
                     poolData.isDeviated ? 'text-red-600' : 'text-green-600'
@@ -341,15 +344,15 @@ export default function LiquidityPoolPage() {
                     <span className="text-red-600 text-xl animate-pulse">⚠️</span>
                   )}
                 </div>
-                <div className="mt-2 text-xs text-gray-500">📈 偏离度</div>
+                <div className="mt-2 text-xs text-gray-500">📈 {t('liquidity.priceInfo.deviation', '偏离度')}</div>
               </div>
 
               <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl border border-purple-200 shadow-lg">
-                <p className="text-sm text-gray-600 mb-2">总流动性</p>
+                <p className="text-sm text-gray-600 mb-2">{t('liquidity.priceInfo.totalLiquidity', '总流动性')}</p>
                 <p className="text-2xl font-semibold text-purple-600">
                   {formatPrice(poolData.totalLiquidity)}
                 </p>
-                <div className="mt-2 text-xs text-purple-500">💰 TVL</div>
+                <div className="mt-2 text-xs text-purple-500">💰 {t('liquidity.priceInfo.tvl', 'TVL')}</div>
               </div>
             </div>
           </div>
@@ -359,15 +362,15 @@ export default function LiquidityPoolPage() {
             <button
               className={`px-6 py-2 rounded-full font-semibold text-lg transition-all duration-200 border-2 ${tab === 0 ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'}`}
               onClick={() => setTab(0)}
-            >🔄市价兑换</button>
+            >🔄{t('liquidity.tabs.swap', '市价兑换')}</button>
             <button
               className={`px-6 py-2 rounded-full font-semibold text-lg transition-all duration-200 border-2 ${tab === 1 ? 'bg-green-500 text-white border-green-500' : 'bg-white text-green-600 border-green-300 hover:bg-green-50'}`}
               onClick={() => setTab(1)}
-            >💧流动性管理</button>
+            >💧{t('liquidity.tabs.liquidityManagement', '流动性管理')}</button>
             <button
               className={`px-6 py-2 rounded-full font-semibold text-lg transition-all duration-200 border-2 ${tab === 2 ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-yellow-600 border-yellow-300 hover:bg-yellow-50'}`}
               onClick={() => setTab(2)}
-            >💰做市收益</button>
+            >💰{t('liquidity.tabs.marketMaking', '做市收益')}</button>
           </div>
 
           {/* Tab内容区块 */}
@@ -385,19 +388,19 @@ export default function LiquidityPoolPage() {
                     <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm">💧</span>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">流动性管理</h3>
+                    <h3 className="text-xl font-semibold text-gray-900">{t('liquidity.management.title', '流动性管理')}</h3>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* LP目标添加流动性 */}
                     <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-gray-900">🎯 LP目标添加流动性</h4>
+                      <h4 className="text-lg font-semibold text-gray-900">🎯 {t('liquidity.add.title', 'LP目标添加流动性')}</h4>
                       
                       <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 shadow-lg">
                         <div className="space-y-4">
                           {/* LP目标输入 */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-2">目标LP代币数量</label>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">{t('liquidity.add.targetAmount', '目标LP代币数量')}</label>
                             <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-300">
                               <span className="text-lg">🎯</span>
                               <input
@@ -410,35 +413,35 @@ export default function LiquidityPoolPage() {
                               <span className="text-gray-600 font-medium">LP</span>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                              💡 输入想要获得的LP代币数量，系统按AMM池子价格自动计算需要的代币数量
+                              💡 {t('liquidity.add.helpText', '输入想要获得的LP代币数量，系统按AMM池子价格自动计算需要的代币数量')}
                             </p>
                           </div>
 
                           {/* 显示计算结果 */}
                           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <h5 className="font-semibold text-blue-900 mb-3">📋 计算结果</h5>
+                            <h5 className="font-semibold text-blue-900 mb-3">📋 {t('liquidity.add.calculationResult', '计算结果')}</h5>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">需要碳币:</span>
+                                <span className="text-gray-600">{t('liquidity.add.carbonNeeded', '需要碳币')}:</span>
                                 <span className="font-semibold text-green-600">
                                   {formatTokenAmount(carbonAmount || '0')} CARB
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">需要USDT:</span>
+                                <span className="text-gray-600">{t('liquidity.add.usdtNeeded', '需要USDT')}:</span>
                                 <span className="font-semibold text-blue-600">
                                   {formatTokenAmount(usdtAmount || '0')} USDT
                                 </span>
                               </div>
                               <div className="mt-3 pt-3 border-t border-blue-300">
                                 <div className="flex justify-between">
-                                  <span className="text-gray-600">CARB余额:</span>
+                                  <span className="text-gray-600">{t('liquidity.add.carbonBalance', 'CARB余额')}:</span>
                                   <span className={`font-semibold ${carbonAmount && parseFloat(carbonAmount) > userBalances.carbonBalanceRaw ? 'text-red-600' : 'text-gray-800'}`}>
                                     {userBalances.carbonBalance}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-600">USDT余额:</span>
+                                  <span className="text-gray-600">{t('liquidity.add.usdtBalance', 'USDT余额')}:</span>
                                   <span className={`font-semibold ${usdtAmount && parseFloat(usdtAmount) > userBalances.usdtBalanceRaw ? 'text-red-600' : 'text-gray-800'}`}>
                                     {userBalances.usdtBalance}
                                   </span>
@@ -463,26 +466,26 @@ export default function LiquidityPoolPage() {
                             className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg shadow-lg hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-200"
                           >
                             {!isConnected 
-                              ? '🔗 请连接钱包' 
+                              ? `🔗 ${t('common.connectWallet', '请连接钱包')}` 
                               : !validateNumberInput(targetLPAmount)
-                                ? '📝 请输入LP目标数量'
+                                ? `📝 ${t('liquidity.add.enterAmount', '请输入LP目标数量')}`
                               : !carbonAmount || !usdtAmount
-                                ? '⏳ 计算中...'
+                                ? `⏳ ${t('common.calculating', '计算中...')}`
                               : parseFloat(carbonAmount || '0') > userBalances.carbonBalanceRaw
-                                ? '💰 CARB余额不足'
+                                ? `💰 ${t('liquidity.add.insufficientCarbon', 'CARB余额不足')}`
                               : parseFloat(usdtAmount || '0') > userBalances.usdtBalanceRaw
-                                ? '💰 USDT余额不足'
+                                ? `💰 ${t('liquidity.add.insufficientUsdt', 'USDT余额不足')}`
                               : isCarbonApproving 
-                                ? '🔑 正在授权CARB...' 
+                                ? `🔑 ${t('liquidity.add.approvingCarbon', '正在授权CARB...')}` 
                                 : isUsdtApproving 
-                                  ? '🔑 正在授权USDT...' 
+                                  ? `🔑 ${t('liquidity.add.approvingUsdt', '正在授权USDT...')}` 
                                   : isLoading 
-                                    ? '⏳ 处理中...' 
+                                    ? `⏳ ${t('common.processing', '处理中...')}` 
                                     : checkCarbonApprovalNeeded(carbonAmount, 18)
-                                      ? '🔑 第1步：授权CARB代币'
+                                      ? `🔑 ${t('liquidity.add.step1ApproveCarbon', '第1步：授权CARB代币')}`
                                       : checkUsdtApprovalNeeded(usdtAmount, 18)
-                                        ? '🔑 第2步：授权USDT代币'
-                                        : '💧 添加流动性'
+                                        ? `🔑 ${t('liquidity.add.step2ApproveUsdt', '第2步：授权USDT代币')}`
+                                        : `💧 ${t('liquidity.add.addLiquidity', '添加流动性')}`
                             }
                           </button>
                         </div>
@@ -491,12 +494,12 @@ export default function LiquidityPoolPage() {
 
                     {/* 移除流动性 */}
                     <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-gray-900">➖ 移除流动性</h4>
+                      <h4 className="text-lg font-semibold text-gray-900">➖ {t('liquidity.remove.title', '移除流动性')}</h4>
                       
                       <div className="p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200 shadow-lg">
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-2">LP代币数量</label>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">{t('liquidity.remove.lpAmount', 'LP代币数量')}</label>
                             <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-300">
                               <span className="text-lg">🏆</span>
                               <input
@@ -509,35 +512,35 @@ export default function LiquidityPoolPage() {
                               <span className="text-gray-600 font-medium">LP</span>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                              可用: {formatTokenAmount(userLiquidityInfo.lpTokens)} LP
+                              {t('liquidity.remove.available', '可用')}: {formatTokenAmount(userLiquidityInfo.lpTokens)} LP
                             </p>
                           </div>
 
                           {/* 显示移除计算结果 */}
                           <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                            <h5 className="font-semibold text-orange-900 mb-3">📋 移除预览</h5>
+                            <h5 className="font-semibold text-orange-900 mb-3">📋 {t('liquidity.remove.preview', '移除预览')}</h5>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">可取回碳币:</span>
+                                <span className="text-gray-600">{t('liquidity.remove.recoverCarbon', '可取回碳币')}:</span>
                                 <span className="font-semibold text-green-600">
                                   {formatTokenAmount(removeCarbonAmount || '0')} CARB
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">可取回USDT:</span>
+                                <span className="text-gray-600">{t('liquidity.remove.recoverUsdt', '可取回USDT')}:</span>
                                 <span className="font-semibold text-blue-600">
                                   {formatTokenAmount(removeUsdtAmount || '0')} USDT
                                 </span>
                               </div>
                               <div className="mt-3 pt-3 border-t border-orange-300">
                                 <div className="flex justify-between">
-                                  <span className="text-gray-600">移除后剩余LP:</span>
+                                  <span className="text-gray-600">{t('liquidity.remove.remainingLP', '移除后剩余LP')}:</span>
                                   <span className="font-semibold text-gray-800">
                                     {formatTokenAmount((parseFloat(userLiquidityInfo.lpTokens || '0') - parseFloat(removeAmount || '0')).toString())} LP
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-600">移除比例:</span>
+                                  <span className="text-gray-600">{t('liquidity.remove.removeRatio', '移除比例')}:</span>
                                   <span className="font-semibold text-purple-600">
                                     {formatPercentage((parseFloat(removeAmount || '0') / parseFloat(userLiquidityInfo.lpTokens || '1')).toString())}
                                   </span>
@@ -557,14 +560,14 @@ export default function LiquidityPoolPage() {
                             className="w-full py-3 bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold rounded-lg shadow-lg hover:from-red-600 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-200"
                           >
                             {!isConnected 
-                              ? '🔗 请连接钱包' 
+                              ? `🔗 ${t('common.connectWallet', '请连接钱包')}` 
                               : !validateNumberInput(removeAmount)
-                                ? '📝 请输入LP代币数量'
+                                ? `📝 ${t('liquidity.remove.enterAmount', '请输入LP代币数量')}`
                               : parseFloat(removeAmount || '0') > parseFloat(userLiquidityInfo.lpTokens || '0')
-                                ? '💰 LP余额不足'
+                                ? `💰 ${t('liquidity.remove.insufficientLP', 'LP余额不足')}`
                               : isLoading 
-                                ? '⏳ 处理中...' 
-                                : '➖ 移除流动性'
+                                ? `⏳ ${t('common.processing', '处理中...')}` 
+                                : `➖ ${t('liquidity.remove.removeLiquidity', '移除流动性')}`
                             }
                           </button>
                         </div>

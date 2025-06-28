@@ -9,6 +9,7 @@ export const CONTRACT_ADDRESSES = {
     CarbonPriceOracle: process.env.NEXT_PUBLIC_CARBON_PRICE_ORACLE_ADDRESS || '',
     GreenTalesLiquidityPool: process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS || '',
     CarbonUSDTMarket: process.env.NEXT_PUBLIC_CARBON_USDT_MARKET_ADDRESS || '',
+    USDT: process.env.NEXT_PUBLIC_USDT_ADDRESS || '0xdAC17F958D2ee523a2206206994597C13D831ec7', // 主网USDT地址 (6位精度)
   },
   
   // Sepolia测试网配置（开发环境）
@@ -31,8 +32,11 @@ export const CONTRACT_ADDRESSES = {
     // 流动性池合约 - 提供碳币和USDT的流动性交易
     GreenTalesLiquidityPool: process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS || '0xCfBE2B410E5707b35231B9237bD7E523403Db889', // GreenTalesLiquidityPool 流动性池合约地址，已初始化，池中有1,000碳币和88,000 USDT
     
-    // 订单簿市场合约 - 提供限价单交易功能
-    CarbonUSDTMarket: process.env.NEXT_PUBLIC_CARBON_USDT_MARKET_ADDRESS || '0x15Dfc335131191e0767036cD611D22a8b9b5Ed43', // CarbonUSDTMarket 订单簿市场合约地址，支持限价单，平台手续费1%
+    // 订单簿市场合约 - 提供限价单交易功能（新部署的合约）
+    CarbonUSDTMarket: process.env.NEXT_PUBLIC_CARBON_USDT_MARKET_ADDRESS || '0x8dBe778e693B4c0665974BED7a5C63B668B8f6A3', // CarbonUSDTMarket 订单簿市场合约地址，支持限价单，挂单费0.5%，成交费0.3%
+    
+    // USDT合约地址 - 用于交易 (Sepolia测试网USDT)
+    USDT: process.env.NEXT_PUBLIC_USDT_ADDRESS || '0xdCdC73413C6136c9ABc3E8d250af42947aC2Fc7', // 测试网USDT合约地址 (18位精度)
   },
   
   // 本地Foundry测试网配置（本地开发）
@@ -44,6 +48,7 @@ export const CONTRACT_ADDRESSES = {
     CarbonPriceOracle: process.env.NEXT_PUBLIC_CARBON_PRICE_ORACLE_ADDRESS || '',
     GreenTalesLiquidityPool: process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS || '',
     CarbonUSDTMarket: process.env.NEXT_PUBLIC_CARBON_USDT_MARKET_ADDRESS || '',
+    USDT: process.env.NEXT_PUBLIC_USDT_ADDRESS || '', // 本地测试USDT地址
   },
 };
 
@@ -60,6 +65,21 @@ export const getCarbonTokenAddress = (chainId: number): string => {
     default:
       // 默认返回Sepolia测试网地址
       return CONTRACT_ADDRESSES.sepolia.CarbonToken;
+  }
+};
+
+// 根据链ID获取CarbonUSDTMarket合约地址的辅助函数（新增）
+export const getCarbonUSDTMarketAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet.CarbonUSDTMarket;
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia.CarbonUSDTMarket;
+    case 31337: // 本地Foundry网络
+      return CONTRACT_ADDRESSES.foundry.CarbonUSDTMarket;
+    default:
+      // 默认返回Sepolia测试网地址
+      return CONTRACT_ADDRESSES.sepolia.CarbonUSDTMarket;
   }
 };
 
@@ -90,6 +110,36 @@ export const getGreenTraceAddress = (chainId: number): string => {
     default:
       // 默认返回Sepolia测试网地址
       return CONTRACT_ADDRESSES.sepolia.GreenTrace;
+  }
+};
+
+// 根据链ID获取USDT合约地址的辅助函数
+export const getUSDTAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet.USDT || '';
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia.USDT;
+    case 31337: // 本地Foundry网络
+      return CONTRACT_ADDRESSES.foundry.USDT || '';
+    default:
+      // 默认返回Sepolia测试网地址
+      return CONTRACT_ADDRESSES.sepolia.USDT;
+  }
+};
+
+// 根据链ID获取所有合约地址的辅助函数
+export const getAllContractAddresses = (chainId: number) => {
+  switch (chainId) {
+    case 1: // 以太坊主网
+      return CONTRACT_ADDRESSES.mainnet;
+    case 11155111: // Sepolia测试网
+      return CONTRACT_ADDRESSES.sepolia;
+    case 31337: // 本地Foundry网络
+      return CONTRACT_ADDRESSES.foundry;
+    default:
+      // 默认返回Sepolia测试网地址
+      return CONTRACT_ADDRESSES.sepolia;
   }
 };
 

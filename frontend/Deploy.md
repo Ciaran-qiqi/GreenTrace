@@ -66,9 +66,11 @@
 
 ### 7. CarbonUSDTMarket (订单簿市场) - ✅ 新部署
 
-- **合约地址**: `0x15Dfc335131191e0767036cD611D22a8b9b5Ed43`
-- **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x15dfc335131191e0767036cd611d22a8b9b5ed43)
-- **部署交易**: `0xd5ddcd7c186b7effb0f416a6415fe66d45989a7f972fef4631c2ce4e6908c46f`
+- **合约地址**: `0x8dBe778e693B4c0665974BED7a5C63B668B8f6A3`
+- **Etherscan**: [查看合约](https://sepolia.etherscan.io/address/0x8dBe778e693B4c0665974BED7a5C63B668B8f6A3)
+- **部署交易**: `0xcc9fcb3b7eaca7d604a901b96f527e274335801af5d775c1c92aab35f1dee7da`
+- **区块号**: 8633747
+- **区块浏览器**: [查看交易](https://sepolia.etherscan.io/tx/0xcc9fcb3b7eaca7d604a901b96f527e274335801af5d775c1c92aab35f1dee7da)
 - **状态**: ✅ 已部署并验证
 - **平台手续费率**: 1% (100基点)
 - **限价单挂单手续费率**: 0.5% (50基点)

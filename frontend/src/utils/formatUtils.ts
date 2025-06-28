@@ -135,8 +135,8 @@ export function formatContractTimestamp(timestampStr: string | number | bigint):
 
 /**
  * 格式化智能合约价格
- * @description 处理智能合约返回的价格（Wei格式）
- * @param priceStr - 价格字符串或BigInt（Wei格式）
+ * @description 处理智能合约返回的价格（整数格式，无精度）
+ * @param priceStr - 价格字符串或BigInt（整数格式，如88表示88 USDT）
  * @returns 格式化后的价格字符串
  */
 export function formatContractPrice(priceStr: string | bigint): string {
@@ -145,21 +145,24 @@ export function formatContractPrice(priceStr: string | bigint): string {
   }
 
   try {
-    let priceBigInt: bigint;
+    let priceValue: number;
     if (typeof priceStr === 'bigint') {
-      priceBigInt = priceStr;
+      priceValue = Number(priceStr);
     } else {
       // 如果已经是小数格式，直接返回
       if (priceStr.includes('.') && priceStr.length < 20) {
         const price = parseFloat(priceStr);
         return price.toFixed(2);
       }
-      priceBigInt = BigInt(priceStr);
+      priceValue = parseFloat(priceStr);
     }
 
-    const etherValue = formatEther(priceBigInt);
-    const numValue = parseFloat(etherValue);
-    return numValue.toFixed(2);
+    // 价格是整数格式，直接使用
+    if (isNaN(priceValue) || priceValue <= 0) {
+      return '0.00';
+    }
+
+    return priceValue.toFixed(2);
   } catch (error) {
     console.error('格式化价格失败:', error, { priceStr });
     return '价格格式错误';
