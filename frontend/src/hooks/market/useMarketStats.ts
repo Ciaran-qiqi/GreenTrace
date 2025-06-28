@@ -5,7 +5,7 @@ import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
 import { useMarketNFTs } from './useMarketNFTs';
 import { useEventBasedSalesHistory } from './useEventBasedSalesHistory';
-import { formatContractPrice } from '@/utils/formatUtils';
+import { formatCarbonPrice } from '@/utils/formatUtils';
 
 // 市场统计数据接口
 export interface MarketStats {
@@ -74,25 +74,77 @@ export const useMarketStats = (): UseMarketStatsReturn => {
   const calculateTotalVolume = (): string => {
     if (!salesHistory || salesHistory.length === 0) return '0';
     
+    console.log('🔍 计算总交易额，销售历史数据:', salesHistory.slice(0, 3)); // 查看前3条数据
+    
     const total = salesHistory.reduce((sum, sale) => {
-      const price = parseFloat(formatContractPrice(sale.currentPrice || '0'));
-      return sum + price;
+      // 使用formatCarbonPrice来正确处理wei格式的价格
+      const rawPrice = sale.currentPrice || '0';
+      const formattedPrice = formatCarbonPrice(rawPrice);
+      // 解析时先移除逗号分隔符，避免parseFloat只解析到逗号前
+      const numPrice = parseFloat(formattedPrice.replace(/,/g, ''));
+      
+      console.log('💰 价格转换:', {
+        raw: rawPrice,
+        formatted: formattedPrice,
+        parsed: numPrice,
+        解析前: formattedPrice,
+        解析后: numPrice
+      });
+      
+      return sum + numPrice;
     }, 0);
     
-    return (total * 1e18).toString(); // 转换为Wei格式
+    console.log('📊 总交易额计算结果:', total);
+    // 返回实际的交易总额，不进行wei转换
+    return total.toString();
   };
 
   // 计算平均价格
   const calculateAveragePrice = (): string => {
     if (!nfts || nfts.length === 0) return '0';
     
+    console.log('🔍 计算平均价格，所有NFT数据:', nfts.length, '个NFT'); // 查看总数
+    console.log('📋 所有NFT详情:', nfts.map(nft => ({
+      tokenId: nft.tokenId,
+      priceRaw: nft.price,
+      storyTitle: nft.storyTitle
+    })));
+    
+    const priceDetails = [];
     const total = nfts.reduce((sum, nft) => {
-      const price = parseFloat(formatContractPrice(nft.price || '0'));
-      return sum + price;
+      // 使用formatCarbonPrice来正确处理wei格式的价格
+      const rawPrice = nft.price || '0';
+      const formattedPrice = formatCarbonPrice(rawPrice);
+      // 解析时先移除逗号分隔符，避免parseFloat只解析到逗号前
+      const numPrice = parseFloat(formattedPrice.replace(/,/g, ''));
+      
+      const detail = {
+        tokenId: nft.tokenId,
+        title: nft.storyTitle,
+        raw: rawPrice,
+        formatted: formattedPrice,
+        parsed: numPrice,
+        修复前解析: parseFloat(formattedPrice), // 显示修复前的错误结果用于对比
+        修复后解析: numPrice
+      };
+      priceDetails.push(detail);
+      
+      console.log('💰 NFT价格转换:', detail);
+      
+      return sum + numPrice;
     }, 0);
     
     const average = total / nfts.length;
-    return (average * 1e18).toString(); // 转换为Wei格式
+    console.log('📊 平均价格计算详情:', { 
+      参与计算的NFT数量: nfts.length,
+      所有价格: priceDetails,
+      总价格: total, 
+      平均价格: average,
+      数学验证: `(${priceDetails.map(p => p.parsed).join(' + ')}) / ${nfts.length} = ${average}`
+    });
+    
+    // 返回实际的平均价格，不进行wei转换
+    return average.toString();
   };
 
   // 处理统计数据

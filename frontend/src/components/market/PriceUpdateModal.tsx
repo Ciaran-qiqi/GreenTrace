@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useUpdatePrice } from '@/hooks/market/useUpdatePrice';
-import { formatContractPrice } from '@/utils/formatUtils';
+import { formatCarbonPrice } from '@/utils/formatUtils';
 
 interface PriceUpdateModalProps {
   isOpen: boolean;
@@ -154,9 +154,9 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
             <h4 className="font-medium text-gray-800 mb-2">{listing.title}</h4>
             <div className="text-sm text-gray-600 space-y-1">
               <div>Token ID: <span className="font-medium">#{listing.tokenId}</span></div>
-              <div>当前价格: <span className="font-medium text-blue-600">{formatContractPrice(listing.currentPrice)} CARB</span></div>
+              <div>当前价格: <span className="font-medium text-blue-600">{formatCarbonPrice(listing.currentPrice)} CARB</span></div>
               {listing.originalPrice && listing.originalPrice !== listing.currentPrice && (
-                <div>原价格: <span className="text-gray-500 line-through">{formatContractPrice(listing.originalPrice)} CARB</span></div>
+                <div>原价格: <span className="text-gray-500 line-through">{formatCarbonPrice(listing.originalPrice)} CARB</span></div>
               )}
             </div>
           </div>

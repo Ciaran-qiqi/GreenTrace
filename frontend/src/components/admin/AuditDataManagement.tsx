@@ -3,21 +3,22 @@
 import React, { useState } from 'react';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useAuditDetails } from '@/hooks/useAuditDetails';
-import { formatContractTimestamp } from '@/utils/timeUtils';
+import { formatContractTimestamp } from '@/utils/formatUtils';
+import { useTranslation } from '@/hooks/useI18n';
 import { formatEther } from 'viem';
 
 // 审计状态映射
-const auditStatusMap = {
-  0: { label: '待审核', color: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
-  1: { label: '已批准', color: 'bg-green-100 text-green-800', icon: '✅' },
-  2: { label: '已拒绝', color: 'bg-red-100 text-red-800', icon: '❌' },
-};
+const getAuditStatusMap = (t: any) => ({
+  0: { label: t('audit.status.pending'), color: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
+  1: { label: t('audit.status.approved'), color: 'bg-green-100 text-green-800', icon: '✅' },
+  2: { label: t('audit.status.rejected'), color: 'bg-red-100 text-red-800', icon: '❌' },
+});
 
 // 审计类型映射
-const auditTypeMap = {
-  0: { label: '铸造申请', color: 'bg-blue-100 text-blue-800', icon: '🔨' },
-  1: { label: '兑换申请', color: 'bg-green-100 text-green-800', icon: '💰' },
-};
+const getAuditTypeMap = (t: any) => ({
+  0: { label: t('admin.auditDataManagement.mintAudits'), color: 'bg-blue-100 text-blue-800', icon: '🔨' },
+  1: { label: t('admin.auditDataManagement.exchangeAudits'), color: 'bg-green-100 text-green-800', icon: '💰' },
+});
 
 // 标签页类型
 type TabType = 'pending' | 'mint' | 'cash' | 'all';
@@ -29,38 +30,12 @@ interface TabConfig {
   description: string;
 }
 
-const tabs: TabConfig[] = [
-  {
-    id: 'pending',
-    label: '待审核',
-    icon: '⏳',
-    description: '需要处理的申请',
-  },
-  {
-    id: 'mint',
-    label: '铸造审计',
-    icon: '🔨',
-    description: '所有铸造申请记录',
-  },
-  {
-    id: 'cash',
-    label: '兑换审计',
-    icon: '💰',
-    description: '所有兑换申请记录',
-  },
-  {
-    id: 'all',
-    label: '全部记录',
-    icon: '📋',
-    description: '查看所有审计记录',
-  },
-];
-
 /**
  * 审计数据管理组件
  * @description 查看和管理所有审计记录，支持按类型和状态筛选
  */
 export const AuditDataManagement: React.FC = () => {
+  const { t, language } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [selectedAudit, setSelectedAudit] = useState<string | null>(null);
 
@@ -79,6 +54,38 @@ export const AuditDataManagement: React.FC = () => {
   } = useAdminData();
 
   const { getAuditDetails, auditDetailsCache, loadingDetails } = useAuditDetails();
+
+  // 构建标签页配置
+  const tabs: TabConfig[] = [
+    {
+      id: 'pending',
+      label: t('admin.auditDataManagement.pendingAudits'),
+      icon: '⏳',
+      description: t('audit.status.pending'),
+    },
+    {
+      id: 'mint',
+      label: t('admin.auditDataManagement.mintAudits'),
+      icon: '🔨',
+      description: t('admin.auditDataManagement.mintAudits'),
+    },
+    {
+      id: 'cash',
+      label: t('admin.auditDataManagement.exchangeAudits'),
+      icon: '💰',
+      description: t('admin.auditDataManagement.exchangeAudits'),
+    },
+    {
+      id: 'all',
+      label: t('admin.auditDataManagement.allAudits'),
+      icon: '📋',
+      description: t('admin.auditDataManagement.allAudits'),
+    },
+  ];
+
+  // 获取状态和类型映射
+  const auditStatusMap = getAuditStatusMap(t);
+  const auditTypeMap = getAuditTypeMap(t);
 
   // 获取当前标签页的数据
   const getCurrentTabData = () => {
@@ -141,7 +148,7 @@ export const AuditDataManagement: React.FC = () => {
             <span className="text-xl">{auditTypeMap[isExchange ? 1 : 0].icon}</span>
             <div>
               <div className="font-medium text-gray-800">
-                申请 #{requestIdStr}
+                {t('admin.auditDataManagement.applicationId')} #{requestIdStr}
               </div>
               <div className="text-sm text-gray-500">
                 {auditTypeMap[isExchange ? 1 : 0].label}
@@ -161,7 +168,7 @@ export const AuditDataManagement: React.FC = () => {
               onClick={() => handleViewDetails(requestIdStr)}
               className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-sm transition-colors"
             >
-              查看详情
+              {t('audit.viewDetails')}
             </button>
           </div>
         </div>
@@ -170,15 +177,15 @@ export const AuditDataManagement: React.FC = () => {
           <div className="space-y-2 text-sm">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-gray-500">申请人:</span>
+                <span className="text-gray-500">{t('audit.applicant')}:</span>
                 <span className="ml-2 font-mono">
                   {auditDetails.requester.slice(0, 6)}...{auditDetails.requester.slice(-4)}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">申请时间:</span>
+                <span className="text-gray-500">{t('admin.auditDataManagement.submittedAt')}:</span>
                 <span className="ml-2">
-                  {formatContractTimestamp(auditDetails.requestTimestamp)}
+                  {formatContractTimestamp(auditDetails.requestTimestamp, language)}
                 </span>
               </div>
             </div>
@@ -186,55 +193,45 @@ export const AuditDataManagement: React.FC = () => {
             {auditDetails.status !== 0 && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-gray-500">审计员:</span>
+                  <span className="text-gray-500">{t('audit.auditor')}:</span>
                   <span className="ml-2 font-mono">
                     {auditDetails.auditor.slice(0, 6)}...{auditDetails.auditor.slice(-4)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">审计时间:</span>
+                  <span className="text-gray-500">{t('admin.auditDataManagement.auditedAt')}:</span>
                   <span className="ml-2">
-                    {formatContractTimestamp(auditDetails.auditTimestamp)}
+                    {formatContractTimestamp(auditDetails.auditTimestamp, language)}
                   </span>
                 </div>
               </div>
             )}
 
-            {auditDetails.carbonValue !== '0' && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-gray-500">碳价值:</span>
-                <span className="ml-2 font-semibold text-green-600">
-                  {formatEther(BigInt(auditDetails.carbonValue))} CARB
+                <span className="text-gray-500">{t('audit.carbonReduction')}:</span>
+                <span className="ml-2">
+                  {formatEther(auditDetails.carbonReduction)} tCO₂e
                 </span>
               </div>
-            )}
+              {auditDetails.status !== 0 && (
+                <div>
+                  <span className="text-gray-500">{t('audit.auditedValue')}:</span>
+                  <span className="ml-2">
+                    {formatEther(auditDetails.auditedValue)} tCO₂e
+                  </span>
+                </div>
+              )}
+            </div>
 
-            {auditDetails.requestData.title && (
+            {auditDetails.status !== 0 && auditDetails.comment && (
               <div>
-                <span className="text-gray-500">标题:</span>
-                <span className="ml-2">{auditDetails.requestData.title}</span>
-              </div>
-            )}
-
-            {auditDetails.auditComment && (
-              <div>
-                <span className="text-gray-500">审计意见:</span>
+                <span className="text-gray-500">{t('audit.auditComment')}:</span>
                 <div className="mt-1 p-2 bg-gray-50 rounded text-gray-700">
-                  {auditDetails.auditComment}
+                  {auditDetails.comment}
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {!auditDetails && (
-          <div className="text-center py-2">
-            <button
-              onClick={() => handleViewDetails(requestIdStr)}
-              className="text-blue-600 hover:text-blue-700 text-sm"
-            >
-              点击加载详情
-            </button>
           </div>
         )}
       </div>
@@ -245,178 +242,81 @@ export const AuditDataManagement: React.FC = () => {
     <div className="p-6">
       {/* 页面标题 */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">审计数据管理</h2>
-        <p className="text-gray-600">查看和管理所有审计记录，跟踪申请处理状态</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.auditDataManagement.title')}</h2>
+        <p className="text-gray-600">{t('admin.auditDataManagement.subtitle')}</p>
       </div>
-
-      {/* 权限说明 */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">👤</span>
-          <div>
-            <div className="font-medium text-blue-800">
-              当前权限: {isAuditor ? '审计员' : '访客'}
-            </div>
-            <div className="text-sm text-blue-700">
-              {isAuditor 
-                ? '您可以查看所有审计记录和详细信息'
-                : '您只能查看公开的审计统计信息'
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 统计概览 */}
-      {systemStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⏳</span>
-              <div>
-                <div className="text-2xl font-bold text-orange-600">
-                  {systemStats.pendingMintRequests + systemStats.pendingCashRequests}
-                </div>
-                <div className="text-orange-700 font-medium">待审核</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🔨</span>
-              <div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {systemStats.totalMintRequests}
-                </div>
-                <div className="text-blue-700 font-medium">铸造申请</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">💰</span>
-              <div>
-                <div className="text-2xl font-bold text-green-600">
-                  {systemStats.totalCashRequests}
-                </div>
-                <div className="text-green-700 font-medium">兑换申请</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">✅</span>
-              <div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {systemStats.approvedMintRequests + systemStats.approvedCashRequests}
-                </div>
-                <div className="text-purple-700 font-medium">已批准</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 标签页导航 */}
       <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2">
+          <nav className="flex gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`flex-1 p-3 rounded-lg transition-all text-center relative ${
                   activeTab === tab.id
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-green-500 text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span>{tab.icon}</span>
-                  <span>{tab.label}</span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xl">{tab.icon}</span>
+                  <div className="font-medium text-sm">{tab.label}</div>
+                  <div className={`text-xs ${
+                    activeTab === tab.id ? 'text-green-100' : 'text-gray-500'
+                  }`}>
+                    {tab.description}
+                  </div>
                 </div>
               </button>
             ))}
           </nav>
         </div>
-        <div className="mt-2 text-sm text-gray-600">
-          {tabs.find(tab => tab.id === activeTab)?.description}
-        </div>
       </div>
 
-      {/* 操作栏 */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="text-sm text-gray-600">
-          {currentLoading ? '加载中...' : `共 ${currentData.length} 条记录`}
+      {/* 数据统计 */}
+      <div className="mb-6">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{currentData.length}</div>
+                <div className="text-sm text-gray-600">{t('admin.auditDataManagement.totalRecords')}</div>
+              </div>
+              {currentLoading && (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                  <span className="text-sm">{t('admin.auditDataManagement.loadingAuditData')}</span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={refetchAll}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              🔄 {t('common.refresh')}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={refetchAll}
-          disabled={currentLoading}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          🔄 刷新数据
-        </button>
       </div>
 
       {/* 审计记录列表 */}
-      <div className="bg-white border border-gray-200 rounded-xl">
+      <div className="space-y-4">
         {currentLoading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-            <div className="text-gray-600 mt-2">加载审计数据...</div>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <div className="text-gray-600">{t('admin.auditDataManagement.loadingAuditData')}</div>
           </div>
         ) : currentData.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <div className="text-4xl mb-2">📭</div>
-            <div>暂无{tabs.find(tab => tab.id === activeTab)?.label}记录</div>
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-4xl mb-4">📋</div>
+            <div className="text-gray-600">{t('admin.auditDataManagement.noAuditData')}</div>
           </div>
         ) : (
-          <div className="p-6 space-y-4">
-            {currentData.map((requestId, index) => renderAuditCard(requestId, index))}
-          </div>
+          currentData.map((requestId, index) => renderAuditCard(requestId, index))
         )}
       </div>
-
-      {/* 详情弹窗 */}
-      {selectedAudit && auditDetailsCache[selectedAudit] && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-800">
-                  审计详情 #{selectedAudit}
-                </h3>
-                <button
-                  onClick={() => setSelectedAudit(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6">
-              {/* 这里可以添加更详细的审计信息展示 */}
-              <div className="space-y-4">
-                <div className="text-center text-gray-500">
-                  详细审计信息将在这里显示
-                </div>
-                <div className="text-center">
-                  <button
-                    onClick={() => setSelectedAudit(null)}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-                  >
-                    关闭
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }; 

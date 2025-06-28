@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MarketNFT } from '@/hooks/market/useMarketNFTs';
+import { useTranslation } from '@/hooks/useI18n';
 import { NFTMarketCard } from './NFTMarketCard';
 
 interface NFTGridProps {
@@ -31,6 +32,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
   onLoadMore,
   onBuySuccess,
 }) => {
+  const { t } = useTranslation();
 
   // 加载骨架屏组件
   const LoadingSkeleton = () => (
@@ -71,12 +73,12 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
     <div className="col-span-full text-center py-16">
       <div className="text-6xl mb-4">🏪</div>
       <h3 className="text-xl font-semibold text-gray-700 mb-2">
-        暂无NFT在售
+        {t('nftMarket.grid.empty.title')}
       </h3>
       <p className="text-gray-500 max-w-md mx-auto">
-        市场中暂时没有可购买的NFT，请稍后再来看看，或者
+        {t('nftMarket.grid.empty.description')}
         <span className="text-green-600 font-medium cursor-pointer hover:underline ml-1">
-          创建你的第一个NFT
+          {t('nftMarket.grid.empty.createLink')}
         </span>
       </p>
     </div>
@@ -87,16 +89,16 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
     <div className="col-span-full text-center py-16">
       <div className="text-6xl mb-4">❌</div>
       <h3 className="text-xl font-semibold text-gray-700 mb-2">
-        加载失败
+        {t('nftMarket.grid.error.title')}
       </h3>
       <p className="text-gray-500 mb-4 max-w-md mx-auto">
-        {error || '获取NFT数据时出现问题，请检查网络连接后重试'}
+        {error || t('nftMarket.grid.error.description')}
       </p>
       <button
         onClick={() => window.location.reload()}
         className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
       >
-        重新加载
+        {t('nftMarket.grid.error.reload')}
       </button>
     </div>
   );
@@ -138,7 +140,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
             onClick={onLoadMore}
             className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
           >
-            加载更多 NFT
+            {t('nftMarket.grid.loadMore')}
           </button>
         )}
         
@@ -146,7 +148,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
         {isLoading && nfts.length > 0 && (
           <div className="flex items-center justify-center text-gray-500">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 mr-2"></div>
-            正在加载更多...
+            {t('nftMarket.grid.loadingMore')}
           </div>
         )}
         
@@ -154,10 +156,10 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
         {!hasMore && nfts.length > 0 && !error && (
           <div className="text-gray-500 py-4">
             <div className="text-sm">
-              已显示全部 {nfts.length} 个NFT
+              {t('nftMarket.grid.allLoaded')} {nfts.length} 个NFT
             </div>
             <div className="text-xs mt-1 text-gray-400">
-              没有更多数据了
+              {t('nftMarket.grid.noMoreData')}
             </div>
           </div>
         )}
@@ -167,10 +169,10 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
       {nfts.length > 0 && !error && (
         <div className="mt-8 pt-6 border-t border-gray-200">
           <div className="text-center text-sm text-gray-500">
-            当前显示 <span className="font-medium text-gray-700">{nfts.length}</span> 个NFT
+            {t('nftMarket.grid.showing')} <span className="font-medium text-gray-700">{nfts.length}</span> 个NFT
             {hasMore && (
               <span className="ml-2">
-                · 还有更多等待加载
+                · {t('nftMarket.grid.moreToLoad')}
               </span>
             )}
           </div>

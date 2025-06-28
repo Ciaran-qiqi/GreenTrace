@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useCarbonUSDTMarket } from '@/hooks/useCarbonUSDTMarket'
 import { useOrderData } from '@/hooks/useOrderData'
 import { useAccount } from 'wagmi'
+import { useTranslation } from '@/hooks/useI18n'
 import toast from 'react-hot-toast'
 
 /**
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast'
  * 集成新的CarbonUSDTMarket合约功能
  */
 export default function OrderBook() {
+  const { t } = useTranslation()
   const { address } = useAccount()
   const { marketAddress, cancelOrder, fillOrder } = useCarbonUSDTMarket()
   const { orders, loading, loadOrders, refreshOrders, totalOrders } = useOrderData(marketAddress)
@@ -93,7 +95,7 @@ export default function OrderBook() {
               : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
           }`}
         >
-          📊 市场订单 ({marketOrders.length})
+          📊 {t('orderBook.marketOrders')} ({marketOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('my')}
@@ -103,21 +105,21 @@ export default function OrderBook() {
               : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
           }`}
         >
-          👤 我的订单 ({myOrders.length})
+          👤 {t('orderBook.myOrders')} ({myOrders.length})
         </button>
       </div>
 
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            {activeTab === 'market' ? '📊 市场订单' : '👤 我的订单'} ({displayOrders.length}个订单)
+            {activeTab === 'market' ? `📊 ${t('orderBook.marketOrders')}` : `👤 ${t('orderBook.myOrders')}`} ({displayOrders.length}{t('orderBook.ordersCount')})
           </h2>
           <button
             onClick={refreshOrders}
             disabled={loading}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
           >
-            {loading ? '加载中...' : '刷新'}
+            {loading ? t('orderBook.refreshing') : t('orderBook.refresh')}
           </button>
         </div>
 
@@ -125,12 +127,12 @@ export default function OrderBook() {
           {/* 买单区域 */}
           <div>
             <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center gap-2">
-              📈 买单 ({buyOrders.length})
+              📈 {t('orderBook.buyOrders')} ({buyOrders.length})
             </h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {buyOrders.length === 0 ? (
                 <div className="text-gray-500 text-center py-8">
-                  {totalOrders === 0 ? '尚未有任何订单' : `暂无${activeTab === 'my' ? '我的' : '市场'}买单`}
+                  {totalOrders === 0 ? t('orderBook.noOrdersYet') : (activeTab === 'my' ? t('orderBook.noMyBuyOrders') : t('orderBook.noMarketBuyOrders'))}
                 </div>
               ) : (
                 buyOrders.map((order) => (
@@ -138,15 +140,15 @@ export default function OrderBook() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="font-medium text-green-700">
-                          {Number(order.amount).toFixed(2)} 碳币 @ {Number(order.price).toFixed(2)} USDT
+                          {Number(order.amount).toFixed(2)} {t('orderBook.carbonToken')} @ {Number(order.price).toFixed(2)} USDT
                         </div>
                         <div className="text-sm text-gray-600">
-                          总值: {(Number(order.amount) * Number(order.price)).toFixed(2)} USDT
+                          {t('orderBook.totalValue')}: {(Number(order.amount) * Number(order.price)).toFixed(2)} USDT
                         </div>
                         {/* 显示剩余数量 */}
                         {Number(order.remainingAmount) < Number(order.amount) && (
                           <div className="text-xs text-orange-600">
-                            剩余: {Number(order.remainingAmount).toFixed(2)} 碳币
+                            {t('orderBook.remaining')}: {Number(order.remainingAmount).toFixed(2)} {t('orderBook.carbonToken')}
                           </div>
                         )}
                       </div>
@@ -158,7 +160,7 @@ export default function OrderBook() {
                     
                     <div className="flex justify-between items-center">
                       <div className="text-xs text-gray-600">
-                        挂单费: {Number(order.orderFee).toFixed(2)} USDT
+                        {t('orderBook.listingFee')}: {Number(order.orderFee).toFixed(2)} USDT
                       </div>
                       <div className="flex gap-2">
                         {activeTab === 'my' ? (
@@ -166,14 +168,14 @@ export default function OrderBook() {
                             onClick={() => handleCancelOrder(order.id)}
                             className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
                           >
-                            取消
+                            {t('orderBook.cancel')}
                           </button>
                         ) : (
                           <button
                             onClick={() => handleFillOrder(order.id)}
                             className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
                           >
-                            成交
+                            {t('orderBook.fill')}
                           </button>
                         )}
                       </div>
@@ -187,12 +189,12 @@ export default function OrderBook() {
           {/* 卖单区域 */}
           <div>
             <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
-              📉 卖单 ({sellOrders.length})
+              📉 {t('orderBook.sellOrders')} ({sellOrders.length})
             </h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {sellOrders.length === 0 ? (
                 <div className="text-gray-500 text-center py-8">
-                  {totalOrders === 0 ? '尚未有任何订单' : `暂无${activeTab === 'my' ? '我的' : '市场'}卖单`}
+                  {totalOrders === 0 ? t('orderBook.noOrdersYet') : (activeTab === 'my' ? t('orderBook.noMySellOrders') : t('orderBook.noMarketSellOrders'))}
                 </div>
               ) : (
                 sellOrders.map((order) => (
@@ -200,15 +202,15 @@ export default function OrderBook() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="font-medium text-red-700">
-                          {Number(order.amount).toFixed(2)} 碳币 @ {Number(order.price).toFixed(2)} USDT
+                          {Number(order.amount).toFixed(2)} {t('orderBook.carbonToken')} @ {Number(order.price).toFixed(2)} USDT
                         </div>
                         <div className="text-sm text-gray-600">
-                          总值: {(Number(order.amount) * Number(order.price)).toFixed(2)} USDT
+                          {t('orderBook.totalValue')}: {(Number(order.amount) * Number(order.price)).toFixed(2)} USDT
                         </div>
                         {/* 显示剩余数量 */}
                         {Number(order.remainingAmount) < Number(order.amount) && (
                           <div className="text-xs text-orange-600">
-                            剩余: {Number(order.remainingAmount).toFixed(2)} 碳币
+                            {t('orderBook.remaining')}: {Number(order.remainingAmount).toFixed(2)} {t('orderBook.carbonToken')}
                           </div>
                         )}
                       </div>
@@ -220,7 +222,7 @@ export default function OrderBook() {
                     
                     <div className="flex justify-between items-center">
                       <div className="text-xs text-gray-600">
-                        挂单费: {Number(order.orderFee).toFixed(2)} USDT
+                        {t('orderBook.listingFee')}: {Number(order.orderFee).toFixed(2)} USDT
                       </div>
                       <div className="flex gap-2">
                         {activeTab === 'my' ? (
@@ -228,14 +230,14 @@ export default function OrderBook() {
                             onClick={() => handleCancelOrder(order.id)}
                             className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
                           >
-                            取消
+                            {t('orderBook.cancel')}
                           </button>
                         ) : (
                           <button
                             onClick={() => handleFillOrder(order.id)}
                             className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
                           >
-                            成交
+                            {t('orderBook.fill')}
                           </button>
                         )}
                       </div>
@@ -249,12 +251,12 @@ export default function OrderBook() {
 
         {/* 订单说明 */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-800 mb-2">💡 订单说明</h4>
+          <h4 className="font-medium text-gray-800 mb-2">{t('orderBook.orderExplanation')}</h4>
           <div className="text-sm text-gray-600 space-y-1">
-            <div>• 买单按价格从高到低排序，卖单按价格从低到高排序</div>
-            <div>• 剩余数量表示该订单还未成交的部分</div>
-            <div>• 挂单费在创建订单时收取，成交费在成交时收取</div>
-            <div>• 只能取消自己的订单，可以成交他人的订单</div>
+            <div>{t('orderBook.explanations.sorting')}</div>
+            <div>{t('orderBook.explanations.remaining')}</div>
+            <div>{t('orderBook.explanations.fees')}</div>
+            <div>{t('orderBook.explanations.permissions')}</div>
           </div>
         </div>
       </div>

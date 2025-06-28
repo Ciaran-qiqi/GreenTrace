@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { formatContractPrice, formatCarbonReduction, formatContractTimestamp } from '@/utils/formatUtils';
+import { formatCarbonPrice, formatCarbonReduction, formatContractTimestamp } from '@/utils/formatUtils';
 import { generateDefaultNFTImage } from '@/utils/nftMetadata';
 import { MarketNFT } from '@/hooks/market/useMarketNFTs';
+import { useTranslation } from '@/hooks/useI18n';
+import { getNFTTranslation, hasNFTTranslation } from '@/utils/nftTranslations';
 
 interface MarketNFTDetailModalProps {
   nft: MarketNFT | null;
@@ -23,10 +25,22 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t, language } = useTranslation();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
   if (!isOpen || !nft) return null;
+
+  // 获取翻译后的NFT内容
+  const translatedContent = getNFTTranslation(
+    nft.tokenId, 
+    language, 
+    nft.storyTitle, 
+    nft.storyDetail
+  );
+  
+  // 检查是否有翻译可用
+  const hasTranslation = hasNFTTranslation(nft.tokenId, language);
 
   // 缩短地址显示
   const shortenAddress = (address: string) => {
@@ -89,7 +103,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
           {/* NFT图片 */}
           <img
             src={getDisplayImage()}
-            alt={nft.storyTitle}
+            alt={translatedContent.storyTitle}
             className="w-full h-full object-cover"
             onError={handleImageError}
             onLoad={handleImageLoad}
@@ -110,7 +124,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
           {nft.tradeCount > 0 && (
             <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg">
               <div className="text-sm font-medium text-gray-700 flex items-center">
-                🔄 {nft.tradeCount} 次交易
+                🔄 {nft.tradeCount}{t('nftMarket.detail.trades')}
               </div>
             </div>
           )}
@@ -130,7 +144,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
               <span className="text-white text-sm">🎨</span>
             </div>
             <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-              NFT详情
+              {t('nftMarket.detail.title')}
             </h2>
             <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
               #{nft.tokenId}
@@ -156,40 +170,56 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
                 <span className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center mr-2">
                   <span className="text-white text-xs">📋</span>
                 </span>
-                基本信息
+                {t('nftMarket.detail.basicInfo')}
               </h3>
               
               <div className="space-y-4">
                 <div>
-                  <span className="text-gray-500 text-sm font-medium">故事标题:</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-500 text-sm font-medium">{t('nftMarket.detail.storyTitle')}</span>
+                    {hasTranslation && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        <span>🌐</span>
+                        <span>{t('nftMarket.detail.translated')}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="mt-2 font-semibold text-gray-800 bg-white/70 p-3 rounded-lg border border-gray-200/50">
-                    {nft.storyTitle}
+                    {translatedContent.storyTitle}
                   </div>
                 </div>
                 
                 <div>
-                  <span className="text-gray-500 text-sm font-medium">故事详情:</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-500 text-sm font-medium">{t('nftMarket.detail.storyDetail')}</span>
+                    {hasTranslation && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        <span>🌐</span>
+                        <span>{t('nftMarket.detail.translated')}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="mt-2 text-gray-700 bg-gradient-to-br from-gray-50 to-white p-4 rounded-lg border border-gray-200/50 shadow-inner max-h-32 overflow-y-auto">
-                    {nft.storyDetail || '这是一个关于环保行动的精彩故事...'}
+                    {translatedContent.storyDetail || t('nftMarket.detail.defaultStoryDetail')}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center">
-                    <span className="text-gray-500">Token ID:</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.tokenId')}</span>
                     <span className="ml-2 font-medium text-gray-800">#{nft.tokenId}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="text-gray-500">创建时间:</span>
-                    <span className="ml-2 font-medium text-gray-800">{formatContractTimestamp(nft.createTime)}</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.createTime')}</span>
+                    <span className="ml-2 font-medium text-gray-800">{formatContractTimestamp(nft.createTime, language)}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="text-gray-500">碳减排量:</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.carbonReduction')}</span>
                     <span className="ml-2 font-medium text-green-600">{formatCarbonReduction(nft.carbonReduction)}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="text-gray-500">交易次数:</span>
-                    <span className="ml-2 font-medium text-blue-600">{nft.tradeCount} 次</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.tradeCount')}</span>
+                    <span className="ml-2 font-medium text-blue-600">{nft.tradeCount}{t('nftMarket.detail.trades')}</span>
                   </div>
                 </div>
               </div>
@@ -201,21 +231,21 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
                 <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center mr-2">
                   <span className="text-white text-xs">💰</span>
                 </span>
-                价格信息
+{t('nftMarket.detail.priceInfo')}
               </h3>
               
               <div className="space-y-4">
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50/50 border border-green-200 rounded-xl p-4 shadow-inner">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-green-700 font-medium">当前价格:</span>
+                    <span className="text-green-700 font-medium">{t('nftMarket.detail.currentPrice')}</span>
                     <span className="text-green-800 font-bold text-2xl">
-                      {formatContractPrice(nft.price)} CARB
+                      {formatCarbonPrice(nft.price)} CARB
                     </span>
                   </div>
                   
                   {priceChange && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">相比初始价格:</span>
+                      <span className="text-gray-600">{t('nftMarket.detail.compareToInitial')}</span>
                       <span className={`font-medium flex items-center ${
                         priceChange.isIncrease ? 'text-red-600' : 'text-green-600'
                       }`}>
@@ -227,13 +257,13 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">初始价格:</span>
-                    <span className="font-medium text-gray-700">{formatContractPrice(nft.initialPrice)} CARB</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.initialPrice')}</span>
+                    <span className="font-medium text-gray-700">{formatCarbonPrice(nft.initialPrice)} CARB</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">最近成交价:</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.lastTradePrice')}</span>
                     <span className="font-medium text-gray-700">
-                      {nft.lastPrice ? `${formatContractPrice(nft.lastPrice)} CARB` : '无'}
+                      {nft.lastPrice ? `${formatCarbonPrice(nft.lastPrice)} CARB` : t('nftMarket.detail.noPrevTrade')}
                     </span>
                   </div>
                 </div>
@@ -246,24 +276,24 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
                 <span className="w-6 h-6 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center mr-2">
                   <span className="text-white text-xs">🏪</span>
                 </span>
-                市场信息
+{t('nftMarket.detail.marketInfo')}
               </h3>
               
-              <div className="space-y-4">
+                              <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">当前卖家:</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.currentSeller')}</span>
                     <span className="font-medium text-gray-700 font-mono">{shortenAddress(nft.seller)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">挂单时间:</span>
-                    <span className="font-medium text-gray-700">{formatContractTimestamp(nft.timestamp)}</span>
+                    <span className="text-gray-500">{t('nftMarket.detail.listingTime')}</span>
+                    <span className="font-medium text-gray-700">{formatContractTimestamp(nft.timestamp, language)}</span>
                   </div>
                 </div>
 
                 {/* 完整地址显示 */}
                 <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-gray-500 text-xs">卖家完整地址:</span>
+                  <span className="text-gray-500 text-xs">{t('nftMarket.detail.sellerFullAddress')}</span>
                   <div className="font-mono text-xs text-gray-700 mt-1 break-all">
                     {nft.seller}
                   </div>
@@ -280,7 +310,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
             onClick={onClose}
             className="w-full py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 font-medium"
           >
-            关闭详情
+{t('nftMarket.detail.closeDetails')}
           </button>
         </div>
       </div>

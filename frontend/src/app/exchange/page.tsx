@@ -3,12 +3,15 @@
 import React from 'react';
 import { Navigation } from '@/components/Navigation';
 import { NFTExchangeCenter } from '@/components/NFTExchangeCenter';
+import { useTranslation } from '@/hooks/useI18n';
 
 /**
  * NFT兑换页面
  * @description 提供NFT兑换为碳币的申请和管理功能
  */
 export default function ExchangePage() {
+  const { t } = useTranslation();
+
   return (
     <>
       <Navigation />
@@ -18,10 +21,10 @@ export default function ExchangePage() {
             {/* 页面标题区域 */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                🔄 NFT兑换中心
+                🔄 {t('exchange.title', 'NFT兑换中心')}
               </h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                将审核通过的NFT兑换为有价值的碳代币，参与碳信用交易，实现环保价值变现
+                {t('exchange.subtitle', '将审核通过的NFT兑换为有价值的碳代币，参与碳信用交易，实现环保价值变现')}
               </p>
             </div>
 

@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { useAdminData } from '@/hooks/useAdminData';
+import { useI18n } from '@/hooks/useI18n';
 
 /**
  * 管理仪表板组件
  * @description 展示系统概览统计、趋势分析和快速操作
  */
 export const AdminDashboard: React.FC = () => {
+  const { t } = useI18n();
   const {
     systemStats,
     statsLoading,
@@ -48,7 +50,7 @@ export const AdminDashboard: React.FC = () => {
     return (
       <div className="p-6 text-center">
         <div className="text-gray-400 text-4xl mb-4">📊</div>
-        <div className="text-gray-600">无法加载系统统计数据</div>
+        <div className="text-gray-600">{t('admin.dashboard.cannotLoadStats')}</div>
       </div>
     );
   }
@@ -67,8 +69,8 @@ export const AdminDashboard: React.FC = () => {
     <div className="p-6">
       {/* 页面标题 */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">系统仪表板</h2>
-        <p className="text-gray-600">GreenTrace系统运行状态和数据概览</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.dashboard.title')}</h2>
+        <p className="text-gray-600">{t('admin.dashboard.subtitle')}</p>
       </div>
 
       {/* 核心指标卡片 */}
@@ -80,12 +82,12 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-3xl font-bold">
                 {systemStats.totalMintRequests + systemStats.totalCashRequests}
               </div>
-              <div className="text-blue-100">总申请数</div>
+              <div className="text-blue-100">{t('admin.dashboard.totalApplications')}</div>
             </div>
             <div className="text-4xl opacity-80">📋</div>
           </div>
           <div className="mt-4 text-sm text-blue-100">
-            铸造 {systemStats.totalMintRequests} + 兑换 {systemStats.totalCashRequests}
+            {t('admin.dashboard.mint')} {systemStats.totalMintRequests} + {t('admin.dashboard.exchange')} {systemStats.totalCashRequests}
           </div>
         </div>
 
@@ -96,12 +98,12 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-3xl font-bold">
                 {systemStats.pendingMintRequests + systemStats.pendingCashRequests}
               </div>
-              <div className="text-orange-100">待审核</div>
+              <div className="text-orange-100">{t('admin.dashboard.pendingReview')}</div>
             </div>
             <div className="text-4xl opacity-80">⏳</div>
           </div>
           <div className="mt-4 text-sm text-orange-100">
-            铸造 {systemStats.pendingMintRequests} + 兑换 {systemStats.pendingCashRequests}
+            {t('admin.dashboard.mint')} {systemStats.pendingMintRequests} + {t('admin.dashboard.exchange')} {systemStats.pendingCashRequests}
           </div>
         </div>
 
@@ -112,12 +114,12 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-3xl font-bold">
                 {systemStats.approvedMintRequests + systemStats.approvedCashRequests}
               </div>
-              <div className="text-green-100">已批准</div>
+              <div className="text-green-100">{t('admin.dashboard.approved')}</div>
             </div>
             <div className="text-4xl opacity-80">✅</div>
           </div>
           <div className="mt-4 text-sm text-green-100">
-            铸造 {systemStats.approvedMintRequests} + 兑换 {systemStats.approvedCashRequests}
+            {t('admin.dashboard.mint')} {systemStats.approvedMintRequests} + {t('admin.dashboard.exchange')} {systemStats.approvedCashRequests}
           </div>
         </div>
 
@@ -131,12 +133,12 @@ export const AdminDashboard: React.FC = () => {
                   systemStats.totalMintRequests + systemStats.totalCashRequests
                 )}%
               </div>
-              <div className="text-purple-100">总体通过率</div>
+              <div className="text-purple-100">{t('admin.dashboard.overallApprovalRate')}</div>
             </div>
             <div className="text-4xl opacity-80">📈</div>
           </div>
           <div className="mt-4 text-sm text-purple-100">
-            审计质量评估指标
+            {t('admin.dashboard.auditQualityAssessment')}
           </div>
         </div>
       </div>
@@ -144,15 +146,15 @@ export const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* 申请类型分析 */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">申请类型分析</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.dashboard.applicationTypeAnalysis')}</h3>
           
           <div className="space-y-6">
             {/* 铸造申请 */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-700">铸造申请</span>
+                <span className="text-gray-700">{t('admin.dashboard.mintApplications')}</span>
                 <span className="text-sm text-gray-500">
-                  {systemStats.totalMintRequests} 个申请
+                  {systemStats.totalMintRequests} {t('admin.dashboard.applications')}
                 </span>
               </div>
               <div className="flex gap-2 mb-2">
@@ -167,18 +169,18 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
-                <span>待审核: {systemStats.pendingMintRequests}</span>
-                <span>已批准: {systemStats.approvedMintRequests}</span>
-                <span>通过率: {mintApprovalRate}%</span>
+                <span>{t('admin.dashboard.pendingReviewCount')} {systemStats.pendingMintRequests}</span>
+                <span>{t('admin.dashboard.approvedCount')} {systemStats.approvedMintRequests}</span>
+                <span>{t('admin.dashboard.approvalRate')} {mintApprovalRate}%</span>
               </div>
             </div>
 
             {/* 兑换申请 */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-700">兑换申请</span>
+                <span className="text-gray-700">{t('admin.dashboard.exchangeApplications')}</span>
                 <span className="text-sm text-gray-500">
-                  {systemStats.totalCashRequests} 个申请
+                  {systemStats.totalCashRequests} {t('admin.dashboard.applications')}
                 </span>
               </div>
               <div className="flex gap-2 mb-2">
@@ -193,65 +195,56 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
-                <span>待审核: {systemStats.pendingCashRequests}</span>
-                <span>已批准: {systemStats.approvedCashRequests}</span>
-                <span>通过率: {cashApprovalRate}%</span>
+                <span>{t('admin.dashboard.pendingReviewCount')} {systemStats.pendingCashRequests}</span>
+                <span>{t('admin.dashboard.approvedCount')} {systemStats.approvedCashRequests}</span>
+                <span>{t('admin.dashboard.approvalRate')} {cashApprovalRate}%</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 快速操作面板 */}
+        {/* 快速操作 */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">快速操作</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.dashboard.quickActions')}</h3>
           
-          <div className="space-y-4">
-            {/* 待审核提醒 */}
-            {(systemStats.pendingMintRequests > 0 || systemStats.pendingCashRequests > 0) && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">⚠️</span>
-                  <div>
-                    <div className="font-medium text-orange-800">
-                      有 {systemStats.pendingMintRequests + systemStats.pendingCashRequests} 个申请待审核
-                    </div>
-                    <div className="text-sm text-orange-600">
-                      铸造申请: {systemStats.pendingMintRequests} 个 | 
-                      兑换申请: {systemStats.pendingCashRequests} 个
-                    </div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* 待审核铸造申请 */}
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">🔄</div>
+              <div className="font-medium text-blue-800 mb-1">
+                {systemStats.pendingMintRequests}
               </div>
-            )}
-
-            {/* 权限说明 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">👤</span>
-                <div>
-                  <div className="font-medium text-blue-800">
-                    当前权限: {isAuditor ? '审计员' : '访客'}
-                  </div>
-                  <div className="text-sm text-blue-600">
-                    {isAuditor 
-                      ? '您可以查看和处理审计申请'
-                      : '您只能查看系统统计数据'
-                    }
-                  </div>
-                </div>
-              </div>
+              <div className="text-sm text-blue-600">{t('admin.dashboard.pendingMintReview')}</div>
             </div>
 
-            {/* 功能快捷入口 */}
-            <div className="grid grid-cols-2 gap-3">
-              <button className="p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors">
-                <div className="text-xl mb-1">📋</div>
-                <div className="text-sm font-medium text-green-800">审计数据</div>
-              </button>
-              <button className="p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors">
-                <div className="text-xl mb-1">⚙️</div>
-                <div className="text-sm font-medium text-purple-800">系统设置</div>
-              </button>
+            {/* 待审核兑换申请 */}
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">💱</div>
+              <div className="font-medium text-green-800 mb-1">
+                {systemStats.pendingCashRequests}
+              </div>
+              <div className="text-sm text-green-600">{t('admin.dashboard.pendingExchangeReview')}</div>
+            </div>
+
+            {/* 系统统计 */}
+            <div className="bg-purple-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">📊</div>
+              <div className="font-medium text-purple-800 mb-1">
+                {systemStats.totalMintRequests + systemStats.totalCashRequests}
+              </div>
+              <div className="text-sm text-purple-600">{t('admin.dashboard.totalApplicationsCount')}</div>
+            </div>
+
+            {/* 通过率 */}
+            <div className="bg-orange-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">✅</div>
+              <div className="font-medium text-orange-800 mb-1">
+                {calculateApprovalRate(
+                  systemStats.approvedMintRequests + systemStats.approvedCashRequests,
+                  systemStats.totalMintRequests + systemStats.totalCashRequests
+                )}%
+              </div>
+              <div className="text-sm text-orange-600">{t('admin.dashboard.overallApprovalRatePercent')}</div>
             </div>
           </div>
         </div>

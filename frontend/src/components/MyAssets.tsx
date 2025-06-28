@@ -10,6 +10,7 @@ import { formatFeeAmount } from '@/utils/tokenUtils';
 import { NFTViewButton } from './NFTViewButton';
 import { NFTExchangeButton } from './NFTExchangeButton';
 import { ListNFTModal } from './market/ListNFTModal';
+import { useTranslation } from '@/hooks/useI18n';
 
 // NFT信息接口
 interface NFTInfo {
@@ -25,6 +26,7 @@ interface NFTInfo {
 
 // 我的资产组件
 export const MyAssets: React.FC = () => {
+  const { t, language } = useTranslation();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const [isClient, setIsClient] = useState(false);
@@ -169,8 +171,8 @@ export const MyAssets: React.FC = () => {
           // 创建占位符数据，显示查询问题
           const placeholderNFTs: NFTInfo[] = Array.from({ length: balance }, (_, i) => ({
             tokenId: `unknown_${i}`,
-            title: `未知NFT #${i}`,
-            storyDetails: `检测到您拥有${balance}个NFT，但无法查询到具体Token ID。这可能是合约接口问题或网络延迟导致的。请尝试刷新或联系技术支持。`,
+            title: t('assets.unknownNFT', '未知NFT #{id}').replace('{id}', i.toString()),
+            storyDetails: t('assets.tokenIdQueryError', '检测到您拥有{balance}个NFT，但无法查询到具体Token ID。这可能是合约接口问题或网络延迟导致的。请尝试刷新或联系技术支持。').replace('{balance}', balance.toString()),
             carbonReduction: '0',
             initialPrice: '0',
             lastPrice: '0',
@@ -209,7 +211,7 @@ export const MyAssets: React.FC = () => {
           
           nfts.push({
             tokenId: tokenId.toString(),
-            title: meta.storyTitle || `绿色NFT #${tokenId}`,
+            title: meta.storyTitle || t('assets.greenNFT', '绿色NFT #{id}').replace('{id}', tokenId.toString()),
             storyDetails: meta.storyDetail || '',
             carbonReduction: meta.carbonReduction?.toString() || '0',
             initialPrice: meta.initialPrice?.toString() || '0',
@@ -223,8 +225,8 @@ export const MyAssets: React.FC = () => {
           // 即使元数据获取失败，也创建基本信息
           nfts.push({
             tokenId: tokenId.toString(),
-            title: `绿色NFT #${tokenId}`,
-            storyDetails: '元数据暂时无法获取，但NFT确实存在',
+            title: t('assets.greenNFT', '绿色NFT #{id}').replace('{id}', tokenId.toString()),
+            storyDetails: t('assets.metadataUnavailable', '元数据暂时无法获取，但NFT确实存在'),
             carbonReduction: '0',
             initialPrice: '0',
             lastPrice: '0',
@@ -246,8 +248,8 @@ export const MyAssets: React.FC = () => {
         console.log('🔧 所有查询方式都失败，显示错误信息');
         const errorNFTs: NFTInfo[] = Array.from({ length: Number(nftBalance) }, (_, i) => ({
           tokenId: `error_${i}`,
-          title: `NFT查询错误 #${i}`,
-          storyDetails: `您确实拥有${Number(nftBalance)}个NFT，但查询时出现错误: ${error instanceof Error ? error.message : '未知错误'}。请尝试刷新页面或检查网络连接。`,
+          title: t('assets.nftQueryError', 'NFT查询错误 #{id}').replace('{id}', i.toString()),
+          storyDetails: t('assets.queryErrorDesc', '您确实拥有{balance}个NFT，但查询时出现错误: {error}。请尝试刷新页面或检查网络连接。').replace('{balance}', Number(nftBalance).toString()).replace('{error}', error instanceof Error ? error.message : t('assets.unknownError', '未知错误')),
           carbonReduction: '0',
           initialPrice: '0',
           lastPrice: '0',
@@ -286,7 +288,7 @@ export const MyAssets: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">正在加载...</p>
+            <p className="text-gray-600">{t('common.loading', '正在加载...')}</p>
           </div>
         </div>
       </div>
@@ -299,8 +301,8 @@ export const MyAssets: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔗</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">请先连接钱包</h3>
-            <p className="text-gray-500">连接钱包后查看您的资产</p>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('assets.connectWallet', '请先连接钱包')}</h3>
+            <p className="text-gray-500">{t('assets.connectWalletDesc', '连接钱包后查看您的资产')}</p>
           </div>
         </div>
       </div>
@@ -314,7 +316,7 @@ export const MyAssets: React.FC = () => {
         {/* CARB代币余额 */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-800">CARB代币</h2>
+            <h2 className="text-2xl font-bold text-gray-800">{t('assets.carbToken', 'CARB代币')}</h2>
             <div className="text-3xl">🌱</div>
           </div>
           <div className="text-center">
@@ -323,7 +325,7 @@ export const MyAssets: React.FC = () => {
             </div>
             <div className="text-gray-600">CARB</div>
             <div className="text-sm text-gray-500 mt-1">
-              碳积分余额
+              {t('assets.carbonCreditBalance', '碳积分余额')}
             </div>
           </div>
         </div>
@@ -331,16 +333,16 @@ export const MyAssets: React.FC = () => {
         {/* NFT资产统计 */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-800">NFT收藏</h2>
+            <h2 className="text-2xl font-bold text-gray-800">{t('assets.nftCollection', 'NFT收藏')}</h2>
             <div className="text-3xl">🎨</div>
           </div>
           <div className="text-center">
             <div className="text-4xl font-bold text-purple-600 mb-2">
               {nftBalance ? Number(nftBalance) : 0}
             </div>
-            <div className="text-gray-600">枚</div>
+            <div className="text-gray-600">{t('assets.pieces', '枚')}</div>
             <div className="text-sm text-gray-500 mt-1">
-              绿色NFT收藏
+              {t('assets.greenNFTCollection', '绿色NFT收藏')}
             </div>
           </div>
         </div>
@@ -349,14 +351,14 @@ export const MyAssets: React.FC = () => {
       {/* NFT资产列表 */}
       <div className="bg-white rounded-xl shadow-lg p-8">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">我的NFT收藏</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{t('assets.myNFTCollection', '我的NFT收藏')}</h2>
           <div className="flex gap-2">
             <button
               onClick={refreshAssets}
               disabled={loadingNFTs}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {loadingNFTs ? '刷新中...' : '刷新'}
+              {loadingNFTs ? t('common.loading', '刷新中...') : t('common.refresh', '刷新')}
             </button>
             <button
               onClick={() => {
@@ -373,7 +375,7 @@ export const MyAssets: React.FC = () => {
               disabled={loadingNFTs}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors text-sm"
             >
-              🔍 调试
+              🔍 {t('assets.debug', '调试')}
             </button>
           </div>
         </div>
@@ -381,25 +383,25 @@ export const MyAssets: React.FC = () => {
         {loadingNFTs ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">正在加载您的NFT收藏...</p>
+            <p className="text-gray-600">{t('assets.loadingNFTs', '正在加载您的NFT收藏...')}</p>
           </div>
         ) : userNFTs.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🎨</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无NFT收藏</h3>
-            <p className="text-gray-500 mb-6">您还没有拥有任何绿色NFT</p>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('assets.noNFTs', '暂无NFT收藏')}</h3>
+            <p className="text-gray-500 mb-6">{t('assets.noNFTsDesc', '您还没有拥有任何绿色NFT')}</p>
             <div className="flex gap-3 justify-center">
               <button
-                onClick={() => window.location.href = '/create'}
+                onClick={() => window.location.href = `/create/${language}`}
                 className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
               >
-                创建第一个NFT
+                {t('assets.createFirstNFT', '创建第一个NFT')}
               </button>
               <button
-                onClick={() => window.location.href = '/created'}
+                onClick={() => window.location.href = `/created/${language}`}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                查看创建记录
+                {t('assets.viewCreationRecords', '查看创建记录')}
               </button>
             </div>
           </div>
@@ -422,24 +424,24 @@ export const MyAssets: React.FC = () => {
                   </div>
 
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {nft.storyDetails || '暂无详情'}
+                    {nft.storyDetails || t('assets.noDetails', '暂无详情')}
                   </p>
 
                   <div className="space-y-2 mb-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">碳减排量:</span>
+                      <span className="text-gray-500">{t('assets.carbonReduction', '碳减排量')}:</span>
                       <span className="font-medium text-green-600">
                         {formatFeeAmount(nft.carbonReduction)} CARB
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">当前价格:</span>
+                      <span className="text-gray-500">{t('assets.currentPrice', '当前价格')}:</span>
                       <span className="font-medium">
                         {formatFeeAmount(nft.lastPrice !== '0' ? nft.lastPrice : nft.initialPrice)} CARB
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">创建时间:</span>
+                      <span className="text-gray-500">{t('assets.createTime', '创建时间')}:</span>
                       <span className="font-medium text-gray-600">
                         {new Date(parseInt(nft.createTime) * 1000).toLocaleDateString()}
                       </span>
@@ -449,7 +451,7 @@ export const MyAssets: React.FC = () => {
                   <div className="flex gap-2">
                     <NFTViewButton
                       nftTokenId={nft.tokenId}
-                      buttonText="查看详情"
+                      buttonText={t('assets.viewDetails', '查看详情')}
                       buttonStyle="primary"
                       size="sm"
                     />
@@ -457,13 +459,14 @@ export const MyAssets: React.FC = () => {
                       onClick={() => handleListNFT(nft)}
                       className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                     >
-                      🏪 挂单
+                      🏪 {t('assets.listForSale', '挂单')}
                     </button>
                     <NFTExchangeButton
                       nft={nft}
+                      buttonText={`🔄${t('assets.exchange', 'Exchange')}`}
                       onExchangeSuccess={() => {
                         refreshAssets();
-                        alert('兑换申请提交成功！请等待审计员审核。');
+                        alert(t('assets.exchangeSuccess', '兑换申请提交成功！请等待审计员审核。'));
                       }}
                     />
                   </div>
@@ -475,7 +478,7 @@ export const MyAssets: React.FC = () => {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-600">
-                  共 {userNFTs.length} 个NFT，总价值约 {' '}
+                  {t('assets.totalNFTs', '共')} {userNFTs.length} {t('assets.nftPieces', '个NFT')}，{t('assets.totalValue', '总价值约')} {' '}
                   <span className="font-semibold text-green-600">
                     {formatFeeAmount(
                       userNFTs.reduce((total, nft) => 
@@ -487,16 +490,16 @@ export const MyAssets: React.FC = () => {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => window.location.href = '/create'}
+                    onClick={() => window.location.href = `/create/${language}`}
                     className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
                   >
-                    创建新NFT
+                    {t('assets.createNewNFT', '创建新NFT')}
                   </button>
                   <button
-                    onClick={() => window.location.href = '/exchange'}
+                    onClick={() => window.location.href = `/exchange/${language}`}
                     className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm"
                   >
-                    NFT兑换中心
+                    {t('assets.nftExchangeCenter', 'NFT兑换中心')}
                   </button>
                 </div>
               </div>

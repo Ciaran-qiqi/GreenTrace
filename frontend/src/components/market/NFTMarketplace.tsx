@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useMarketNFTs } from '@/hooks/market/useMarketNFTs';
+import { useTranslation } from '@/hooks/useI18n';
 import { NFTGrid } from './NFTGrid';
 import { MarketStats } from './MarketStats';
 import { MarketFilters, FilterOptions } from './MarketFilters';
@@ -12,6 +13,7 @@ import { formatCarbonReduction, formatContractPrice } from '@/utils/formatUtils'
  * @description 市场的主要容器组件，包含统计信息、筛选功能和NFT网格展示
  */
 export const NFTMarketplace: React.FC = () => {
+  const { t } = useTranslation();
   const [refreshKey, setRefreshKey] = useState(0);
   const [filters, setFilters] = useState<FilterOptions>({
     searchTerm: '',
@@ -111,16 +113,16 @@ export const NFTMarketplace: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800">
-            🏪 NFT市场
+            🏪 {t('nftMarket.marketplace')}
           </h2>
           {totalCount > 0 && (
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                总计 {totalCount} 个NFT在售
+                {t('nftMarket.total')} {totalCount} {t('nftMarket.nftsForSale')}
               </span>
               {filteredCount !== totalCount && (
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                  筛选后 {filteredCount} 个结果
+                  {t('nftMarket.filteredResults')} {filteredCount} {t('nftMarket.results')}
                 </span>
               )}
             </div>
@@ -137,10 +139,10 @@ export const NFTMarketplace: React.FC = () => {
             {isLoading ? (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                刷新中...
+                {t('nftMarket.refreshing')}
               </div>
             ) : (
-              '🔄 刷新'
+              `🔄 ${t('nftMarket.refresh')}`
             )}
           </button>
         </div>
@@ -167,9 +169,9 @@ export const NFTMarketplace: React.FC = () => {
       {!isLoading && !error && filteredAndSortedNfts.length === 0 && totalCount > 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <div className="text-gray-400 text-4xl mb-4">🔍</div>
-          <div className="text-gray-600 text-lg mb-2">没有找到符合条件的NFT</div>
+          <div className="text-gray-600 text-lg mb-2">{t('nftMarket.noNFTsFound')}</div>
           <div className="text-gray-500 text-sm mb-4">
-            尝试调整筛选条件或{' '}
+            {t('nftMarket.adjustFilters')}{' '}
             <button 
                            onClick={() => setFilters({
                searchTerm: '',
@@ -178,7 +180,7 @@ export const NFTMarketplace: React.FC = () => {
              })}
               className="text-green-600 hover:text-green-700 underline"
             >
-              重置筛选
+              {t('nftMarket.resetFilters')}
             </button>
           </div>
         </div>
@@ -189,10 +191,10 @@ export const NFTMarketplace: React.FC = () => {
         <div className="mt-12 text-center text-sm text-gray-500 border-t border-gray-200 pt-8">
           <div className="max-w-2xl mx-auto">
             <p className="mb-2">
-              🌱 <strong>GreenTrace NFT市场</strong> - 发现和交易环保故事NFT
+              🌱 <strong>{t('nftMarket.platformName')}</strong> - {t('nftMarket.platformSubtitle')}
             </p>
             <p>
-              所有NFT均代表真实的环保行动，使用 <span className="font-medium text-green-600">CARB</span> 代币进行交易
+              {t('nftMarket.description')}
             </p>
           </div>
         </div>

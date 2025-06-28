@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { useChainId } from 'wagmi';
 import { useNFTMintRecords, type MintRecord } from '@/contracts/hooks/useNFTMintRecords';
@@ -12,6 +12,8 @@ import { formatTimestamp } from '@/utils/timeUtils';
 import { NFTViewButton } from './NFTViewButton';
 import { getGreenTalesNFTAddress } from '@/contracts/addresses';
 import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
+import { useTranslation } from '@/hooks/useI18n';
+import { getAuditTranslation, hasAuditTranslation } from '@/utils/auditTranslations';
 
 // NFT创建记录列表组件Props接口
 interface NFTMintRecordsProps {
@@ -37,11 +39,16 @@ const useCheckNFTExists = (tokenId: string | undefined) => {
 
 // NFT创建记录列表组件（只保留链上数据源）
 export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = false }) => {
+  const { t, language } = useTranslation();
   const { address, isConnected } = useAccount();
   const [isClient, setIsClient] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<RequestRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showMintModal, setShowMintModal] = useState(false);
+  // 分页相关状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 3; // 每页显示3条记录
+  
   // 删除NFT弹窗相关状态，现在由NFTViewButton组件自己管理
 
   // 链上数据hook
@@ -76,12 +83,44 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
     }
   }, [refreshRecords]);
 
+  // 排序和分页处理
+  const sortedRecords = useMemo(() => {
+    return [...records].sort((a, b) => {
+      // 从新到旧排序（时间戳降序）
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [records]);
+
+  // 计算分页数据
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    return sortedRecords.slice(startIndex, endIndex);
+  }, [sortedRecords, currentPage, recordsPerPage]);
+
+  // 计算总页数
+  const totalPages = Math.ceil(sortedRecords.length / recordsPerPage);
+
+  // 当记录数量变化时，重置到第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [records.length]);
+
   // 将MintRecord转换为RequestRecord格式
   const convertToRequestRecord = (record: MintRecord): RequestRecord => {
+    // 🔥 修复：优先使用真实的链上数据，只在数据为空或不合理时才使用示例翻译
+    const translatedContent = getAuditTranslation(
+      record.tokenId.toString(), 
+      language, 
+      record.title, 
+      record.details,
+      true // preferOriginal = true，优先使用原始链上数据
+    );
+    
     return {
       tokenId: record.tokenId,
-      title: record.title,
-      details: record.details,
+      title: translatedContent.title,
+      details: translatedContent.details,
       carbonReduction: record.carbonReduction,
       tokenURI: record.tokenURI,
       totalFee: record.totalFee,
@@ -114,12 +153,12 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
     // 继续铸造
   const handleContinueMint = async (record: RequestRecord) => {
     if (!address) {
-      alert('请先连接钱包');
+      alert(t('auth.pleaseConnectWallet'));
       return;
     }
     
     if (record.status !== 'approved') {
-      alert(`申请状态不正确：${record.status}，只有已批准的申请才能铸造NFT`);
+      alert(`${t('nftRecords.statusError')} ${record.status}，${t('nftRecords.onlyApprovedCanMint')}`);
       return;
     }
 
@@ -142,7 +181,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
       console.error('铸造失败:', error);
       setShowMintModal(false);
       setSelectedRecord(null);
-      alert(`铸造失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`${t('nftRecords.errors.mintFailed')} ${error instanceof Error ? error.message : t('common.unknownError')}`);
     }
   };
 
@@ -181,14 +220,31 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
   // 关闭弹窗
   const handleCloseModal = () => { setIsModalOpen(false); setSelectedRecord(null); };
 
+  // 分页处理函数
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   if (!isConnected) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔗</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">请先连接钱包</h3>
-            <p className="text-gray-500">连接钱包后查看您的NFT创建记录</p>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('nftRecords.connectWallet')}</h3>
+            <p className="text-gray-500">{t('nftRecords.connectWalletDesc')}</p>
           </div>
         </div>
       </div>
@@ -200,7 +256,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">加载中...</p>
+            <p className="text-gray-600">{t('common.loading')}</p>
           </div>
         </div>
       </div>
@@ -212,13 +268,13 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">我的NFT创建记录</h2>
-              <p className="text-gray-600 mt-1">查看您的所有NFT创建申请和状态</p>
+              <h2 className="text-2xl font-bold text-gray-800">{t('created.title')}</h2>
+              <p className="text-gray-600 mt-1">{t('created.subtitle')}</p>
               {/* 事件监听状态指示器 */}
               {isEventListening && (
                 <div className="mt-2 inline-flex items-center text-sm text-blue-600">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
-                  实时监听中...
+                  {t('nftRecords.listening')}
                 </div>
               )}
             </div>
@@ -228,15 +284,15 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 disabled={loading}
                 className="px-4 py-2 rounded-lg hover:disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-blue-600 text-white hover:bg-blue-700"
               >
-                {loading ? '刷新中...' : '刷新'}
+                {loading ? t('nftRecords.refreshing', '刷新中...') : t('nftRecords.refresh', '刷新')}
               </button>
               <button
                 onClick={() => refreshRecords(true)}
                 disabled={loading}
                 className="px-4 py-2 rounded-lg hover:disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-gray-600 text-white hover:bg-gray-700"
-                title="强制刷新所有数据，清除缓存"
+                title={t('nftRecords.forceRefreshTitle', '强制刷新所有数据，清除缓存')}
               >
-                🔄 强制刷新
+                {t('nftRecords.forceRefresh', '🔄 强制刷新')}
               </button>
             </div>
           </div>
@@ -247,14 +303,14 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
               {records.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📝</div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无创建记录</h3>
-                  <p className="text-gray-500 mb-6">您还没有创建过NFT申请</p>
-                  <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors" onClick={() => router.push('/create')}>
-                    创建第一个NFT
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('nftRecords.noRecords')}</h3>
+                  <p className="text-gray-500 mb-6">{t('nftRecords.noRecordsDesc')}</p>
+                  <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors" onClick={() => router.push(`/create/${language}`)}>
+                    {t('nftRecords.createFirst')}
                   </button>
                 </div>
               ) : (
-                records.map((record) => {
+                paginatedRecords.map((record) => {
                   // 带NFT存在性检查的记录卡片组件
                   const RecordCard = () => {
                     const { error: nftError } = useCheckNFTExists(
@@ -266,8 +322,15 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                                              <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-800">#{record.tokenId} {record.title}</h3>
+                            <div className="flex items-center gap-3 mb-2 flex-wrap">
+                              <h3 className="text-lg font-semibold text-gray-800">#{record.tokenId} {getAuditTranslation(record.tokenId.toString(), language, record.title, record.details).title}</h3>
+                              {/* 翻译指示器 */}
+                              {hasAuditTranslation(record.tokenId.toString(), language) && (
+                                <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  <span>🌐</span>
+                                  <span>{t('nftRecords.contentTranslated')}</span>
+                                </div>
+                              )}
                               {/* 状态徽章 */}
                               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                 record.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -275,45 +338,45 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                                 record.status === 'minted' ? 'bg-purple-100 text-purple-800' :
                                 'bg-red-100 text-red-800'
                               }`}>
-                                {record.status === 'pending' ? '⏳ 待审计' :
-                                 record.status === 'approved' ? '✅ 已批准' :
-                                 record.status === 'minted' ? '🎨 已铸造' :
-                                 '❌ 已拒绝'}
+                                {record.status === 'pending' ? `⏳ ${t('nftRecords.status.pending')}` :
+                                 record.status === 'approved' ? `✅ ${t('nftRecords.status.approved')}` :
+                                 record.status === 'minted' ? `🎨 ${t('nftRecords.status.minted')}` :
+                                 `❌ ${t('nftRecords.status.rejected')}`}
                               </span>
                               {/* 已兑换标签 */}
                               {record.status === 'minted' && !nftExists && (
                                 <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
-                                  🔥 已兑换
+                                  🔥 {t('nftRecords.status.exchanged')}
                                 </span>
                               )}
                             </div>
-                            <p className="text-gray-600 text-sm line-clamp-2">{record.details}</p>
+                            <p className="text-gray-600 text-sm line-clamp-2">{getAuditTranslation(record.tokenId.toString(), language, record.title, record.details).details}</p>
                           </div>
                           <div className="text-right text-sm text-gray-500">
                             <div>{formatTimestamp(record.timestamp)}</div>
-                            <div className="mt-1">费用: {formatFeeAmount(record.totalFee)} CARB</div>
+                            <div className="mt-1">{t('nftRecords.fee')}: {formatFeeAmount(record.totalFee)} CARB</div>
                           </div>
                         </div>
 
                         {/* 申请详情 */}
                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                           <div>
-                            <span className="text-gray-500">碳减排量:</span>
+                            <span className="text-gray-500">{t('nftRecords.carbonReduction')}:</span>
                             <span className="ml-2 font-medium text-green-600">{record.carbonReduction} tCO₂e</span>
                           </div>
                           {record.carbonValue && (
                             <div>
-                              <span className="text-gray-500">审计确认价值:</span>
+                              <span className="text-gray-500">{t('nftRecords.auditValue')}:</span>
                               <span className="ml-2 font-medium text-green-600">{record.carbonValue} tCO₂e</span>
                             </div>
                           )}
                           <div>
-                            <span className="text-gray-500">申请时间:</span>
+                            <span className="text-gray-500">{t('nftRecords.applyTime')}:</span>
                             <span className="ml-2 font-medium">{formatTimestamp(record.timestamp)}</span>
                           </div>
                           {record.auditor && (
                             <div>
-                              <span className="text-gray-500">审计员:</span>
+                              <span className="text-gray-500">{t('nftRecords.auditor')}:</span>
                               <span className="ml-2 font-medium">{record.auditor.slice(0, 6)}...{record.auditor.slice(-4)}</span>
                             </div>
                           )}
@@ -321,21 +384,21 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
 
                         {/* 操作按钮 */}
                         <div className="flex gap-3">
-                          <button onClick={() => handleViewDetails(record)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">查看详情</button>
+                          <button onClick={() => handleViewDetails(record)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">{t('nftRecords.viewDetails')}</button>
                           {record.status === 'approved' && (
-                            <button onClick={() => handleContinueMint(convertToRequestRecord(record))} className="bg-green-600 text-white px-4 py-1 rounded text-sm hover:bg-green-700 transition-colors">继续铸造</button>
+                            <button onClick={() => handleContinueMint(convertToRequestRecord(record))} className="bg-green-600 text-white px-4 py-1 rounded text-sm hover:bg-green-700 transition-colors">{t('nftRecords.continueMint')}</button>
                           )}
                           {record.status === 'minted' && (
                             <NFTViewButton 
                               nftTokenId={(record as any).nftTokenId || '0'}
-                              buttonText="查看NFT"
+                              buttonText={t('nftRecords.viewNFT')}
                               buttonStyle="primary"
                               size="sm"
                               nftExists={nftExists}
                             />
                           )}
                           {record.status === 'rejected' && (
-                            <button className="bg-gray-600 text-white px-4 py-1 rounded text-sm hover:bg-gray-700 transition-colors">重新申请</button>
+                            <button className="bg-gray-600 text-white px-4 py-1 rounded text-sm hover:bg-gray-700 transition-colors">{t('nftRecords.reapply')}</button>
                           )}
                         </div>
                       </div>
@@ -345,6 +408,51 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                                      return <RecordCard key={record.transactionHash || `${record.tokenId}-${record.timestamp}`} />;
                 })
               )}
+            </div>
+          )}
+          
+          {/* 分页控件 */}
+          {!loading && records.length > 0 && totalPages > 1 && (
+            <div className="mt-8 flex justify-center items-center space-x-2">
+              {/* 上一页按钮 */}
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {t('pagination.previous', '上一页')}
+              </button>
+              
+              {/* 页码按钮 */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    currentPage === page
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              
+              {/* 下一页按钮 */}
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {t('pagination.next', '下一页')}
+              </button>
+            </div>
+          )}
+          
+          {/* 分页信息 */}
+          {!loading && records.length > 0 && (
+            <div className="mt-4 text-center text-sm text-gray-500">
+              {t('pagination.info', '显示第 {start} - {end} 条，共 {total} 条记录').replace('{start}', String((currentPage - 1) * recordsPerPage + 1)).replace('{end}', String(Math.min(currentPage * recordsPerPage, records.length))).replace('{total}', String(records.length))}
             </div>
           )}
         </div>
@@ -377,13 +485,13 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <span className="text-white text-2xl">⏳</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-3">准备铸造NFT</h3>
-                  <p className="text-gray-600 mb-6 leading-relaxed">正在准备铸造交易，请在钱包中确认...</p>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-3">{t('nftRecords.minting.preparingTitle', '准备铸造NFT')}</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">{t('nftRecords.minting.preparingDesc', '正在准备铸造交易，请在钱包中确认...')}</p>
                   
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 mb-6 border border-blue-200/30">
                     <div className="text-sm text-blue-800">
                       <div className="font-semibold mb-1">#{selectedRecord.tokenId} {selectedRecord.title}</div>
-                      <div className="text-blue-600">审计确认价值: {selectedRecord.carbonValue || selectedRecord.carbonReduction} CARB</div>
+                      <div className="text-blue-600">{t('nftRecords.minting.auditValue', '审计确认价值')}: {selectedRecord.carbonValue || selectedRecord.carbonReduction} CARB</div>
                     </div>
                   </div>
 
@@ -392,7 +500,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                       onClick={handleCancelMint}
                       className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors duration-200"
                     >
-                      取消
+                      {t('nftRecords.minting.cancel', '取消')}
                     </button>
                   </div>
                 </>
@@ -404,19 +512,19 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                   <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-3">铸造进行中</h3>
-                  <p className="text-gray-600 mb-6 leading-relaxed">正在等待区块链确认，请耐心等待...</p>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-3">{t('nftRecords.minting.mintingTitle', '铸造进行中')}</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">{t('nftRecords.minting.mintingDesc', '正在等待区块链确认，请耐心等待...')}</p>
                   
                   <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl p-4 mb-6 border border-amber-200/30">
                     <div className="text-sm text-amber-800">
                       <div className="font-semibold mb-1">#{selectedRecord.tokenId} {selectedRecord.title}</div>
-                      <div className="text-amber-600">⚠️ 请勿关闭此窗口或刷新页面</div>
+                      <div className="text-amber-600">{t('nftRecords.minting.doNotClose', '⚠️ 请勿关闭此窗口或刷新页面')}</div>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
                     <div className="animate-pulse">🔗</div>
-                    <span>区块链确认中...</span>
+                    <span>{t('nftRecords.minting.blockchainConfirming', '区块链确认中...')}</span>
                   </div>
                 </>
               )}

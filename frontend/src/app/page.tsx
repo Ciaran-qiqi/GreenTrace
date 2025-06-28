@@ -116,17 +116,17 @@ export default function Home() {
               {/* 增强的CTA按钮组 */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link 
-                  href="/create"
+                  href="/carbon-market"
                   className="group px-10 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-bold shadow-2xl hover:shadow-green-500/25 transform hover:scale-105 relative overflow-hidden"
                 >
-                  <span className="relative z-10">{t('home.hero.startCreating', '开始创建NFT')}</span>
+                  <span className="relative z-10">{t('home.hero.startCreating', '开始获取碳币')}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                 </Link>
                 <Link 
                   href="/market"
                   className="group px-10 py-4 bg-transparent border-2 border-green-600 text-green-600 rounded-full hover:bg-gradient-to-r hover:from-green-600 hover:to-emerald-600 hover:text-white transition-all duration-300 font-bold shadow-lg hover:shadow-xl relative overflow-hidden"
                 >
-                  <span className="relative z-10">{t('home.hero.exploreMarket', '探索市场')}</span>
+                  <span className="relative z-10">{t('home.hero.exploreMarket', '探索NFT市场')}</span>
                 </Link>
               </div>
               

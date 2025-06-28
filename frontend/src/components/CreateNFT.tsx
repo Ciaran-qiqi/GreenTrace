@@ -20,12 +20,13 @@ import {
   generateNFTMetadata,
   validateFile
 } from '@/utils/pinata';
+import { useTranslation } from '@/hooks/useI18n';
 
 
 // 注意：使用any类型是因为ethereum对象的类型定义复杂且可能变化
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// 创建表单数据接口
+// 创建表单数据接口 - Create form data interface
 interface CreateFormData {
   title: string;
   storyDetails: string;
@@ -34,7 +35,7 @@ interface CreateFormData {
   imagePreview: string | null;
 }
 
-// 初始表单数据
+// 初始表单数据 - Initial form data
 const initialFormData: CreateFormData = {
   title: '',
   storyDetails: '',
@@ -44,8 +45,10 @@ const initialFormData: CreateFormData = {
 };
 
 // NFT创建组件 - 用于创建绿色NFT
+// NFT Creation Component - For creating green NFTs
 export const CreateNFT: React.FC = () => {
   const router = useRouter();
+  const { t, language } = useTranslation();
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const chainId = useChainId();
@@ -507,17 +510,17 @@ export const CreateNFT: React.FC = () => {
 
   // 获取按钮文本
   const getButtonText = () => {
-    if (!isConnected) return '请先连接钱包';
-    if (!isFormValid) return '请填写完整信息';
-    if (hasInsufficientETH()) return 'ETH余额不足，Gas费可能不够';
-    if (hasInsufficientBalance()) return 'CARB余额不足';
-    if (needsApproval()) return '需要授权碳代币';
-    if (currentStep === 'uploading') return '上传中...';
-    if (currentStep === 'approving') return '授权中...';
-    if (currentStep === 'minting') return '提交申请中...';
+    if (!isConnected) return t('createNFT.buttons.connectWallet', '请先连接钱包');
+    if (!isFormValid) return t('createNFT.buttons.fillCompleteInfo', '请填写完整信息');
+    if (hasInsufficientETH()) return t('createNFT.buttons.ethInsufficient', 'ETH余额不足，Gas费可能不够');
+    if (hasInsufficientBalance()) return t('createNFT.buttons.carbInsufficient', 'CARB余额不足');
+    if (needsApproval()) return t('createNFT.buttons.needCarbAuth', '需要授权碳代币');
+    if (currentStep === 'uploading') return t('createNFT.buttons.uploading', '上传中...');
+    if (currentStep === 'approving') return t('createNFT.buttons.authorizing', '授权中...');
+    if (currentStep === 'minting') return t('createNFT.buttons.submittingApplication', '提交申请中...');
     // 如果有交易hash但还在等待确认
-    if (mintHash && !mintConfirmed) return '等待区块链确认...';
-    return `提交NFT铸造申请 (需支付 ${fee} CARB)`;
+    if (mintHash && !mintConfirmed) return t('createNFT.buttons.waitingConfirmation', '等待区块链确认...');
+    return t('createNFT.buttons.submitNFTApplication', '提交NFT铸造申请 (需支付 {fee} CARB)', { fee: fee.toString() });
   };
 
   // 获取按钮状态
@@ -530,73 +533,75 @@ export const CreateNFT: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">创建绿色NFT</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          {t('createNFT.title', '创建绿色NFT')}
+        </h2>
         
         {/* 状态信息 */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">钱包状态:</span>
+              <span className="text-gray-600">{t('createNFT.walletStatus', '钱包状态')}:</span>
               <span className={`ml-2 ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
-                {isConnected ? '已连接' : '未连接'}
+                {isConnected ? t('createNFT.connected', '已连接') : t('createNFT.notConnected', '未连接')}
               </span>
             </div>
             <div>
-              <span className="text-gray-600">ETH余额:</span>
+              <span className="text-gray-600">{t('createNFT.ethBalance', 'ETH余额')}:</span>
               <span className={`ml-2 ${hasInsufficientETH() ? 'text-red-600' : 'text-gray-800'}`}>
-                {balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : '加载中...'}
+                {balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : t('createNFT.loading', '加载中...')}
               </span>
               {hasInsufficientETH() && balance && (
                 <div className="text-xs text-red-500 mt-1">
-                  ⚠️ ETH余额不足0.002，可能无法支付Gas费
+                  {t('createNFT.ethInsufficientWarning', '⚠️ ETH余额不足0.002，可能无法支付Gas费')}
                 </div>
               )}
             </div>
             <div>
-              <span className="text-gray-600">碳代币余额:</span>
+              <span className="text-gray-600">{t('createNFT.carbonBalance', '碳代币余额')}:</span>
               <span className="ml-2 text-gray-800">
-                {isLoadingBalance ? '加载中...' : 
+                {isLoadingBalance ? t('createNFT.loading', '加载中...') : 
                  tokenBalance !== undefined ? `${formatEther(tokenBalance as bigint)} ${tokenInfo.symbol || 'CARB'}` : 
-                 '查询失败'}
+                 t('createNFT.queryFailed', '查询失败')}
               </span>
               {!isLoadingBalance && tokenBalance === undefined ? (
                 <div className="text-xs text-red-500 mt-1">
-                  请检查网络连接或合约地址配置
+                  {t('createNFT.checkNetworkConnection', '请检查网络连接或合约地址配置')}
                 </div>
               ) : null}
             </div>
             <div>
-              <span className="text-gray-600">预计费用:</span>
+              <span className="text-gray-600">{t('createNFT.estimatedFee', '预计费用')}:</span>
               <span className="ml-2 text-gray-800">
-                {fee > 0 ? `${fee} CARB` : '计算中...'}
+                {fee > 0 ? `${fee} CARB` : t('createNFT.calculating', '计算中...')}
               </span>
             </div>
             <div>
-              <span className="text-gray-600">授权状态:</span>
+              <span className="text-gray-600">{t('createNFT.authStatus', '授权状态')}:</span>
               <span className="ml-2 text-gray-800">
-                {fee > 0 ? (needsApproval() ? '需要授权' : '已授权') : '等待费用计算'}
+                {fee > 0 ? (needsApproval() ? t('createNFT.needAuth', '需要授权') : t('createNFT.authorized', '已授权')) : t('createNFT.waitingFeeCalc', '等待费用计算')}
               </span>
             </div>
             <div>
-              <span className="text-gray-600">CARB余额:</span>
+              <span className="text-gray-600">{t('createNFT.carbBalance', 'CARB余额')}:</span>
               <span className="ml-2 text-gray-800">
-                {fee > 0 ? (hasInsufficientBalance() ? 'CARB不足' : 'CARB充足') : '等待费用计算'}
+                {fee > 0 ? (hasInsufficientBalance() ? t('createNFT.carbInsufficient', 'CARB不足') : t('createNFT.carbSufficient', 'CARB充足')) : t('createNFT.waitingFeeCalc', '等待费用计算')}
               </span>
             </div>
             <div>
-              <span className="text-gray-600">ETH余额:</span>
+              <span className="text-gray-600">{t('createNFT.ethBalance', 'ETH余额')}:</span>
               <span className={`ml-2 ${hasInsufficientETH() ? 'text-red-600' : 'text-green-600'}`}>
-                {hasInsufficientETH() ? 'ETH不足' : 'ETH充足'}
+                {hasInsufficientETH() ? t('createNFT.ethInsufficient', 'ETH不足') : t('createNFT.ethSufficient', 'ETH充足')}
               </span>
             </div>
             {/* 调试信息 */}
             {process.env.NODE_ENV === 'development' && (
               <div className="col-span-2 mt-2 pt-2 border-t border-gray-200">
                 <div className="text-xs text-gray-500 space-y-1">
-                  <div>碳减排量: {carbonAmount?.toString() || '未设置'}</div>
-                  <div>费用数据: {requestFeeData?.toString() || '未计算'}</div>
-                  <div>计算费用: {fee}</div>
-                  <div>需要授权: {needsApproval() ? '是' : '否'}</div>
+                  <div>{t('createNFT.debug.carbonReduction', '碳减排量:')} {carbonAmount?.toString() || t('createNFT.debug.notSet', '未设置')}</div>
+                  <div>{t('createNFT.debug.feeData', '费用数据:')} {requestFeeData?.toString() || t('createNFT.debug.notCalculated', '未计算')}</div>
+                  <div>{t('createNFT.debug.calculatedFee', '计算费用:')} {fee}</div>
+                  <div>{t('createNFT.debug.needsApproval', '需要授权:')} {needsApproval() ? t('createNFT.debug.yes', '是') : t('createNFT.debug.no', '否')}</div>
                 </div>
               </div>
             )}
@@ -606,10 +611,10 @@ export const CreateNFT: React.FC = () => {
           {process.env.NODE_ENV === 'development' && !isLoadingBalance && tokenBalance === undefined ? (
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="text-xs text-gray-500 space-y-1">
-                <div>钱包地址: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '未连接'}</div>
-                <div>代币合约: 0x808b...8198</div>
-                <div>余额查询状态: 失败</div>
-                <div>代币信息: {tokenInfo.name || '未获取'} ({tokenInfo.symbol || '未获取'})</div>
+                <div>{t('createNFT.debug.walletAddress', '钱包地址:')} {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : t('createNFT.notConnected', '未连接')}</div>
+                <div>{t('createNFT.debug.tokenContract', '代币合约:')} 0x808b...8198</div>
+                <div>{t('createNFT.debug.balanceQueryStatus', '余额查询状态:')} {t('createNFT.debug.failed', '失败')}</div>
+                <div>{t('createNFT.debug.tokenInfo', '代币信息:')} {tokenInfo.name || t('createNFT.debug.notObtained', '未获取')} ({tokenInfo.symbol || t('createNFT.debug.notObtained', '未获取')})</div>
               </div>
             </div>
           ) : null}
@@ -622,7 +627,7 @@ export const CreateNFT: React.FC = () => {
           {/* NFT标题 */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              NFT标题 *
+              {t('createNFT.form.nftTitle', 'NFT标题 *')}
             </label>
             <input
               type="text"
@@ -630,7 +635,7 @@ export const CreateNFT: React.FC = () => {
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="例如：绿色出行记录"
+              placeholder={t('createNFT.form.titlePlaceholder', '例如：绿色出行记录')}
               required
             />
           </div>
@@ -638,7 +643,7 @@ export const CreateNFT: React.FC = () => {
           {/* 环保行为详情 */}
           <div>
             <label htmlFor="storyDetails" className="block text-sm font-medium text-gray-700 mb-2">
-              环保行为详情 *
+              {t('createNFT.form.environmentalDetails', '环保行为详情 *')}
             </label>
             <textarea
               id="storyDetails"
@@ -646,7 +651,7 @@ export const CreateNFT: React.FC = () => {
               onChange={(e) => handleInputChange('storyDetails', e.target.value)}
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="详细描述您的环保行为，包括时间、地点、具体行动等..."
+              placeholder={t('createNFT.form.detailsPlaceholder', '详细描述您的环保行为，包括时间、地点、具体行动等...')}
               required
             />
           </div>
@@ -654,7 +659,7 @@ export const CreateNFT: React.FC = () => {
           {/* 碳减排量 */}
           <div>
             <label htmlFor="carbonReduction" className="block text-sm font-medium text-gray-700 mb-2">
-              碳减排量 (tCO₂e) *
+              {t('createNFT.form.carbonReduction', '碳减排量 (tCO₂e) *')}
             </label>
             <input
               type="number"
@@ -662,7 +667,7 @@ export const CreateNFT: React.FC = () => {
               value={formData.carbonReduction}
               onChange={(e) => handleInputChange('carbonReduction', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="例如：0.05"
+              placeholder={t('createNFT.form.carbonPlaceholder', '例如：0.05')}
               min="0"
               step="0.01"
               required
@@ -672,7 +677,7 @@ export const CreateNFT: React.FC = () => {
           {/* 图片上传 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              环保行为图片 *
+              {t('createNFT.form.environmentalImage', '环保行为图片 *')}
             </label>
             <div className="space-y-4">
               {/* 图片预览 */}
@@ -680,7 +685,7 @@ export const CreateNFT: React.FC = () => {
                 <div className="relative">
                   <img
                     src={formData.imagePreview}
-                    alt="预览"
+                    alt={t('createNFT.form.preview', '预览')}
                     className="w-full h-48 object-cover rounded-lg border border-gray-200"
                   />
                   <button
@@ -704,10 +709,10 @@ export const CreateNFT: React.FC = () => {
               >
                 <div className="text-4xl mb-2">📸</div>
                 <p className="text-sm text-gray-600">
-                  {formData.imagePreview ? '点击更换图片' : '点击上传图片'}
+                  {formData.imagePreview ? t('createNFT.form.clickToChange', '点击更换图片') : t('createNFT.form.clickToUpload', '点击上传图片')}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  支持 JPG, PNG, GIF, WebP 格式，最大 10MB
+                  {t('createNFT.form.supportedFormats', '支持 JPG, PNG, GIF, WebP 格式，最大 10MB')}
                 </p>
               </div>
               
@@ -729,14 +734,14 @@ export const CreateNFT: React.FC = () => {
               onClick={fillExampleData}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
-              填充示例
+              {t('createNFT.buttons.fillExample', '填充示例')}
             </button>
             <button
               type="button"
               onClick={resetForm}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
-              重置
+              {t('createNFT.buttons.reset', '重置')}
             </button>
             {/* 调试按钮 - 仅开发环境显示 */}
             {process.env.NODE_ENV === 'development' && (
@@ -744,7 +749,7 @@ export const CreateNFT: React.FC = () => {
                 type="button"
                 onClick={async () => {
                   if (!isConnected) {
-                    alert('请先连接钱包');
+                    alert(t('createNFT.buttons.connectWallet', '请先连接钱包'));
                     return;
                   }
                   try {
@@ -812,7 +817,7 @@ ${isConnected && tokenBalance && contractInitialized ?
                 }}
                 className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                🧪 系统检测
+                {t('createNFT.buttons.systemTest', '🧪 系统检测')}
               </button>
             )}
           </div>
@@ -848,13 +853,13 @@ ${isConnected && tokenBalance && contractInitialized ?
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
               <div className="flex-1">
                 <div className="text-blue-800">
-                  {approvePending ? '正在等待授权确认...' : '正在等待交易确认...'}
+                  {approvePending ? t('createNFT.progress.waitingAuth', '正在等待授权确认...') : t('createNFT.progress.waitingTransaction', '正在等待交易确认...')}
                 </div>
                 <div className="text-blue-600 text-sm mt-1">
                   {mintPending && !mintHash ? (
-                    <span>⚠️ 请检查您的钱包，可能有待确认的交易弹窗</span>
+                    <span>{t('createNFT.progress.checkWallet', '⚠️ 请检查您的钱包，可能有待确认的交易弹窗')}</span>
                   ) : mintPending && mintHash ? (
-                    <span>✅ 交易已提交，等待区块链确认中...</span>
+                    <span>{t('createNFT.progress.transactionSubmitted', '✅ 交易已提交，等待区块链确认中...')}</span>
                   ) : (
                     <span>请在钱包中确认交易</span>
                   )}
@@ -868,7 +873,7 @@ ${isConnected && tokenBalance && contractInitialized ?
         {(approveError || mintError) && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="text-red-800">
-              <strong>错误:</strong> {approveError?.message || mintError?.message}
+              <strong>{t('createNFT.errors.error', '错误:')}</strong> {approveError?.message || mintError?.message}
             </div>
           </div>
         )}
@@ -897,27 +902,27 @@ ${isConnected && tokenBalance && contractInitialized ?
                   
                   {/* 标题 - 添加渐变文字 */}
                   <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600 bg-clip-text text-transparent mb-3">
-                    🎉 申请提交成功！
+                    {t('createNFT.success.title', '🎉 申请提交成功！')}
                   </h2>
                   
                   {/* 描述 */}
                   <p className="text-gray-600 mb-6 leading-relaxed">
-                    您的NFT申请已成功提交到区块链并进入审核队列
+                    {t('createNFT.success.description', '您的NFT申请已成功提交到区块链并进入审核队列')}
                   </p>
                   
                   {/* 交易信息卡片 */}
                   <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/60 backdrop-blur-sm rounded-xl p-4 mb-6 border border-blue-200/30">
                     <div className="text-sm">
-                      <div className="font-semibold text-blue-800 mb-2">📋 交易详情</div>
+                      <div className="font-semibold text-blue-800 mb-2">{t('createNFT.success.transactionDetails', '📋 交易详情')}</div>
                       <div className="space-y-1 text-blue-700">
                         <div className="flex justify-between items-center">
-                          <span>交易哈希:</span>
+                          <span>{t('createNFT.success.transactionHash', '交易哈希:')}</span>
                           <span className="font-mono text-xs bg-white/60 px-2 py-1 rounded">
                             {mintHash?.slice(0, 8)}...{mintHash?.slice(-8)}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span>申请费用:</span>
+                          <span>{t('createNFT.success.applicationFee', '申请费用:')}</span>
                           <span className="font-semibold text-green-600">{fee} CARB</span>
                         </div>
                       </div>
@@ -1013,7 +1018,7 @@ ${isConnected && tokenBalance && contractInitialized ?
                         // 重置表单
                         setFormData(initialFormData);
                         // 跳转到创建记录页面，并触发自动刷新
-                        router.push('/created?from=create&refresh=true');
+                        router.push(`/created/${language}?from=create&refresh=true`);
                       }}
                       className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
                     >

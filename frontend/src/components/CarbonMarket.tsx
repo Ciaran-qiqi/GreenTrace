@@ -5,6 +5,7 @@ import { useGreenTalesLiquidityPool } from '@/hooks/useGreenTalesLiquidityPool'
 import { useTranslation } from '@/hooks/useI18n'
 import { ConfigError } from '@/components/ErrorBoundary'
 import OrderBook from '@/components/OrderBook'
+import { formatTokenAmount } from '@/utils/formatUtils'
 import toast from 'react-hot-toast'
 import { readContract } from '@wagmi/core'
 import { config } from '@/lib/wagmi'
@@ -19,7 +20,7 @@ import CarbonUSDTMarketABI from '@/contracts/abi/CarbonUSDTMarket.json'
  * 集成新的CarbonUSDTMarket合约功能
  */
 export default function CarbonMarket() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const [activeTab, setActiveTab] = useState<'market' | 'limit'>('market')
   const [orderType, setOrderType] = useState<'buy' | 'sell'>('buy')
   
@@ -94,14 +95,15 @@ export default function CarbonMarket() {
     isConnected,
     carbonBalance,
     usdtBalance,
+    carbonBalanceRaw,
+    usdtBalanceRaw,
     userBalances,
     marketStats,
     feeRates,
     isWritePending,
     isConfirmed,
-    createBuyOrder,
+        createBuyOrder,
     createSellOrder,
-    formatTokenAmount,
     marketAddress,
     carbonTokenAddress,
     usdtTokenAddress,
@@ -1165,7 +1167,7 @@ export default function CarbonMarket() {
         {/* 页面标题 */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">{t('carbon.carbonMarket')}</h1>
-          <p className="text-gray-600">去中心化碳信用交易平台</p>
+          <p className="text-gray-600">{t('carbon.page.subtitle', '去中心化碳信用交易平台')}</p>
         </div>
 
         {/* 用户余额信息 */}
@@ -1178,7 +1180,7 @@ export default function CarbonMarket() {
                   ? 'bg-red-500 animate-pulse'
                   : 'bg-green-500'
               }`}></div>
-              <span className="text-xs font-medium text-gray-700">偏离度</span>
+              <span className="text-xs font-medium text-gray-700">{t('carbon.deviation', '偏离度')}</span>
               <span className={`text-xs font-bold ${
                 Math.abs(Number(currentPrice) - Number(referencePrice)) / Number(referencePrice) * 100 > (poolData.priceDeviationThreshold || 10)
                   ? 'text-red-600'
@@ -1193,15 +1195,15 @@ export default function CarbonMarket() {
             
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <span className="text-2xl">💰</span>
-              交易信息
+              {t('carbon.tradingInfo', '交易信息')}
             </h2>
             {/* 余额和价格信息一行显示 - 五个格子 */}
             <div className="grid grid-cols-5 gap-4">
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="text-center">
-                  <div className="text-green-600 text-xs font-medium mb-2">碳币余额</div>
+                  <div className="text-green-600 text-xs font-medium mb-2">{t('carbon.carbonBalance', '碳币余额')}</div>
                   <div className="text-green-800 font-bold text-lg mb-1">
-                    {parseFloat(carbonBalance).toFixed(2)}
+                    {formatTokenAmount(carbonBalanceRaw)}
                   </div>
                   <div className="text-green-500 text-xs">CARB</div>
                 </div>
@@ -1209,9 +1211,9 @@ export default function CarbonMarket() {
               
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="text-center">
-                  <div className="text-blue-600 text-xs font-medium mb-2">USDT余额</div>
+                  <div className="text-blue-600 text-xs font-medium mb-2">{t('carbon.usdtBalance', 'USDT余额')}</div>
                   <div className="text-blue-800 font-bold text-lg mb-1">
-                    {parseFloat(usdtBalance).toFixed(2)}
+                    {formatTokenAmount(usdtBalanceRaw)}
                   </div>
                   <div className="text-blue-500 text-xs">USDT</div>
                 </div>
@@ -1219,20 +1221,20 @@ export default function CarbonMarket() {
               
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="text-center">
-                  <div className="text-purple-600 text-xs font-medium mb-2 flex items-center justify-center gap-1">
-                    <span>🔮</span>
-                    阈值
-                  </div>
-                  <div className="text-purple-800 font-bold text-lg mb-1">
-                    {poolData.priceDeviationThreshold || 10}%
-                  </div>
-                  <div className="text-purple-500 text-xs">偏离限制</div>
+                                <div className="text-purple-600 text-xs font-medium mb-2 flex items-center justify-center gap-1">
+                <span>🔮</span>
+                {t('carbon.threshold', '阈值')}
+              </div>
+              <div className="text-purple-800 font-bold text-lg mb-1">
+                {poolData.priceDeviationThreshold || 10}%
+              </div>
+              <div className="text-purple-500 text-xs">{t('carbon.deviationLimit', '偏离限制')}</div>
                 </div>
               </div>
               
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="text-center">
-                  <div className="text-orange-600 text-xs font-medium mb-2">当前市价</div>
+                  <div className="text-orange-600 text-xs font-medium mb-2">{t('carbon.currentPrice', '当前市价')}</div>
                   <div className="text-orange-800 font-bold text-lg mb-1">
                     {Number(currentPrice) > 0 ? currentPrice : testPrice}
                   </div>
@@ -1242,7 +1244,7 @@ export default function CarbonMarket() {
               
               <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 border border-indigo-200 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="text-center">
-                  <div className="text-indigo-600 text-xs font-medium mb-2">参考价</div>
+                  <div className="text-indigo-600 text-xs font-medium mb-2">{t('carbon.referencePrice', '参考价')}</div>
                   <div className="text-indigo-800 font-bold text-lg mb-1">
                     {Number(referencePrice) > 0 ? referencePrice : testPrice}
                   </div>
@@ -1318,7 +1320,7 @@ export default function CarbonMarket() {
                           : 'bg-gray-100 text-gray-600 border-2 border-gray-200'
                       }`}>
                         <span className="text-lg">📈</span>
-                        <span className="font-medium">买入碳币</span>
+                        <span className="font-medium">{t('carbon.directionBuying', '买入碳币')}</span>
                       </div>
                       <div className="text-gray-400 text-xl">⇄</div>
                       <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
@@ -1327,27 +1329,27 @@ export default function CarbonMarket() {
                           : 'bg-gray-100 text-gray-600 border-2 border-gray-200'
                       }`}>
                         <span className="text-lg">📉</span>
-                        <span className="font-medium">卖出碳币</span>
+                        <span className="font-medium">{t('carbon.directionSelling', '卖出碳币')}</span>
                       </div>
                     </div>
 
                     {/* 碳币数量输入框 */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
                       <label className="block text-sm font-semibold text-green-800 mb-3">
-                        💚 碳币数量
+                        {t('carbon.carbonAmount', '💚 碳币数量')}
                       </label>
                       <input
                         type="number"
                         value={marketCarbonAmount}
                         onChange={(e) => handleCarbonAmountChange(e.target.value)}
-                        placeholder="输入碳币数量"
+                        placeholder={t('carbon.enterCarbonAmount', '输入碳币数量')}
                         className="w-full px-4 py-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
                         step="0.000001"
                         min="0"
                         disabled={isCalculating}
                       />
                       <div className="text-sm text-green-600 mt-2 flex justify-between">
-                        <span>可用: {carbonBalance}</span>
+                        <span>{t('carbon.available', '可用')}: {formatTokenAmount(carbonBalanceRaw)}</span>
                         <span className="font-medium">CARB</span>
                       </div>
                     </div>
@@ -1364,20 +1366,20 @@ export default function CarbonMarket() {
                     {/* USDT数量输入框 */}
                     <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
                       <label className="block text-sm font-semibold text-blue-800 mb-3">
-                        💙 USDT数量
+                        {t('carbon.usdtAmount', '💙 USDT数量')}
                       </label>
                       <input
                         type="number"
                         value={marketUsdtAmount}
                         onChange={(e) => handleUsdtAmountChange(e.target.value)}
-                        placeholder="输入USDT数量"
+                        placeholder={t('carbon.enterUsdtAmount', '输入USDT数量')}
                         className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
                         step="0.000001"
                         min="0"
                         disabled={isCalculating}
                       />
                       <div className="text-sm text-blue-600 mt-2 flex justify-between">
-                        <span>可用: {usdtBalance}</span>
+                        <span>{t('carbon.available', '可用')}: {formatTokenAmount(usdtBalanceRaw)}</span>
                         <span className="font-medium">USDT</span>
                       </div>
                     </div>
@@ -1386,12 +1388,12 @@ export default function CarbonMarket() {
                     <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
                       <h4 className="font-semibold text-purple-800 mb-3 flex items-center">
                         <span className="mr-2">📊</span>
-                        交易详情
+                        {t('carbon.tradingDetails', '交易详情')}
                       </h4>
                       
                       {/* 当前价格 */}
                       <div className="flex justify-between items-center mb-3 p-2 bg-white/60 rounded-lg">
-                        <span className="text-sm text-purple-700">当前市价</span>
+                        <span className="text-sm text-purple-700">{t('carbon.currentPrice', '当前市价')}</span>
                         <span className="font-bold text-purple-900">
                           {Number(currentPrice) > 0 ? currentPrice : testPrice} USDT
                         </span>
@@ -1399,7 +1401,7 @@ export default function CarbonMarket() {
 
                       {/* 参考价格 */}
                       <div className="flex justify-between items-center mb-3 p-2 bg-white/60 rounded-lg">
-                        <span className="text-sm text-purple-700">🔮 参考价格</span>
+                        <span className="text-sm text-purple-700">🔮 {t('carbon.referencePrice', '参考价格')}</span>
                         <span className="font-bold text-purple-900">
                           {Number(referencePrice) > 0 ? referencePrice : testPrice} USDT
                         </span>
@@ -1408,13 +1410,13 @@ export default function CarbonMarket() {
                       {/* 手续费信息 */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                          <span className="text-sm text-purple-700">手续费</span>
+                          <span className="text-sm text-purple-700">{t('carbon.tradingFee', '手续费')}</span>
                           <span className="font-medium text-purple-900">
                             {swapEstimate ? parseFloat(swapEstimate.fee).toFixed(6) : '0.000000'} {orderType === 'buy' ? 'CARB' : 'USDT'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                          <span className="text-sm text-purple-700">价格影响</span>
+                          <span className="text-sm text-purple-700">{t('carbon.priceImpact', '价格影响')}</span>
                           <span className="font-medium text-purple-900">
                             {swapEstimate ? parseFloat(swapEstimate.priceImpact).toFixed(4) : '0.0000'}%
                           </span>
@@ -1424,13 +1426,13 @@ export default function CarbonMarket() {
                         {orderType === 'buy' && usdtToCarbonPriceImpact && (
                           <>
                             <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                              <span className="text-sm text-purple-700">💹 兑换后价格</span>
+                              <span className="text-sm text-purple-700">{t('carbon.priceAfterSwap', '💹 兑换后价格')}</span>
                               <span className="font-semibold text-purple-900">
                                 {usdtToCarbonPriceImpact.newPrice} USDT
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                              <span className="text-sm text-purple-700">🔮 与参考价偏差</span>
+                              <span className="text-sm text-purple-700">{t('carbon.deviationFromRef', '🔮 与参考价偏差')}</span>
                               <span className={`font-semibold ${usdtToCarbonPriceImpact.isDeviated ? 'text-red-600' : 'text-green-600'}`}>
                                 {usdtToCarbonPriceImpact.deviation}%
                               </span>
@@ -1441,13 +1443,13 @@ export default function CarbonMarket() {
                         {orderType === 'sell' && carbonToUsdtPriceImpact && (
                           <>
                             <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                              <span className="text-sm text-purple-700">💹 兑换后价格</span>
+                              <span className="text-sm text-purple-700">{t('carbon.priceAfterSwap', '💹 兑换后价格')}</span>
                               <span className="font-semibold text-purple-900">
                                 {carbonToUsdtPriceImpact.newPrice} USDT
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                              <span className="text-sm text-purple-700">🔮 与参考价偏差</span>
+                              <span className="text-sm text-purple-700">{t('carbon.deviationFromRef', '🔮 与参考价偏差')}</span>
                               <span className={`font-semibold ${carbonToUsdtPriceImpact.isDeviated ? 'text-red-600' : 'text-green-600'}`}>
                                 {carbonToUsdtPriceImpact.deviation}%
                               </span>
@@ -1457,7 +1459,7 @@ export default function CarbonMarket() {
                         
                         <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                           <span className="text-sm text-purple-700">
-                            {orderType === 'buy' ? '付出USDT' : '付出碳币'}
+                            {orderType === 'buy' ? t('carbon.payUsdt', '付出USDT') : t('carbon.payCarbon', '付出碳币')}
                           </span>
                           <span className="font-medium text-purple-900">
                             {orderType === 'buy' 
@@ -1468,7 +1470,7 @@ export default function CarbonMarket() {
                         </div>
                         <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                           <span className="text-sm text-purple-700">
-                            {orderType === 'buy' ? '获得碳币' : '获得USDT'}
+                            {orderType === 'buy' ? t('carbon.receiveCarbon', '获得碳币') : t('carbon.receiveUsdt', '获得USDT')}
                           </span>
                           <span className="font-medium text-purple-900">
                             {orderType === 'buy' 
@@ -1484,7 +1486,7 @@ export default function CarbonMarket() {
                         <div className="flex items-center justify-center mt-3 p-2 bg-blue-100 rounded-lg">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
                           <span className="text-sm text-blue-700">
-                            {isCalculating ? '正在换算...' : '正在计算手续费...'}
+                            {isCalculating ? t('carbon.calculating', '正在换算...') : t('carbon.calculatingFees', '正在计算手续费...')}
                           </span>
                         </div>
                       )}
@@ -1513,37 +1515,37 @@ export default function CarbonMarket() {
                       {isWritePending || isLiquidityPoolPending ? (
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          交易中...
+                          {t('carbon.trading', '交易中...')}
                         </div>
                       ) : isApprovingCarbon ? (
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          授权碳币中...
+                          {t('carbon.approvingCarbon', '授权碳币中...')}
                         </div>
                       ) : isApprovingUsdt ? (
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          授权USDT中...
+                          {t('carbon.approvingUsdt', '授权USDT中...')}
                         </div>
                       ) : isCalculating || isEstimating ? (
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          计算中...
+                          {t('carbon.calculating', '计算中...')}
                         </div>
                       ) : (orderType === 'buy' && usdtToCarbonPriceImpact?.isDeviated === true) ? (
                         <div className="flex items-center justify-center">
                           <span className="mr-2">⚠️</span>
-                          价格偏离过大 ({usdtToCarbonPriceImpact.deviation}%)
+                          {t('carbon.priceDeviationTooHigh', '价格偏离过大')} ({usdtToCarbonPriceImpact.deviation}%)
                         </div>
                       ) : (orderType === 'sell' && carbonToUsdtPriceImpact?.isDeviated === true) ? (
                         <div className="flex items-center justify-center">
                           <span className="mr-2">⚠️</span>
-                          价格偏离过大 ({carbonToUsdtPriceImpact.deviation}%)
+                          {t('carbon.priceDeviationTooHigh', '价格偏离过大')} ({carbonToUsdtPriceImpact.deviation}%)
                         </div>
                       ) : (
                         <div className="flex items-center justify-center">
                           <span className="mr-2">{orderType === 'buy' ? '📈' : '📉'}</span>
-                          {orderType === 'buy' ? '市价买入' : '市价卖出'}
+                          {orderType === 'buy' ? t('carbon.marketBuy', '市价买入') : t('carbon.marketSell', '市价卖出')}
                         </div>
                       )}
                     </button>
@@ -1565,7 +1567,7 @@ export default function CarbonMarket() {
                         min="0"
                       />
                       <div className="text-sm text-gray-500 mt-1">
-                        可用碳币: {carbonBalance}
+                        {t('carbon.available', '可用')} CARB: {formatTokenAmount(carbonBalanceRaw)}
                       </div>
                     </div>
 
@@ -1602,7 +1604,7 @@ export default function CarbonMarket() {
                         min="1"
                       />
                       <div className="text-sm text-gray-500 mt-1">
-                        参考价格: {Number(referencePrice) > 0 ? referencePrice : testPrice} USDT
+                        {t('carbon.referencePrice', '参考价格')}: {Number(referencePrice) > 0 ? referencePrice : testPrice} USDT
                       </div>
                       
                     </div>
@@ -1611,27 +1613,27 @@ export default function CarbonMarket() {
                       <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
                         <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
                           <span className="mr-2">📊</span>
-                          订单详情
+                          {t('carbon.orderDetails', '订单详情')}
                         </h4>
                         {/* 订单详情内容 */}
                         <div className="space-y-2">
                           {/* 订单类型 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">订单类型</span>
+                            <span className="text-sm text-blue-700">{t('carbon.orderType', '订单类型')}</span>
                             <span className="font-medium text-blue-900">
-                              {orderType === 'buy' ? '📈 限价买单' : '📉 限价卖单'}
+                              {orderType === 'buy' ? t('carbon.limitBuyOrder', '📈 限价买单') : t('carbon.limitSellOrder', '📉 限价卖单')}
                             </span>
                           </div>
                           {/* 代币数量 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">代币数量</span>
+                            <span className="text-sm text-blue-700">{t('carbon.tokenAmount', '代币数量')}</span>
                             <span className="font-medium text-blue-900">
                               {limitAmount || '0.000000'} CARB
                             </span>
                           </div>
                           {/* 限价 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">限价</span>
+                            <span className="text-sm text-blue-700">{t('carbon.limitPrice', '限价')}</span>
                             <span className="font-medium text-blue-900">
                               {limitPrice || '0.00'} USDT
                             </span>
@@ -1639,29 +1641,29 @@ export default function CarbonMarket() {
                           {/* 价格调整提醒 */}
                           {limitPrice && limitPrice.includes('.') && (
                             <div className="flex justify-between items-center p-2 bg-orange-100 rounded-lg border border-orange-300">
-                              <span className="text-sm text-orange-700">⚠️ 价格调整提醒</span>
+                              <span className="text-sm text-orange-700">{t('carbon.priceAdjustmentReminder', '⚠️ 价格调整提醒')}</span>
                               <span className="text-xs text-orange-600 font-medium">
-                                小数部分将被自动去除
+                                {t('carbon.decimalWillBeRemoved', '小数部分将被自动去除')}
                               </span>
                             </div>
                           )}
                           {/* 当前市价 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">当前市价</span>
+                            <span className="text-sm text-blue-700">{t('carbon.currentPrice', '当前市价')}</span>
                             <span className="font-medium text-blue-900">
                               {Number(currentPrice) > 0 ? currentPrice : testPrice} USDT
                             </span>
                           </div>
                           {/* 预言机参考价格 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">🔮 参考价格</span>
+                            <span className="text-sm text-blue-700">🔮 {t('carbon.referencePrice', '参考价格')}</span>
                             <span className="font-medium text-blue-900">
                               {Number(referencePrice) > 0 ? referencePrice : testPrice} USDT
                             </span>
                           </div>
                           {/* 价格差异（相对于参考价格） */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">价格差异</span>
+                            <span className="text-sm text-blue-700">{t('carbon.priceDifference', '价格差异')}</span>
                             <span className={`font-medium ${
                               limitPrice && limitAmount
                                 ? (Number(limitPrice) > Number(referencePrice) ? 'text-red-600' : 'text-green-600')
@@ -1674,7 +1676,7 @@ export default function CarbonMarket() {
                           </div>
                           {/* 交易金额 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                            <span className="text-sm text-blue-700">交易金额</span>
+                            <span className="text-sm text-blue-700">{t('carbon.tradeAmount', '交易金额')}</span>
                             <span className="font-medium text-blue-900">
                               {(Number(limitAmount || 0) * Number(limitPrice || 0)).toFixed(2)} USDT
                             </span>
@@ -1682,7 +1684,7 @@ export default function CarbonMarket() {
                           {/* 挂单费 */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">
-                              挂单费 ({feeRates ? Number(feeRates.limitOrderFee) / 100 : 0.5}%)
+                              {t('carbon.listingFee', '挂单费')} ({feeRates ? Number(feeRates.limitOrderFee) / 100 : 0.5}%)
                             </span>
                             <span className="font-medium text-blue-900">
                               {((Number(limitAmount || 0) * Number(limitPrice || 0) * (feeRates ? Number(feeRates.limitOrderFee) : 50)) / 10000).toFixed(4)} USDT
@@ -1690,16 +1692,16 @@ export default function CarbonMarket() {
                           </div>
                           {/* 总计 */}
                           <div className="flex justify-between items-center p-2 bg-blue-100 rounded-lg border border-blue-300">
-                            <span className="text-sm font-semibold text-blue-800">总计</span>
+                            <span className="text-sm font-semibold text-blue-800">{t('carbon.total', '总计')}</span>
                             <span className="font-bold text-blue-900">
                               {(Number(limitAmount || 0) * Number(limitPrice || 0) * (1 + (feeRates ? Number(feeRates.limitOrderFee) : 50) / 10000)).toFixed(4)} USDT
                             </span>
                           </div>
                           {/* 订单状态 */}
                           <div className="flex justify-between items-center p-2 bg-blue-100 rounded-lg border border-blue-300">
-                            <span className="text-sm font-semibold text-blue-800">订单状态</span>
+                            <span className="text-sm font-semibold text-blue-800">{t('carbon.orderStatus', '订单状态')}</span>
                             <span className="font-bold text-blue-900">
-                              {limitAmount && limitPrice ? '🟡 待创建' : '⚪ 未填写'}
+                              {limitAmount && limitPrice ? t('carbon.orderStatusPending', '🟡 待创建') : t('carbon.orderStatusUnfilled', '⚪ 未填写')}
                             </span>
                           </div>
                         </div>
@@ -1710,14 +1712,14 @@ export default function CarbonMarket() {
                         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
                           <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
                             <span className="mr-2">🔐</span>
-                            授权状态
+                            {t('carbon.authorizationStatus', '授权状态')}
                           </h4>
                           <div className="space-y-3">
                             {/* 买单授权状态 */}
                             {orderType === 'buy' && (
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">USDT授权状态</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.usdtAuthStatus', 'USDT授权状态')}</span>
                                   <span className={`font-medium ${
                                     usdtApproval.checkApprovalNeeded(
                                       (Number(limitAmount) * Number(limitPrice) * 1.01).toString(), 
@@ -1727,17 +1729,17 @@ export default function CarbonMarket() {
                                     {usdtApproval.checkApprovalNeeded(
                                       (Number(limitAmount) * Number(limitPrice) * 1.01).toString(), 
                                       18
-                                    ) ? '❌ 需要授权' : '✅ 已授权'}
+                                    ) ? t('carbon.needAuth', '❌ 需要授权') : t('carbon.authorized', '✅ 已授权')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">USDT余额</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.usdtBalance', 'USDT余额')}</span>
                                   <span className="font-medium text-yellow-900">
                                     {userBalances.usdtBalance} USDT
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">需要USDT</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.needUsdt', '需要USDT')}</span>
                                   <span className="font-medium text-yellow-900">
                                     {(Number(limitAmount) * Number(limitPrice) * (1 + (feeRates ? Number(feeRates.limitOrderFee) : 50) / 10000)).toFixed(4)} USDT
                                   </span>
@@ -1749,27 +1751,27 @@ export default function CarbonMarket() {
                             {orderType === 'sell' && (
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">碳币授权状态</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.carbonAuthStatus', '碳币授权状态')}</span>
                                   <span className={`font-medium ${
                                     carbonApproval.checkApprovalNeeded(limitAmount, 18) ? 'text-red-600' : 'text-green-600'
                                   }`}>
-                                    {carbonApproval.checkApprovalNeeded(limitAmount, 18) ? '❌ 需要授权' : '✅ 已授权'}
+                                    {carbonApproval.checkApprovalNeeded(limitAmount, 18) ? t('carbon.needAuth', '❌ 需要授权') : t('carbon.authorized', '✅ 已授权')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">碳币余额</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.carbonBalance', '碳币余额')}</span>
                                   <span className="font-medium text-yellow-900">
                                     {carbonBalance} CARB
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">需要碳币</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.needCarbon', '需要碳币')}</span>
                                   <span className="font-medium text-yellow-900">
                                     {limitAmount} CARB
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">USDT授权状态（挂单费）</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.usdtAuthForFee', 'USDT授权状态（挂单费）')}</span>
                                   <span className={`font-medium ${
                                     usdtApproval.checkApprovalNeeded(
                                       ((Number(limitAmount) * Number(limitPrice) * (feeRates ? Number(feeRates.limitOrderFee) : 50)) / 10000).toString(), 
@@ -1779,17 +1781,17 @@ export default function CarbonMarket() {
                                     {usdtApproval.checkApprovalNeeded(
                                       ((Number(limitAmount) * Number(limitPrice) * (feeRates ? Number(feeRates.limitOrderFee) : 50)) / 10000).toString(), 
                                       18
-                                    ) ? '❌ 需要授权' : '✅ 已授权'}
+                                    ) ? t('carbon.needAuth', '❌ 需要授权') : t('carbon.authorized', '✅ 已授权')}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">USDT余额</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.usdtBalance', 'USDT余额')}</span>
                                   <span className="font-medium text-yellow-900">
                                     {userBalances.usdtBalance} USDT
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-                                  <span className="text-sm text-yellow-700">需要USDT（挂单费）</span>
+                                  <span className="text-sm text-yellow-700">{t('carbon.needUsdtForFee', '需要USDT（挂单费）')}</span>
                                   <span className="font-medium text-yellow-900">
                                     {((Number(limitAmount) * Number(limitPrice) * (feeRates ? Number(feeRates.limitOrderFee) : 50)) / 10000).toFixed(4)} USDT
                                   </span>
@@ -1827,10 +1829,10 @@ export default function CarbonMarket() {
                               {isApprovingUsdt ? (
                                 <div className="flex items-center justify-center">
                                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                  授权USDT中...
+                                  {t('carbon.approvingUsdt', '授权USDT中...')}
                                 </div>
                               ) : (
-                                '🔐 授权USDT'
+                                t('carbon.approveUsdt', '🔐 授权USDT')
                               )}
                             </button>
                           )}
@@ -1858,10 +1860,10 @@ export default function CarbonMarket() {
                                   {isApprovingCarbon ? (
                                     <div className="flex items-center justify-center">
                                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                      授权碳币中...
+                                      {t('carbon.approvingCarbon', '授权碳币中...')}
                                     </div>
                                   ) : (
-                                    '🔐 授权碳币'
+                                    t('carbon.approveCarbon', '🔐 授权碳币')
                                   )}
                                 </button>
                               )}
@@ -1889,10 +1891,10 @@ export default function CarbonMarket() {
                                   {isApprovingUsdt ? (
                                     <div className="flex items-center justify-center">
                                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                      授权USDT中...
+                                      {t('carbon.approvingUsdt', '授权USDT中...')}
                                     </div>
                                   ) : (
-                                    '🔐 授权USDT（挂单费）'
+                                    t('carbon.approveUsdtForFee', '🔐 授权USDT（挂单费）')
                                   )}
                                 </button>
                               )}
@@ -1923,9 +1925,9 @@ export default function CarbonMarket() {
                           : 'bg-red-500 hover:bg-red-600 disabled:bg-gray-400'
                       }`}
                     >
-                      {isWritePending ? '创建中...' : 
-                       isApprovingCarbon ? '授权碳币中...' :
-                       isApprovingUsdt ? '授权USDT中...' :
+                                             {isWritePending ? t('carbon.creating', '创建中...') : 
+                         isApprovingCarbon ? t('carbon.approvingCarbon', '授权碳币中...') :
+                         isApprovingUsdt ? t('carbon.approvingUsdt', '授权USDT中...') :
                        (!!limitAmount && !!limitPrice && (
                          (orderType === 'buy' && usdtApproval.checkApprovalNeeded(
                            (Number(limitAmount) * Number(limitPrice) * 1.01).toString(), 
@@ -1938,8 +1940,8 @@ export default function CarbonMarket() {
                              18
                            )
                          ))
-                       )) ? '请先授权' :
-                       orderType === 'buy' ? '创建买单' : '创建卖单'}
+                       )) ? t('carbon.pleaseApproveFirst', '请先授权') :
+                       orderType === 'buy' ? t('carbon.createBuyOrder', '创建买单') : t('carbon.createSellOrder', '创建卖单')}
                     </button>
                   </div>
                 )}
@@ -1954,8 +1956,8 @@ export default function CarbonMarket() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                   <span className="text-2xl">📈</span>
-                  AMM市价波动图表
-                  <span className="text-sm text-gray-500 ml-2">24小时走势</span>
+                  {t('carbon.ammPriceChart', 'AMM市价波动图表')}
+                  <span className="text-sm text-gray-500 ml-2">{t('carbon.24hourTrend', '24小时走势')}</span>
                 </h2>
                 
                 {/* 数据源切换按钮 */}
@@ -1967,19 +1969,19 @@ export default function CarbonMarket() {
                         ? 'bg-blue-500 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-800'
                     }`}
-                  >
-                    🎲 模拟数据
-                  </button>
-                  <button
-                    onClick={() => setUseRealData(true)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                      useRealData
-                        ? 'bg-green-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                  >
-                    🔗 真实数据
-                  </button>
+                                      >
+                      {t('carbon.simulatedData', '🎲 模拟数据')}
+                    </button>
+                    <button
+                      onClick={() => setUseRealData(true)}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                        useRealData
+                          ? 'bg-green-500 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      {t('carbon.realData', '🔗 真实数据')}
+                    </button>
                 </div>
               </div>
               
@@ -1989,7 +1991,7 @@ export default function CarbonMarket() {
                   <div className="text-center">
                     <div className="text-blue-600 text-xs font-medium mb-1 flex items-center justify-center gap-1">
                       {useRealData ? '🔗' : '🎲'}
-                      当前价格
+                      {t('carbon.current', '当前价格')}
                     </div>
                     <div className="text-blue-800 font-bold text-lg">
                       {Number(currentPrice) > 0 ? currentPrice : testPrice}
@@ -2000,7 +2002,7 @@ export default function CarbonMarket() {
                 
                 <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-3 border border-green-200">
                   <div className="text-center">
-                    <div className="text-green-600 text-xs font-medium mb-1">24h最高</div>
+                    <div className="text-green-600 text-xs font-medium mb-1">{t('carbon.24hHigh', '24h最高')}</div>
                     <div className="text-green-800 font-bold text-lg">
                       {priceHistory.length > 0 
                         ? Math.max(...priceHistory.map(p => p.price)).toFixed(2)
@@ -2013,7 +2015,7 @@ export default function CarbonMarket() {
                 
                 <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-3 border border-red-200">
                   <div className="text-center">
-                    <div className="text-red-600 text-xs font-medium mb-1">24h最低</div>
+                    <div className="text-red-600 text-xs font-medium mb-1">{t('carbon.24hLow', '24h最低')}</div>
                     <div className="text-red-800 font-bold text-lg">
                       {priceHistory.length > 0 
                         ? Math.min(...priceHistory.map(p => p.price)).toFixed(2)
@@ -2026,7 +2028,7 @@ export default function CarbonMarket() {
                 
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 border border-purple-200">
                   <div className="text-center">
-                    <div className="text-purple-600 text-xs font-medium mb-1">24h成交量</div>
+                    <div className="text-purple-600 text-xs font-medium mb-1">{t('carbon.24hVolume', '24h成交量')}</div>
                     <div className="text-purple-800 font-bold text-lg">
                       {priceHistory.length > 0 
                         ? (priceHistory.reduce((sum, p) => sum + p.volume, 0) / 1000).toFixed(1) + 'K'
@@ -2249,7 +2251,7 @@ export default function CarbonMarket() {
                   <div className="absolute bottom-0 left-16 right-0 flex justify-between text-xs text-gray-400 px-2">
                     {candlestickData.length > 0 && [0, Math.floor(candlestickData.length / 4), Math.floor(candlestickData.length / 2), Math.floor(candlestickData.length * 3 / 4), candlestickData.length - 1].map(i => (
                       <span key={i}>
-                        {candlestickData[i] ? new Date(candlestickData[i].timestamp).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit' }) : ''}
+                        {candlestickData[i] ? new Date(candlestickData[i].timestamp).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit' }) : ''}
                       </span>
                     ))}
                   </div>
@@ -2276,8 +2278,8 @@ export default function CarbonMarket() {
                     <span>{useRealData ? '🔗' : '🎲'}</span>
                     <span>
                       {useRealData 
-                        ? `区块链数据 (${candlestickData.length}根K线)` 
-                        : '模拟数据'
+                        ? `${t('carbon.blockchainDataPrefix', '区块链数据')} (${candlestickData.length}${t('carbon.klinesUnit', '根K线')})`
+                        : t('carbon.simulatedDataLabel', '模拟数据')
                       }
                     </span>
                   </div>
@@ -2290,8 +2292,8 @@ export default function CarbonMarket() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                   <span className="text-2xl">📊</span>
-                  限价单订单分布
-                  <span className="text-sm text-gray-500 ml-2">买卖盘深度</span>
+                  {t('carbon.limitOrderDistribution', '限价单订单分布')}
+                  <span className="text-sm text-gray-500 ml-2">{t('carbon.orderBookDepth', '买卖盘深度')}</span>
                 </h2>
                 
                 {/* 订单簿数据源切换按钮 */}
@@ -2303,19 +2305,19 @@ export default function CarbonMarket() {
                         ? 'bg-blue-500 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-800'
                     }`}
-                  >
-                    🎲 模拟订单
-                  </button>
-                  <button
-                    onClick={() => setUseRealOrderBook(true)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                      useRealOrderBook
-                        ? 'bg-green-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                  >
-                    🔗 真实订单
-                  </button>
+                                      >
+                      {t('carbon.simulatedOrders', '🎲 模拟订单')}
+                    </button>
+                    <button
+                      onClick={() => setUseRealOrderBook(true)}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                        useRealOrderBook
+                          ? 'bg-green-500 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      {t('carbon.realOrders', '🔗 真实订单')}
+                    </button>
                 </div>
               </div>
               
@@ -2325,7 +2327,7 @@ export default function CarbonMarket() {
                   <div className="text-center">
                     <div className="text-green-600 text-xs font-medium mb-1 flex items-center justify-center gap-1">
                       {useRealOrderBook ? '🔗' : '🎲'}
-                      平均买价
+                      {t('carbon.averageBuyPrice', '平均买价')}
                     </div>
                     <div className="text-green-800 font-bold text-lg">
                       {(useRealOrderBook ? realOrderBookData : orderBookData).averageBuyPrice.toFixed(2)}
@@ -2338,7 +2340,7 @@ export default function CarbonMarket() {
                   <div className="text-center">
                     <div className="text-red-600 text-xs font-medium mb-1 flex items-center justify-center gap-1">
                       {useRealOrderBook ? '🔗' : '🎲'}
-                      平均卖价
+                      {t('carbon.averageSellPrice', '平均卖价')}
                     </div>
                     <div className="text-red-800 font-bold text-lg">
                       {(useRealOrderBook ? realOrderBookData : orderBookData).averageSellPrice.toFixed(2)}
@@ -2351,7 +2353,7 @@ export default function CarbonMarket() {
                   <div className="text-center">
                     <div className="text-yellow-600 text-xs font-medium mb-1 flex items-center justify-center gap-1">
                       {useRealOrderBook ? '🔗' : '🎲'}
-                      价格差价
+                      {t('carbon.priceSpread', '价格差价')}
                     </div>
                     <div className="text-yellow-800 font-bold text-lg">
                       {(useRealOrderBook ? realOrderBookData : orderBookData).priceSpread.toFixed(2)}
@@ -2364,7 +2366,7 @@ export default function CarbonMarket() {
                   <div className="text-center">
                     <div className="text-purple-600 text-xs font-medium mb-1 flex items-center justify-center gap-1">
                       {useRealOrderBook ? '🔗' : '🎲'}
-                      市场均价
+                      {t('carbon.marketAveragePrice', '市场均价')}
                     </div>
                     <div className="text-purple-800 font-bold text-lg">
                       {(() => {
@@ -2391,9 +2393,9 @@ export default function CarbonMarket() {
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
                   <h3 className="text-green-800 font-semibold mb-3 flex items-center gap-2">
                     <span className="text-lg">📈</span>
-                    买单深度
+                    {t('carbon.buyOrderDepth', '买单深度')}
                     <span className="text-xs text-green-600 ml-auto">
-                      {useRealOrderBook ? '🔗 真实' : '🎲 模拟'}
+                      {useRealOrderBook ? t('carbon.real', '🔗 真实') : t('carbon.simulated', '🎲 模拟')}
                     </span>
                   </h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -2422,7 +2424,7 @@ export default function CarbonMarket() {
                     })}
                     {(useRealOrderBook ? realOrderBookData : orderBookData).buyOrders.length === 0 && (
                       <div className="text-center text-gray-500 text-sm py-4">
-                        {useRealOrderBook ? '暂无真实买单' : '暂无模拟买单'}
+                        {useRealOrderBook ? t('carbon.noRealBuyOrders', '暂无真实买单') : t('carbon.noSimulatedBuyOrders', '暂无模拟买单')}
                       </div>
                     )}
                   </div>
@@ -2432,9 +2434,9 @@ export default function CarbonMarket() {
                 <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-4 border border-red-200">
                   <h3 className="text-red-800 font-semibold mb-3 flex items-center gap-2">
                     <span className="text-lg">📉</span>
-                    卖单深度
+                    {t('carbon.sellOrderDepth', '卖单深度')}
                     <span className="text-xs text-red-600 ml-auto">
-                      {useRealOrderBook ? '🔗 真实' : '🎲 模拟'}
+                      {useRealOrderBook ? t('carbon.real', '🔗 真实') : t('carbon.simulated', '🎲 模拟')}
                     </span>
                   </h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -2463,7 +2465,7 @@ export default function CarbonMarket() {
                     })}
                     {(useRealOrderBook ? realOrderBookData : orderBookData).sellOrders.length === 0 && (
                       <div className="text-center text-gray-500 text-sm py-4">
-                        {useRealOrderBook ? '暂无真实卖单' : '暂无模拟卖单'}
+                        {useRealOrderBook ? t('carbon.noRealSellOrders', '暂无真实卖单') : t('carbon.noSimulatedSellOrders', '暂无模拟卖单')}
                       </div>
                     )}
                   </div>
@@ -2473,9 +2475,9 @@ export default function CarbonMarket() {
               {/* 市场流动性分布图（简化版） */}
               <div className="mt-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
                 <h3 className="text-gray-800 font-semibold mb-3 text-center flex items-center justify-center gap-2">
-                  市场流动性分布
+                  {t('carbon.marketLiquidityDistribution', '市场流动性分布')}
                   <span className="text-xs text-gray-600">
-                    ({useRealOrderBook ? '🔗 真实数据' : '🎲 模拟数据'})
+                    ({useRealOrderBook ? t('carbon.realData', '🔗 真实数据') : t('carbon.simulatedData', '🎲 模拟数据')})
                   </span>
                 </h3>
                 <div className="flex items-center justify-center">
@@ -2544,7 +2546,7 @@ export default function CarbonMarket() {
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 bg-green-500 rounded-full"></div>
                       <span className="text-sm text-gray-700">
-                        买单资金 ({(() => {
+                        {t('carbon.buyOrderFunds', '买单资金')} ({(() => {
                           const currentData = useRealOrderBook ? realOrderBookData : orderBookData
                           const buyVolume = currentData.buyOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
                           return buyVolume > 1000000 
@@ -2558,7 +2560,7 @@ export default function CarbonMarket() {
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 bg-red-500 rounded-full"></div>
                       <span className="text-sm text-gray-700">
-                        卖单资金 ({(() => {
+                        {t('carbon.sellOrderFunds', '卖单资金')} ({(() => {
                           const currentData = useRealOrderBook ? realOrderBookData : orderBookData
                           const sellVolume = currentData.sellOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
                           return sellVolume > 1000000 

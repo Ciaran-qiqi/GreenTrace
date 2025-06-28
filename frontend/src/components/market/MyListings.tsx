@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
 
 import { formatCarbonReduction, formatContractTimestamp, formatContractPrice } from '@/utils/formatUtils';
+import { useTranslation } from '@/hooks/useI18n';
 import { useMyListings, MyListing } from '@/hooks/market/useMyListings';
 import { useUserSalesHistory } from '@/hooks/market/useUserSalesHistory';
 import { useEventBasedCancelHistory } from '@/hooks/market/useEventBasedCancelHistory';
@@ -22,6 +23,7 @@ interface MyListingsProps {
  * @param className 样式类名
  */
 export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
+  const { t, language } = useTranslation();
   const { address } = useAccount();
   const [selectedTab, setSelectedTab] = useState<'active' | 'sold' | 'cancelled'>('active');
   const [selectedListing, setSelectedListing] = useState<MyListing | null>(null);
@@ -68,10 +70,10 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
   // 获取状态文本
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return '挂单中';
-      case 'sold': return '已售出';
-      case 'cancelled': return '已取消';
-      default: return '未知';
+      case 'active': return t('myListings.status.active', '挂单中');
+      case 'sold': return t('myListings.status.sold', '已售出');
+      case 'cancelled': return t('myListings.status.cancelled', '已取消');
+      default: return t('myListings.status.unknown', '未知');
     }
   };
 
@@ -89,17 +91,17 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
 
   // 标签数据（包含销售历史）
   const tabs = [
-    { key: 'active', label: '挂单中', count: allListings.filter(l => l.status === 'active').length },
-    { key: 'sold', label: '已售出', count: allListings.filter(l => l.status === 'sold').length },
-    { key: 'cancelled', label: '已取消', count: allListings.filter(l => l.status === 'cancelled').length },
+    { key: 'active', label: t('myListings.tabs.active', '挂单中'), count: allListings.filter(l => l.status === 'active').length },
+    { key: 'sold', label: t('myListings.tabs.sold', '已售出'), count: allListings.filter(l => l.status === 'sold').length },
+    { key: 'cancelled', label: t('myListings.tabs.cancelled', '已取消'), count: allListings.filter(l => l.status === 'cancelled').length },
   ] as const;
 
   if (!address) {
     return (
       <div className={`text-center py-12 ${className}`}>
         <div className="text-gray-400 text-4xl mb-4">🔐</div>
-        <div className="text-gray-600 text-lg mb-2">请连接钱包</div>
-        <div className="text-gray-500 text-sm">连接钱包后查看您的NFT挂单</div>
+        <div className="text-gray-600 text-lg mb-2">{t('myListings.connectWallet', '请连接钱包')}</div>
+        <div className="text-gray-500 text-sm">{t('myListings.connectWalletDesc', '连接钱包后查看您的NFT挂单')}</div>
       </div>
     );
   }
@@ -109,7 +111,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
       {/* 头部 */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold text-gray-800">我的挂单</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{t('myListings.myListings', '我的挂单')}</h2>
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -120,7 +122,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
               disabled={isLoading || salesLoading || cancelLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {(isLoading || salesLoading || cancelLoading) ? '刷新中...' : '🔄 快速刷新'}
+              {(isLoading || salesLoading || cancelLoading) ? t('common.loading', '刷新中...') : t('myListings.quickRefresh', '🔄 快速刷新')}
             </button>
             <div className="relative group">
               <button
@@ -140,7 +142,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                     disabled={isLoading || salesLoading || cancelLoading}
                     className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded disabled:opacity-50"
                   >
-                    🔄 强制全量刷新
+                    {t('myListings.forceRefresh', '🔄 强制全量刷新')}
                   </button>
                   <button
                     onClick={() => {
@@ -150,20 +152,20 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                     disabled={isLoading || salesLoading || cancelLoading}
                     className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
                   >
-                    🗑️ 清理所有缓存
+                    {t('myListings.clearCache', '🗑️ 清理所有缓存')}
                   </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <p className="text-gray-600">管理您在市场上的NFT挂单</p>
+        <p className="text-gray-600">{t('myListings.manageDescription', '管理您在市场上的NFT挂单')}</p>
         
         {/* 错误提示 */}
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="text-red-600 text-sm">
-              ❌ {error}
+              ❌ {t('myListings.error', '错误')}: {error}
             </div>
           </div>
         )}
@@ -173,21 +175,21 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
           {selectedTab === 'active' && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="text-blue-700 text-sm">
-                🏪 这里显示您正在挂单中的NFT。您可以随时调整价格或取消挂单。
+                {t('myListings.activeTabTip', '🏪 这里显示您正在挂单中的NFT。您可以随时调整价格或取消挂单。')}
               </div>
             </div>
           )}
           {selectedTab === 'sold' && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="text-green-700 text-sm">
-                💰 这里显示您已成功售出的NFT记录。恭喜您的环保故事得到了认可！
+                {t('myListings.soldTabTip', '💰 这里显示您已成功售出的NFT记录。恭喜您的环保故事得到了认可！')}
               </div>
             </div>
           )}
           {selectedTab === 'cancelled' && (
             <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div className="text-gray-700 text-sm">
-                ❌ 这里显示您已取消的挂单记录。取消的NFT仍归您所有，可以重新挂单。
+                {t('myListings.cancelledTabTip', '❌ 这里显示您已取消的挂单记录。取消的NFT仍归您所有，可以重新挂单。')}
               </div>
             </div>
           )}
@@ -225,11 +227,11 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
             {selectedTab === 'active' ? '🏪' : selectedTab === 'sold' ? '✅' : '❌'}
           </div>
           <div className="text-gray-600 text-lg mb-2">
-            {selectedTab === 'active' ? '暂无挂单' : 
-             selectedTab === 'sold' ? '暂无售出记录' : '暂无取消记录'}
+            {selectedTab === 'active' ? t('myListings.empty.active', '暂无挂单') : 
+             selectedTab === 'sold' ? t('myListings.empty.sold', '暂无售出记录') : t('myListings.empty.cancelled', '暂无取消记录')}
           </div>
           <div className="text-gray-500 text-sm">
-            {selectedTab === 'active' ? '前往资产页面挂单您的NFT' : '相关记录将在此显示'}
+            {selectedTab === 'active' ? t('myListings.empty.activeDesc', '前往资产页面挂单您的NFT') : t('myListings.empty.otherDesc', '相关记录将在此显示')}
           </div>
         </div>
       ) : (
@@ -250,30 +252,30 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                     <div>
-                      <div className="text-gray-500 mb-1">Token ID</div>
+                      <div className="text-gray-500 mb-1">{t('myListings.tokenId', 'Token ID')}</div>
                       <div className="font-medium">#{listing.tokenId}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500 mb-1">碳减排量</div>
+                      <div className="text-gray-500 mb-1">{t('myListings.carbonReduction', '碳减排量')}</div>
                       <div className="font-medium">{formatCarbonReduction(listing.carbonReduction)}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500 mb-1">挂单时间</div>
-                      <div className="font-medium">{formatContractTimestamp(listing.listedAt)}</div>
+                      <div className="text-gray-500 mb-1">{t('myListings.listedAt', '挂单时间')}</div>
+                      <div className="font-medium">{formatContractTimestamp(listing.listedAt, language)}</div>
                     </div>
                   </div>
 
                   {/* 价格信息 */}
                   <div className="mt-4 flex items-center gap-6">
                     <div>
-                      <div className="text-gray-500 text-sm mb-1">当前价格</div>
+                      <div className="text-gray-500 text-sm mb-1">{t('myListings.currentPrice', '当前价格')}</div>
                       <div className="text-xl font-bold text-green-600">
                         {formatContractPrice(listing.currentPrice)} CARB
                       </div>
                     </div>
                     {listing.currentPrice !== listing.originalPrice && (
                       <div>
-                        <div className="text-gray-500 text-sm mb-1">原价格</div>
+                        <div className="text-gray-500 text-sm mb-1">{t('myListings.originalPrice', '原价格')}</div>
                         <div className="text-gray-600 line-through">
                           {formatContractPrice(listing.originalPrice)} CARB
                         </div>
@@ -281,8 +283,8 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                     )}
                     {(listing.views || listing.offers) && (
                       <div className="text-sm text-gray-500">
-                        {listing.views && <div>👀 {listing.views} 次浏览</div>}
-                        {listing.offers && <div>💰 {listing.offers} 个报价</div>}
+                        {listing.views && <div>👀 {listing.views} {t('myListings.views', '次浏览')}</div>}
+                        {listing.offers && <div>💰 {listing.offers} {t('myListings.offers', '个报价')}</div>}
                       </div>
                     )}
                   </div>
@@ -296,14 +298,14 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                       disabled={isLoading}
                       className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                     >
-                      调整价格
+                      {t('myListings.updatePrice', '调整价格')}
                     </button>
                     <button
                       onClick={() => handleCancelListing(listing)}
                       disabled={isLoading}
                       className="px-4 py-2 border border-red-300 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
-                      取消挂单
+                      {t('myListings.cancelListing', '取消挂单')}
                     </button>
                   </div>
                 )}

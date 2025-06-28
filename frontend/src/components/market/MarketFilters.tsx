@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { formatContractPrice } from '@/utils/formatUtils';
+import { useTranslation } from '@/hooks/useI18n';
 import { MarketSearch } from './MarketSearch';
 
 // 筛选条件接口
@@ -27,6 +28,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
   totalCount = 0,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   // 筛选状态
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]); // 提高默认上限
@@ -70,12 +72,12 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
 
   // 排序选项
   const sortOptions = [
-    { value: 'time_desc', label: '🕒 最新上架', icon: '⬇️' },
-    { value: 'time_asc', label: '🕰️ 最早上架', icon: '⬆️' },
-    { value: 'price_asc', label: '💰 价格从低到高', icon: '📈' },
-    { value: 'price_desc', label: '💸 价格从高到低', icon: '📉' },
-    { value: 'carbon_desc', label: '🌱 碳减排量从高到低', icon: '🔽' },
-    { value: 'carbon_asc', label: '🌿 碳减排量从低到高', icon: '🔼' },
+    { value: 'time_desc', label: `🕒 ${t('nftMarket.filters.sort.timeDesc')}`, icon: '⬇️' },
+    { value: 'time_asc', label: `🕰️ ${t('nftMarket.filters.sort.timeAsc')}`, icon: '⬆️' },
+    { value: 'price_asc', label: `💰 ${t('nftMarket.filters.sort.priceAsc')}`, icon: '📈' },
+    { value: 'price_desc', label: `💸 ${t('nftMarket.filters.sort.priceDesc')}`, icon: '📉' },
+    { value: 'carbon_desc', label: `🌱 ${t('nftMarket.filters.sort.carbonDesc')}`, icon: '🔽' },
+    { value: 'carbon_asc', label: `🌿 ${t('nftMarket.filters.sort.carbonAsc')}`, icon: '🔼' },
   ];
 
   return (
@@ -86,16 +88,16 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xl">🔍</span>
-              <h3 className="text-lg font-semibold text-gray-800">筛选和排序</h3>
+              <h3 className="text-lg font-semibold text-gray-800">{t('nftMarket.filters.title')}</h3>
             </div>
             {totalCount > 0 && (
               <span className="px-3 py-1 bg-white/70 backdrop-blur-sm text-gray-700 rounded-full text-sm font-medium">
-                {isLoading ? '加载中...' : `${totalCount} 个结果`}
+                {isLoading ? t('common.loading') : `${totalCount} ${t('nftMarket.results')}`}
               </span>
             )}
             {hasActiveFilters && (
               <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                已应用筛选
+                {t('nftMarket.filters.applied')}
               </span>
             )}
           </div>
@@ -106,14 +108,14 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                 onClick={resetFilters}
                 className="px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
-                🗑️ 重置
+                🗑️ {t('nftMarket.resetAll')}
               </button>
             )}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="px-3 py-1.5 text-sm text-gray-600 hover:bg-white/50 rounded-lg transition-colors"
             >
-              {isExpanded ? '⬆️ 收起' : '⬇️ 展开'}
+              {isExpanded ? `⬆️ ${t('nftMarket.collapse')}` : `⬇️ ${t('nftMarket.expand')}`}
             </button>
           </div>
         </div>
@@ -122,7 +124,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
       {/* 快速排序栏（始终显示） */}
       <div className="px-6 py-3 bg-gray-50/50">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-gray-600 font-medium mr-2">快速排序:</span>
+          <span className="text-sm text-gray-600 font-medium mr-2">{t('nftMarket.filters.quickSort')}</span>
           {sortOptions.map((option) => (
             <button
               key={option.value}
@@ -148,12 +150,12 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
              <div className="space-y-2">
                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                  <span>🔍</span>
-                 <span>搜索NFT</span>
+                 <span>{t('nftMarket.filters.searchNFT')}</span>
                </label>
                <MarketSearch
                  value={searchTerm}
                  onChange={setSearchTerm}
-                 placeholder="输入NFT标题、描述或Token ID..."
+                 placeholder={t('nftMarket.filters.searchPlaceholder')}
                />
              </div>
 
@@ -161,7 +163,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <span>💰</span>
-                <span>价格范围 (CARB)</span>
+                <span>{t('nftMarket.filters.priceRange')}</span>
               </label>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -175,7 +177,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                         setIsPriceFilterActive(value > 0 || priceRange[1] < 10000);
                       }}
                       onFocus={() => setIsPriceFilterActive(true)}
-                      placeholder="最低价"
+                      placeholder={t('nftMarket.filters.minPrice')}
                       min="0"
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
@@ -191,7 +193,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                         setIsPriceFilterActive(priceRange[0] > 0 || value < 10000);
                       }}
                       onFocus={() => setIsPriceFilterActive(true)}
-                      placeholder="最高价"
+                      placeholder={t('nftMarket.filters.maxPrice')}
                       min={priceRange[0]}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
@@ -199,7 +201,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                 </div>
                 <div className="text-xs text-gray-500 flex justify-between">
                   <span>{formatContractPrice(priceRange[0].toString())} CARB</span>
-                  <span>{priceRange[1] >= 10000 ? '不限' : `${formatContractPrice(priceRange[1].toString())} CARB`}</span>
+                  <span>{priceRange[1] >= 10000 ? t('nftMarket.filters.unlimited') : `${formatContractPrice(priceRange[1].toString())} CARB`}</span>
                 </div>
               </div>
             </div>
@@ -208,20 +210,20 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <span>🌱</span>
-                <span>最低碳减排量 (tCO₂e)</span>
+                <span>{t('nftMarket.filters.carbonReduction')}</span>
               </label>
               <div className="space-y-3">
                 <input
                   type="number"
                   value={minCarbonReduction}
                   onChange={(e) => setMinCarbonReduction(Math.max(0, parseInt(e.target.value) || 0))}
-                  placeholder="例如: 50"
+                  placeholder={t('nftMarket.filters.carbonExample')}
                   min="0"
                   step="1"
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 <div className="text-xs text-gray-500">
-                  筛选碳减排量 ≥ {minCarbonReduction} tCO₂e 的NFT
+                  {t('nftMarket.filters.carbonHelp').replace('{amount}', minCarbonReduction.toString())}
                 </div>
               </div>
             </div>
@@ -230,7 +232,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
           {/* 预设快捷筛选 */}
           <div className="mt-6 pt-4 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-medium text-gray-700">⚡ 快捷筛选:</span>
+              <span className="text-sm font-medium text-gray-700">⚡ {t('nftMarket.filters.quickFilters')}</span>
             </div>
             <div className="flex flex-wrap gap-2">
                              <button
@@ -241,7 +243,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                  }}
                  className="px-3 py-2 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
                >
-                 💎 低价优质 (≤50 CARB)
+                 💎 {t('nftMarket.filters.budget')}
                </button>
                <button
                  onClick={() => {
@@ -250,7 +252,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                  }}
                  className="px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors"
                >
-                 🌟 高碳减排 (≥100 tCO₂e)
+                 🌟 {t('nftMarket.filters.highCarbon')}
                </button>
                <button
                  onClick={() => {
@@ -260,7 +262,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                  }}
                  className="px-3 py-2 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors"
                >
-                 🔥 中档新品 (100-500 CARB)
+                 🔥 {t('nftMarket.filters.midRange')}
                </button>
                <button
                  onClick={() => {
@@ -270,7 +272,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                  }}
                  className="px-3 py-2 text-sm bg-yellow-50 text-yellow-700 hover:bg-yellow-100 rounded-lg transition-colors"
                >
-                 👑 高端精品 (≥500 CARB)
+                 👑 {t('nftMarket.filters.premium')}
                </button>
             </div>
           </div>

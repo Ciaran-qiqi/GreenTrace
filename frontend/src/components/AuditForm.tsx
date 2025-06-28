@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useSubmitMintAudit } from '@/contracts/hooks/useGreenTrace';
 import { formatFeeAmount, parseTokenAmount, isValidTokenAmount } from '@/utils/tokenUtils';
 import { formatTimestamp } from '@/utils/timeUtils';
+import { useTranslation } from '@/hooks/useI18n';
 
 import { AuditRequest } from '@/hooks/useAuditData';
 
@@ -20,6 +21,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
   onClose, 
   onComplete 
 }) => {
+  const { t } = useTranslation();
   const [auditedCarbonReduction, setAuditedCarbonReduction] = useState(request.carbonReduction);
   const [auditReason, setAuditReason] = useState('');
   const [isApproved, setIsApproved] = useState(true);
@@ -36,13 +38,13 @@ export const AuditForm: React.FC<AuditFormProps> = ({
   // 处理提交审计
   const handleSubmitAudit = async () => {
     if (!auditReason.trim()) {
-      alert('请填写审计意见');
+      alert(t('audit.form.fillAuditComment', '请填写审计意见'));
       return;
     }
 
     // 验证碳减排量输入格式
     if (isApproved && !isValidTokenAmount(auditedCarbonReduction)) {
-      alert('请输入有效的碳减排量（支持最多18位小数）');
+      alert(t('audit.form.validCarbonReduction', '请输入有效的碳减排量（支持最多18位小数）'));
       return;
     }
 
@@ -65,7 +67,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
       );
     } catch (err) {
       console.error('提交审计失败:', err);
-      alert(`提交审计失败: ${err instanceof Error ? err.message : '未知错误'}`);
+      alert(`${t('audit.form.submitFailed', '提交审计失败')}: ${err instanceof Error ? err.message : t('audit.form.unknownError', '未知错误')}`);
     }
   };
 
@@ -104,10 +106,10 @@ export const AuditForm: React.FC<AuditFormProps> = ({
             </div>
             <div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                审计NFT申请 #{request.tokenId}
+                {t('audit.form.auditNFTApplication', '审计NFT申请')} #{request.tokenId}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                请仔细审核申请内容并给出专业意见
+                {t('audit.form.reviewCarefully', '请仔细审核申请内容并给出专业意见')}
               </p>
             </div>
           </div>
@@ -130,12 +132,12 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center mr-2">
                   <span className="text-white text-xs">📄</span>
                 </span>
-                申请详情
+                {t('audit.form.applicationDetails', '申请详情')}
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    申请标题
+                    {t('audit.form.applicationTitle', '申请标题')}
                   </label>
                   <div className="p-4 bg-white/70 rounded-lg border border-gray-200/50 shadow-inner backdrop-blur-sm">
                     <div className="font-medium text-gray-800">{request.title}</div>
@@ -143,7 +145,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    申请人地址
+                    {t('audit.form.applicantAddress', '申请人地址')}
                   </label>
                   <div className="p-4 bg-white/70 rounded-lg border border-gray-200/50 shadow-inner backdrop-blur-sm">
                     <div className="font-mono text-sm text-gray-800 break-all">{request.requester}</div>
@@ -151,7 +153,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    环保行为详情
+                    {t('audit.form.environmentalDetails', '环保行为详情')}
                   </label>
                   <div className="p-4 bg-gradient-to-br from-white/80 to-gray-50/50 rounded-lg border border-gray-200/50 shadow-inner backdrop-blur-sm min-h-[120px]">
                     <div className="text-gray-700 leading-relaxed">{request.details}</div>
@@ -159,7 +161,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    申请碳减排量
+                    {t('audit.form.appliedCarbonReduction', '申请碳减排量')}
                   </label>
                   <div className="p-4 bg-gradient-to-br from-green-50/80 to-emerald-50/50 rounded-lg border border-green-200/50 shadow-inner backdrop-blur-sm">
                     <div className="font-semibold text-green-800 flex items-center">
@@ -170,7 +172,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    支付费用
+                    {t('audit.form.paymentFee', '支付费用')}
                   </label>
                   <div className="p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-lg border border-blue-200/50 shadow-inner backdrop-blur-sm">
                     <div className="font-semibold text-blue-800 flex items-center">
@@ -181,7 +183,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    申请时间
+                    {t('audit.form.applicationTime', '申请时间')}
                   </label>
                   <div className="p-4 bg-white/70 rounded-lg border border-gray-200/50 shadow-inner backdrop-blur-sm">
                     <div className="font-medium text-gray-800 flex items-center">
@@ -192,7 +194,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    交易哈希
+                    {t('audit.form.transactionHash', '交易哈希')}
                   </label>
                   <div className="p-4 bg-white/70 rounded-lg border border-gray-200/50 shadow-inner backdrop-blur-sm">
                     <div className="font-mono text-xs text-gray-600 break-all">{request.transactionHash}</div>
@@ -207,13 +209,13 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 <span className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center mr-2">
                   <span className="text-white text-xs">⚖️</span>
                 </span>
-                审计决策
+                {t('audit.form.auditDecision', '审计决策')}
               </h3>
               
               {/* 审计决定 */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  审计决定 *
+                  {t('audit.form.auditDecision', '审计决定')} *
                 </label>
                 <div className="flex gap-4">
                   <label className="flex items-center cursor-pointer">
@@ -231,7 +233,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                     }`}>
                       <span className="text-2xl mr-3">✅</span>
                       <span className={`font-medium ${isApproved ? 'text-green-700' : 'text-gray-600'}`}>
-                        通过审计
+                        {t('audit.form.approveAudit', '通过审计')}
                       </span>
                     </div>
                   </label>
@@ -250,7 +252,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                     }`}>
                       <span className="text-2xl mr-3">❌</span>
                       <span className={`font-medium ${!isApproved ? 'text-red-700' : 'text-gray-600'}`}>
-                        拒绝申请
+                        {t('audit.form.rejectApplication', '拒绝申请')}
                       </span>
                     </div>
                   </label>
@@ -260,7 +262,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
               {/* 审计后的碳减排量 */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  审计后的碳减排量 (tCO₂e) *
+                  {t('audit.form.auditedCarbonReduction', '审计后的碳减排量')} (tCO₂e) *
                 </label>
                 <div className="relative">
                   <input
@@ -271,7 +273,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                     onChange={(e) => setAuditedCarbonReduction(e.target.value)}
                     disabled={!isApproved}
                     className="w-full p-4 bg-white/80 border border-gray-200/50 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 disabled:bg-gray-100/50 disabled:text-gray-400 shadow-inner backdrop-blur-sm transition-all duration-200"
-                    placeholder="输入审计确认的碳减排量"
+                    placeholder={t('audit.form.enterAuditedCarbonReduction', '输入审计确认的碳减排量')}
                   />
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
                     <span className="text-lg">🌱</span>
@@ -283,8 +285,8 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                     : 'text-gray-500 bg-gray-50/70'
                 }`}>
                   {isApproved 
-                    ? '💡 输入经过审计验证的实际碳减排量（支持小数，最多18位精度）'
-                    : '🚫 拒绝申请时自动设为0'
+                    ? t('audit.form.approvedTip', '💡 输入经过审计验证的实际碳减排量（支持小数，最多18位精度）')
+                    : t('audit.form.rejectedTip', '🚫 拒绝申请时自动设为0')
                   }
                 </p>
               </div>
@@ -292,7 +294,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
               {/* 审计意见 */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  审计意见 *
+                  {t('audit.form.auditComment', '审计意见')} *
                 </label>
                 <textarea
                   value={auditReason}
@@ -300,12 +302,12 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                   rows={5}
                   className="w-full p-4 bg-white/80 border border-gray-200/50 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 shadow-inner backdrop-blur-sm transition-all duration-200 resize-none"
                   placeholder={isApproved 
-                    ? "请详细说明审计过程、验证结果和通过原因..." 
-                    : "请详细说明拒绝原因和改进建议..."
+                    ? t('audit.form.approvedPlaceholder', '请详细说明审计过程、验证结果和通过原因...')
+                    : t('audit.form.rejectedPlaceholder', '请详细说明拒绝原因和改进建议...')
                   }
                 />
                 <p className="text-xs text-gray-500 mt-2 px-3">
-                  💬 请提供详细的审计意见，帮助申请人了解审核结果
+                  💬 {t('audit.form.commentTip', '请提供详细的审计意见，帮助申请人了解审核结果')}
                 </p>
               </div>
 
@@ -315,7 +317,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                   <div className="flex items-start">
                     <span className="text-2xl mr-3">⚠️</span>
                     <div>
-                      <h4 className="font-medium text-red-800 mb-1">审计提交失败</h4>
+                      <h4 className="font-medium text-red-800 mb-1">{t('audit.form.submitFailed', '审计提交失败')}</h4>
                       <p className="text-red-600 text-sm">{error.message}</p>
                     </div>
                   </div>
@@ -329,7 +331,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                   disabled={isPending || isConfirming}
                   className="px-6 py-3 bg-white/80 border border-gray-300/50 text-gray-700 rounded-xl hover:bg-gray-50/80 disabled:opacity-50 transition-all duration-200 backdrop-blur-sm shadow-sm"
                 >
-                  取消
+                  {t('audit.form.cancel', '取消')}
                 </button>
                 <button
                   onClick={handleSubmitAudit}
@@ -339,12 +341,12 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                   {isPending || isConfirming ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
-                      {isPending ? '发送交易中...' : '确认交易中...'}
+                      {isPending ? t('audit.form.sendingTransaction', '发送交易中...') : t('audit.form.confirmingTransaction', '确认交易中...')}
                     </>
                   ) : (
                     <>
                       <span className="text-lg">📝</span>
-                      提交审计结果
+                      {t('audit.form.submitAuditResult', '提交审计结果')}
                     </>
                   )}
                 </button>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { Navigation } from '@/components/Navigation';
 import { useAdminData } from '@/hooks/useAdminData';
+import { useI18n } from '@/hooks/useI18n';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { AuditorManagement } from '@/components/admin/AuditorManagement';
 import { AuditDataManagement } from '@/components/admin/AuditDataManagement';
@@ -21,42 +22,6 @@ interface AdminMenuConfig {
   requireOwner?: boolean;
 }
 
-const adminMenuItems: AdminMenuConfig[] = [
-  {
-    id: 'dashboard',
-    label: '仪表板',
-    icon: '📊',
-    description: '系统概览',
-  },
-  {
-    id: 'auditors',
-    label: '审计员管理',
-    icon: '👥',
-    description: '管理审计员',
-    requireOwner: true,
-  },
-  {
-    id: 'audits',
-    label: '审计数据',
-    icon: '📋',
-    description: '审计记录',
-  },
-  {
-    id: 'contracts',
-    label: '业务合约',
-    icon: '🏢',
-    description: '合约管理',
-    requireOwner: true,
-  },
-  {
-    id: 'settings',
-    label: '系统设置',
-    icon: '⚙️',
-    description: '系统配置',
-    requireOwner: true,
-  },
-];
-
 /**
  * 管理中心主页面
  * @description GreenTrace管理中心，提供系统管理和数据分析功能
@@ -64,6 +29,7 @@ const adminMenuItems: AdminMenuConfig[] = [
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
   const [activeMenu, setActiveMenu] = useState<AdminMenuItem>('dashboard');
+  const { t } = useI18n();
   
   // 获取管理数据
   const {
@@ -74,18 +40,55 @@ export default function AdminPage() {
     refetchAll,
   } = useAdminData();
 
+  // 构建菜单项配置
+  const adminMenuItems: AdminMenuConfig[] = [
+    {
+      id: 'dashboard',
+      label: t('admin.menuItems.dashboard.label'),
+      icon: t('admin.menuItems.dashboard.icon'),
+      description: t('admin.menuItems.dashboard.description'),
+    },
+    {
+      id: 'auditors',
+      label: t('admin.menuItems.auditors.label'),
+      icon: t('admin.menuItems.auditors.icon'),
+      description: t('admin.menuItems.auditors.description'),
+      requireOwner: true,
+    },
+    {
+      id: 'audits',
+      label: t('admin.menuItems.audits.label'),
+      icon: t('admin.menuItems.audits.icon'),
+      description: t('admin.menuItems.audits.description'),
+    },
+    {
+      id: 'contracts',
+      label: t('admin.menuItems.contracts.label'),
+      icon: t('admin.menuItems.contracts.icon'),
+      description: t('admin.menuItems.contracts.description'),
+      requireOwner: true,
+    },
+    {
+      id: 'settings',
+      label: t('admin.menuItems.settings.label'),
+      icon: t('admin.menuItems.settings.icon'),
+      description: t('admin.menuItems.settings.description'),
+      requireOwner: true,
+    },
+  ];
+
   // 未连接钱包
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
           <div className="text-6xl mb-4">🔐</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">管理中心</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('admin.title')}</h2>
           <p className="text-gray-600 mb-6">
-            请连接钱包以访问GreenTrace管理中心
+            {t('admin.connectWalletDesc')}
           </p>
           <div className="text-sm text-gray-500">
-            需要管理员或审计员权限
+            {t('admin.permissionRequired')}
           </div>
         </div>
       </div>
@@ -110,6 +113,14 @@ export default function AdminPage() {
     }
   };
 
+  // 获取权限显示文本
+  const getPermissionText = () => {
+    if (isOwner && isAuditor) return t('admin.userInfo.adminAndAuditor');
+    if (isOwner) return t('admin.userInfo.admin');
+    if (isAuditor) return t('admin.userInfo.auditor');
+    return t('admin.userInfo.visitor');
+  };
+
   return (
     <>
       <Navigation />
@@ -121,9 +132,9 @@ export default function AdminPage() {
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🛡️</span>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-800">GreenTrace 管理中心</h1>
+                  <h1 className="text-3xl font-bold text-gray-800">{t('admin.title')}</h1>
                   <p className="text-gray-600">
-                    系统管理和数据分析平台
+                    {t('admin.subtitle')}
                   </p>
                 </div>
               </div>
@@ -136,13 +147,13 @@ export default function AdminPage() {
                       <div className="text-xl font-bold text-orange-600">
                         {systemStats.pendingMintRequests + systemStats.pendingCashRequests}
                       </div>
-                      <div className="text-xs text-gray-600">待审核</div>
+                      <div className="text-xs text-gray-600">{t('admin.stats.pendingReview')}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-xl font-bold text-green-600">
                         {systemStats.totalMintRequests + systemStats.totalCashRequests}
                       </div>
-                      <div className="text-xs text-gray-600">总申请</div>
+                      <div className="text-xs text-gray-600">{t('admin.stats.totalApplications')}</div>
                     </div>
                   </div>
                 )}
@@ -152,7 +163,7 @@ export default function AdminPage() {
                   onClick={refetchAll}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  🔄 刷新数据
+                  {t('admin.stats.refreshData')}
                 </button>
               </div>
             </div>
@@ -166,7 +177,7 @@ export default function AdminPage() {
                     {address?.slice(0, 6)}...{address?.slice(-4)}
                   </span>
                   <span className="ml-4 text-sm text-gray-600">
-                    权限: {isOwner && isAuditor ? '管理员 + 审计员' : isOwner ? '管理员' : isAuditor ? '审计员' : '访客'}
+                    {t('admin.userInfo.permissions')} {getPermissionText()}
                   </span>
                 </div>
               </div>
@@ -204,7 +215,7 @@ export default function AdminPage() {
                             ? 'bg-yellow-300 text-yellow-800' 
                             : 'bg-yellow-100 text-yellow-700'
                         }`}>
-                          管理员
+                          {t('admin.menuItems.auditors.requireOwner')}
                         </span>
                       )}
                     </div>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useTradeHistory, TradeRecord } from '@/hooks/market/useTradeHistory';
 import { formatContractPrice, formatCarbonReduction } from '@/utils/formatUtils';
 import { formatContractTimestamp } from '@/utils/formatUtils';
+import { useTranslation } from '@/hooks/useI18n';
 
 interface TradeHistoryTableProps {
   tokenId?: string; // 可选：特定NFT的交易历史
@@ -26,6 +27,7 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
   limit = 50,
   className = ''
 }) => {
+  const { t, language } = useTranslation();
   const [sortBy, setSortBy] = useState<'timestamp' | 'price'>('timestamp');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -204,7 +206,7 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {formatContractTimestamp(trade.timestamp)}
+                        {formatContractTimestamp(trade.timestamp, language)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

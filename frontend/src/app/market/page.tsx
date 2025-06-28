@@ -1,11 +1,16 @@
+'use client';
+
 import { Navigation } from '@/components/Navigation';
 import { NFTMarketplace } from '@/components/market/NFTMarketplace';
+import { useTranslation } from '@/hooks/useI18n';
 
 /**
  * NFT交易市场页面
  * @description 提供NFT的展示、搜索、购买等功能
  */
 export default function MarketPage() {
+  const { t } = useTranslation();
+
   return (
     <>
       <Navigation />
@@ -15,10 +20,10 @@ export default function MarketPage() {
             {/* 页面标题区域 */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                🏪 绿色NFT交易市场
+                🏪 {t('nftMarket.title')}
               </h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                发现和购买独特的环保故事NFT，用碳币参与绿色经济生态
+                {t('nftMarket.subtitle')}
               </p>
             </div>
 

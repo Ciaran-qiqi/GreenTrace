@@ -49,11 +49,12 @@ export function formatCarbonReduction(carbonReductionStr: string): string {
  * 格式化智能合约时间戳
  * @description 处理智能合约返回的时间戳，转换为相对时间显示
  * @param timestampStr - 时间戳字符串或BigInt（秒）
- * @returns 相对时间字符串，如 "3分钟前"
+ * @param locale - 语言代码，默认为'zh'（中文）
+ * @returns 相对时间字符串，如 "3分钟前" 或 "3 minutes ago"
  */
-export function formatContractTimestamp(timestampStr: string | number | bigint): string {
+export function formatContractTimestamp(timestampStr: string | number | bigint, locale: string = 'zh'): string {
   if (!timestampStr) {
-    return '未知时间';
+    return locale === 'zh' ? '未知时间' : 'Unknown time';
   }
 
   try {
@@ -71,7 +72,7 @@ export function formatContractTimestamp(timestampStr: string | number | bigint):
     
     if (isNaN(timestamp) || timestamp <= 0) {
       console.warn('无效时间戳:', { timestampStr, parsed: timestamp });
-      return '未知时间';
+      return locale === 'zh' ? '未知时间' : 'Unknown time';
     }
 
     // 智能合约时间戳通常是秒，但JavaScript时间戳是毫秒
@@ -102,9 +103,10 @@ export function formatContractTimestamp(timestampStr: string | number | bigint):
       // 检查日期是否有效
       if (isNaN(date.getTime())) {
         console.warn('无效日期:', { timestamp, timestampMs, timestampStr });
-        return '时间格式错误';
+        return locale === 'zh' ? '时间格式错误' : 'Invalid time format';
       }
-      return `${date.toLocaleDateString('zh-CN')} ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+      const localeCode = locale === 'zh' ? 'zh-CN' : 'en-US';
+      return `${date.toLocaleDateString(localeCode)} ${date.toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}`;
     }
 
     const diffSeconds = Math.floor(diffMs / 1000);
@@ -115,28 +117,29 @@ export function formatContractTimestamp(timestampStr: string | number | bigint):
     if (diffDays > 30) {
       // 超过30天，显示具体日期
       const date = new Date(timestampMs);
-      return date.toLocaleDateString('zh-CN');
+      const localeCode = locale === 'zh' ? 'zh-CN' : 'en-US';
+      return date.toLocaleDateString(localeCode);
     } else if (diffDays > 0) {
-      return `${diffDays}天前`;
+      return locale === 'zh' ? `${diffDays}天前` : `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
     } else if (diffHours > 0) {
-      return `${diffHours}小时前`;
+      return locale === 'zh' ? `${diffHours}小时前` : `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     } else if (diffMinutes > 0) {
-      return `${diffMinutes}分钟前`;
+      return locale === 'zh' ? `${diffMinutes}分钟前` : `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
     } else if (diffSeconds > 0) {
-      return `${diffSeconds}秒前`;
+      return locale === 'zh' ? `${diffSeconds}秒前` : `${diffSeconds} second${diffSeconds > 1 ? 's' : ''} ago`;
     } else {
-      return '刚刚';
+      return locale === 'zh' ? '刚刚' : 'Just now';
     }
   } catch (error) {
     console.error('格式化时间戳失败:', error, { timestampStr });
-    return '时间格式错误';
+    return locale === 'zh' ? '时间格式错误' : 'Time format error';
   }
 }
 
 /**
  * 格式化智能合约价格
- * @description 处理智能合约返回的价格（整数格式，无精度）
- * @param priceStr - 价格字符串或BigInt（整数格式，如88表示88 USDT）
+ * @description 处理智能合约返回的价格（wei格式，需要转换为正常单位）
+ * @param priceStr - 价格字符串或BigInt（wei格式，如3000000000000000000000表示3000 CARB）
  * @returns 格式化后的价格字符串
  */
 export function formatContractPrice(priceStr: string | bigint): string {
@@ -146,23 +149,40 @@ export function formatContractPrice(priceStr: string | bigint): string {
 
   try {
     let priceValue: number;
+    
     if (typeof priceStr === 'bigint') {
-      priceValue = Number(priceStr);
+      // BigInt类型，使用formatEther转换
+      priceValue = Number(formatEther(priceStr));
     } else {
-      // 如果已经是小数格式，直接返回
-      if (priceStr.includes('.') && priceStr.length < 20) {
-        const price = parseFloat(priceStr);
-        return price.toFixed(2);
+      const price = parseFloat(priceStr);
+      
+      // 如果数值过大（超过1e15），认为是wei格式，需要转换
+      if (price > 1e15) {
+        priceValue = price / 1e18;
+      } else {
+        // 如果已经是正常格式，直接使用
+        priceValue = price;
       }
-      priceValue = parseFloat(priceStr);
     }
 
-    // 价格是整数格式，直接使用
     if (isNaN(priceValue) || priceValue <= 0) {
       return '0.00';
     }
 
-    return priceValue.toFixed(2);
+    // 根据价格大小选择合适的显示格式
+    if (priceValue < 0.01) {
+      // 小于0.01，显示更多小数位
+      return priceValue.toFixed(6).replace(/\.?0+$/, '');
+    } else if (priceValue < 1) {
+      // 小于1，显示4位小数
+      return priceValue.toFixed(4).replace(/\.?0+$/, '');
+    } else if (priceValue < 1000) {
+      // 1-1000，显示2位小数
+      return priceValue.toFixed(2).replace(/\.?0+$/, '');
+    } else {
+      // 大于1000，显示整数并用千分位分隔符
+      return Math.round(priceValue).toLocaleString();
+    }
   } catch (error) {
     console.error('格式化价格失败:', error, { priceStr });
     return '价格格式错误';
@@ -183,4 +203,186 @@ export function debugLogData(label: string, data: unknown): void {
     length: String(data).length,
     parsed: isNaN(Number(data)) ? 'NaN' : Number(data),
   });
+}
+
+/**
+ * 格式化区块链代币数量（支持wei转换）
+ * @description 处理区块链上的代币数量，自动识别是否需要wei转换
+ * @param amountStr - 代币数量字符串或BigInt（可能是wei格式）
+ * @param decimals - 小数位数，默认18位
+ * @param maxDecimals - 最大显示小数位数，默认2位
+ * @returns 格式化后的数量字符串
+ */
+export function formatTokenAmount(amountStr: string | bigint | undefined, decimals: number = 18, maxDecimals: number = 2): string {
+  if (!amountStr || amountStr === '0' || amountStr === BigInt(0)) {
+    return '0';
+  }
+
+  try {
+    let amount: number;
+
+    if (typeof amountStr === 'bigint') {
+      // BigInt类型，使用formatEther转换
+      amount = Number(formatEther(amountStr));
+    } else if (typeof amountStr === 'string') {
+      // 如果字符串包含科学计数法，先处理
+      if (amountStr.includes('e') || amountStr.includes('E')) {
+        const numValue = parseFloat(amountStr);
+        if (!isNaN(numValue)) {
+          amount = numValue;
+        } else {
+          return '0';
+        }
+      } else {
+        const amountValue = parseFloat(amountStr);
+        
+        // 如果数值过大（超过1e15），认为是wei格式，需要转换
+        if (amountValue > 1e15) {
+          amount = amountValue / Math.pow(10, decimals);
+        } else {
+          amount = amountValue;
+        }
+      }
+    } else {
+      return '0';
+    }
+
+    if (isNaN(amount) || amount < 0) {
+      return '0';
+    }
+
+    // 根据数量大小选择合适的显示格式
+    if (amount === 0) {
+      return '0';
+    } else if (amount < 0.01) {
+      // 小于0.01，显示更多小数位但避免科学计数法
+      return amount.toFixed(6).replace(/\.?0+$/, '');
+    } else if (amount < 1) {
+      // 小于1，显示2-4位小数
+      return amount.toFixed(4).replace(/\.?0+$/, '');
+    } else if (amount < 1000) {
+      // 1-1000，显示指定的最大小数位数
+      return amount.toFixed(maxDecimals).replace(/\.?0+$/, '');
+    } else if (amount < 1000000) {
+      // 1K-1M，显示K单位
+      return `${(amount / 1000).toFixed(1).replace(/\.?0+$/, '')}K`;
+    } else if (amount < 1000000000) {
+      // 1M-1B，显示M单位
+      return `${(amount / 1000000).toFixed(1).replace(/\.?0+$/, '')}M`;
+    } else {
+      // 超过1B，显示B单位
+      return `${(amount / 1000000000).toFixed(1).replace(/\.?0+$/, '')}B`;
+    }
+  } catch (error) {
+    console.error('格式化代币数量失败:', error, { amountStr });
+    return '格式错误';
+  }
+}
+
+/**
+ * 格式化CARB代币价格（专门用于NFT价格显示）
+ * @description 处理CARB代币价格，确保友好的显示格式
+ * @param priceStr - 价格字符串（wei格式）
+ * @returns 格式化后的价格字符串（不含单位）
+ */
+export function formatCarbonPrice(priceStr: string | bigint): string {
+  if (!priceStr || priceStr === '0' || priceStr === BigInt(0)) {
+    return '0';
+  }
+
+  try {
+    let price: number;
+
+    if (typeof priceStr === 'bigint') {
+      // BigInt类型，使用formatEther转换
+      price = Number(formatEther(priceStr));
+    } else {
+      const priceValue = parseFloat(priceStr);
+      
+      // 如果数值过大（超过1e15），认为是wei格式，需要转换
+      if (priceValue > 1e15) {
+        price = priceValue / 1e18;
+      } else {
+        price = priceValue;
+      }
+    }
+
+    if (isNaN(price) || price < 0) {
+      return '0';
+    }
+
+    // 价格显示格式：保留适当的小数位数
+    if (price === 0) {
+      return '0';
+    } else if (price < 0.001) {
+      // 小于0.001，显示6位小数
+      return price.toFixed(6).replace(/\.?0+$/, '');
+    } else if (price < 1) {
+      // 小于1，显示4位小数
+      return price.toFixed(4).replace(/\.?0+$/, '');
+    } else if (price < 1000) {
+      // 1-1000，显示2位小数
+      return price.toFixed(2).replace(/\.?0+$/, '');
+    } else {
+      // 大于1000，显示整数并用千分位分隔符
+      return Math.round(price).toLocaleString();
+    }
+  } catch (error) {
+    console.error('格式化CARB价格失败:', error, { priceStr });
+    return '格式错误';
+  }
+}
+
+/**
+ * 格式化交易量数据（用于市场统计）
+ * @description 专门用于格式化市场交易量，支持大数值的友好显示
+ * @param volumeStr - 交易量字符串（wei格式）
+ * @returns 格式化后的交易量字符串
+ */
+export function formatTradingVolume(volumeStr: string | bigint): string {
+  if (!volumeStr || volumeStr === '0' || volumeStr === BigInt(0)) {
+    return '0';
+  }
+
+  try {
+    let volume: number;
+
+    if (typeof volumeStr === 'bigint') {
+      // BigInt类型，使用formatEther转换
+      volume = Number(formatEther(volumeStr));
+    } else {
+      const volumeValue = parseFloat(volumeStr);
+      
+      // 如果数值过大（超过1e15），认为是wei格式，需要转换
+      if (volumeValue > 1e15) {
+        volume = volumeValue / 1e18;
+      } else {
+        volume = volumeValue;
+      }
+    }
+
+    if (isNaN(volume) || volume < 0) {
+      return '0';
+    }
+
+    // 交易量显示格式：使用合适的单位
+    if (volume === 0) {
+      return '0';
+    } else if (volume < 1000) {
+      // 小于1000，显示整数
+      return Math.round(volume).toLocaleString();
+    } else if (volume < 1000000) {
+      // 1K-1M，显示K单位
+      return `${(volume / 1000).toFixed(1).replace(/\.?0+$/, '')}K`;
+    } else if (volume < 1000000000) {
+      // 1M-1B，显示M单位
+      return `${(volume / 1000000).toFixed(1).replace(/\.?0+$/, '')}M`;
+    } else {
+      // 超过1B，显示B单位
+      return `${(volume / 1000000000).toFixed(1).replace(/\.?0+$/, '')}B`;
+    }
+  } catch (error) {
+    console.error('格式化交易量失败:', error, { volumeStr });
+    return '格式错误';
+  }
 } 
