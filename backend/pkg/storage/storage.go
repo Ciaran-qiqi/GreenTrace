@@ -5,39 +5,39 @@ import (
 	"sync"
 )
 
-// Storage 定义存储接口
+// Storage defines storage interface
 type Storage interface {
 	Save(priceInfo types.PriceInfo) error
 	GetLatest() *types.PriceInfo
 	GetHistory() []types.PriceInfo
 }
 
-// MemoryStorage 内存存储实现
+// MemoryStorage memory storage implementation
 type MemoryStorage struct {
 	latest  *types.PriceInfo
 	history []types.PriceInfo
 	mu      sync.RWMutex
 }
 
-// NewMemoryStorage 创建新的内存存储实例
+// NewMemoryStorage create new memory storage instance
 func NewMemoryStorage() Storage {
 	return &MemoryStorage{
 		history: make([]types.PriceInfo, 0),
 	}
 }
 
-// Save 保存价格信息到内存
+// Save save price info to memory
 func (ms *MemoryStorage) Save(priceInfo types.PriceInfo) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	// 更新最新价格
+	// Update latest price
 	ms.latest = &priceInfo
 
-	// 添加到历史记录
+	// Add to history
 	ms.history = append(ms.history, priceInfo)
 
-	// 只保留最近30天的数据
+	// Keep only recent 30 days data
 	if len(ms.history) > 30 {
 		ms.history = ms.history[len(ms.history)-30:]
 	}
@@ -45,14 +45,14 @@ func (ms *MemoryStorage) Save(priceInfo types.PriceInfo) error {
 	return nil
 }
 
-// GetLatest 获取最新价格信息
+// GetLatest get latest price info
 func (ms *MemoryStorage) GetLatest() *types.PriceInfo {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 	return ms.latest
 }
 
-// GetHistory 获取历史价格信息
+// GetHistory get historical price info
 func (ms *MemoryStorage) GetHistory() []types.PriceInfo {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()

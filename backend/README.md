@@ -1,54 +1,51 @@
-├── cmd/              # 主程序入口
-│   └── server/      # 服务器入口
-├── pkg/             # 核心功能包
-│   ├── crawler/     # 爬虫逻辑
-│   ├── logger/      # 日志处理
-│   ├── models/      # 数据模型
-│   └── storage/     # 数据存储
-├── data/            # 数据存储目录
-├── logs/            # 日志文件目录
-├── go.mod           # Go 模块定义
-└── go.sum           # 依赖版本锁定
+├── cmd/              # Main program entry
+│   └── server/      # Server entry
+├── pkg/             # Core functionality packages
+│   ├── crawler/     # Crawler logic
+│   ├── logger/      # Logging
+│   ├── models/      # Data models
+│   └── storage/     # Data storage
+├── data/            # Data storage directory
+├── logs/            # Log files directory
+├── go.mod           # Go module definition
+└── go.sum           # Dependency version lock
 
-我们目前有三个 API 端点：
+We currently have three API endpoints:
 
-1. 获取最新价格
+1. Get latest price
 
-* 路径：GET /api/carbon-price
-* 功能：获取最新的碳价格信息
-* 返回：
-* 成功：200 状态码，包含价格信息
-* 失败：404 状态码，错误信息
+* Path: GET /api/carbon-price
+* Function: Get the latest carbon price information
+* Returns:
+* Success: 200 status code with price information
+* Failure: 404 status code with error message
 
-1. 获取历史记录
+2. Get historical records
 
-* 路径：GET /api/carbon-price/history
-* 功能：获取所有历史价格记录
-* 返回：200 状态码，历史价格列表
+* Path: GET /api/carbon-price/history
+* Function: Get all historical price records
+* Returns: 200 status code with historical price list
 
-1. 手动更新价格
+3. Manual price update
 
-* 路径：POST /api/carbon-price/update
-* 功能：手动触发价格更新
-* 返回：
-* 成功：200 状态码，更新后的价格信息
-* 失败：500 状态码，错误信息
+* Path: POST /api/carbon-price/update
+* Function: Manually trigger price update
+* Returns:
+* Success: 200 status code with updated price information
+* Failure: 500 status code with error message
 
-所有 API 都支持跨域访问（CORS），并且都有详细的日志记录。
+All APIs support cross-origin access (CORS) and have detailed logging.
 
-您可以通过以下方式测试这些 API：1. 使用浏览器访问 http://localhost:5000/api/carbon-price
+You can test these APIs in the following ways:
 
-1. 使用 Postman 或其他 API 测试工具
-2. 使用 curl 命令，例如：
+1. Use browser to access http://localhost:5000/api/carbon-price
+2. Use Postman or other API testing tools
+3. Use curl commands, for example:
 
    bash
 
-   Apply to README.md
+   curl http://localhost:5000/api/carbon-price
 
-   Run
+   curl http://localhost:5000/api/carbon-price/history
 
-   **   **curl** http://localhost:5000/api/carbon-price
-
-   **   **curl** http://localhost:5000/api/carbon-price/history
-
-   **   curl -X POST http://localhost:5000/api/carbon-price/update
+   curl -X POST http://localhost:5000/api/carbon-price/update

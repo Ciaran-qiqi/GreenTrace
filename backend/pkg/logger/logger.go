@@ -10,7 +10,7 @@ var (
 	ErrorLogger *log.Logger
 )
 
-// InitLogger 初始化日志记录器
+// InitLogger initialize logger
 func InitLogger() error {
 	InfoLogger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	ErrorLogger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)

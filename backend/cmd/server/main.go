@@ -19,39 +19,39 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// 全局变量
+// Global variables
 var (
 	priceStorage storage.Storage
 	priceMutex   sync.RWMutex
 	lastUpdate   time.Time
-	startTime    time.Time // 记录服务启动时间
+	startTime    time.Time // Service startup time
 
-	// 统计指标
-	apiCalls    int64 // API调用次数
-	updateCount int64 // 更新次数
-	lastError   error // 最后一次错误
-	errorCount  int64 // 错误次数
+	// Statistics metrics
+	apiCalls    int64 // API call count
+	updateCount int64 // Update count
+	lastError   error // Last error
+	errorCount  int64 // Error count
 
-	// 监控指标
-	apiLatency    []time.Duration // API响应时间
+	// Monitoring metrics
+	apiLatency    []time.Duration // API response time
 	latencyMutex  sync.RWMutex
-	maxLatencyLen = 1000 // 保留最近1000次请求的延迟数据
+	maxLatencyLen = 1000 // Keep recent 1000 request latency data
 )
 
-// 更新价格信息
+// Update price information
 func updatePriceInfo() error {
-	logger.InfoLogger.Println("开始更新价格信息...")
+	logger.InfoLogger.Println("Starting price update...")
 	crawler := crawler.NewCarbonCrawler()
 
 	priceInfo, err := crawler.FetchPrice()
 	if err != nil {
-		logger.ErrorLogger.Printf("获取价格信息失败: %v", err)
+		logger.ErrorLogger.Printf("Failed to get price info: %v", err)
 		atomic.AddInt64(&errorCount, 1)
 		lastError = err
 		return err
 	}
 
-	// 转换为 types.PriceInfo
+	// Convert to types.PriceInfo
 	lastUpdated, _ := time.Parse(time.RFC3339, priceInfo.LastUpdated)
 	priceInfoType := types.PriceInfo{
 		Price:         priceInfo.Price,
@@ -62,11 +62,11 @@ func updatePriceInfo() error {
 		LastUpdated:   lastUpdated,
 	}
 
-	// 保存到内存存储
+	// Save to memory storage
 	priceMutex.Lock()
 	if err := priceStorage.Save(priceInfoType); err != nil {
 		priceMutex.Unlock()
-		logger.ErrorLogger.Printf("保存价格信息失败: %v", err)
+		logger.ErrorLogger.Printf("Failed to save price info: %v", err)
 		atomic.AddInt64(&errorCount, 1)
 		lastError = err
 		return err
@@ -75,7 +75,7 @@ func updatePriceInfo() error {
 	priceMutex.Unlock()
 
 	atomic.AddInt64(&updateCount, 1)
-	logger.InfoLogger.Printf("价格信息已更新: 价格=%.2f, 日期=%s, 日涨跌幅=%.2f%%, 月涨跌幅=%.2f%%, 年涨跌幅=%.2f%%",
+	logger.InfoLogger.Printf("Price info updated: price=%.2f, date=%s, daily_change=%.2f%%, monthly_change=%.2f%%, yearly_change=%.2f%%",
 		priceInfo.Price,
 		priceInfo.Date,
 		priceInfo.DailyChange,
@@ -84,7 +84,7 @@ func updatePriceInfo() error {
 	return nil
 }
 
-// 记录API延迟
+// Record API latency
 func recordLatency(duration time.Duration) {
 	latencyMutex.Lock()
 	defer latencyMutex.Unlock()
@@ -95,7 +95,7 @@ func recordLatency(duration time.Duration) {
 	}
 }
 
-// 计算延迟统计
+// Calculate latency statistics
 func calculateLatencyStats() map[string]interface{} {
 	latencyMutex.RLock()
 	defer latencyMutex.RUnlock()
@@ -132,26 +132,26 @@ func calculateLatencyStats() map[string]interface{} {
 }
 
 func main() {
-	// 记录启动时间
+	// Record startup time
 	startTime = time.Now()
-	fmt.Println("=== 服务启动开始 ===")
-	fmt.Printf("Go版本: %s\n", runtime.Version())
-	fmt.Printf("CPU核心数: %d\n", runtime.NumCPU())
+	fmt.Println("=== Service startup begins ===")
+	fmt.Printf("Go version: %s\n", runtime.Version())
+	fmt.Printf("CPU cores: %d\n", runtime.NumCPU())
 
-	// 初始化日志
+	// Initialize logger
 	if err := logger.InitLogger(); err != nil {
-		log.Fatalf("初始化日志失败: %v", err)
+		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 
-	// 初始化内存存储
+	// Initialize memory storage
 	priceStorage = storage.NewMemoryStorage()
-	fmt.Println("存储初始化完成")
+	fmt.Println("Storage initialization completed")
 
-	// 创建Gin路由
-	fmt.Println("正在创建Gin路由...")
+	// Create Gin router
+	fmt.Println("Creating Gin router...")
 	r := gin.Default()
 
-	// 设置CORS
+	// Set CORS
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -163,16 +163,16 @@ func main() {
 		c.Next()
 	})
 
-	// 健康检查接口
+	// Health check endpoint
 	r.GET("/healthz", func(c *gin.Context) {
-		fmt.Println("收到健康检查请求")
+		fmt.Println("Received health check request")
 		c.JSON(200, gin.H{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
 		})
 	})
 
-	// 保留原有的 /health 接口用于内部监控
+	// Keep original /health endpoint for internal monitoring
 	r.GET("/health", func(c *gin.Context) {
 		priceMutex.RLock()
 		latestPrice := priceStorage.GetLatest()
@@ -198,13 +198,13 @@ func main() {
 		})
 	})
 
-	// 监控指标接口
+	// Monitoring metrics endpoint
 	r.GET("/metrics", func(c *gin.Context) {
 		priceMutex.RLock()
 		latestPrice := priceStorage.GetLatest()
 		priceMutex.RUnlock()
 
-		// 获取内存统计
+		// Get memory statistics
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 
@@ -241,22 +241,22 @@ func main() {
 		})
 	})
 
-	// API路由
+	// API routes
 	r.GET("/api/carbon-price", func(c *gin.Context) {
 		start := time.Now()
 		atomic.AddInt64(&apiCalls, 1)
-		logger.InfoLogger.Println("收到获取价格请求")
+		logger.InfoLogger.Println("Received price request")
 		priceMutex.RLock()
 		priceInfo := priceStorage.GetLatest()
 		priceMutex.RUnlock()
 
 		if priceInfo == nil {
-			logger.ErrorLogger.Println("暂无价格信息")
+			logger.ErrorLogger.Println("No price info available")
 			atomic.AddInt64(&errorCount, 1)
-			c.JSON(404, gin.H{"error": "暂无价格信息"})
+			c.JSON(404, gin.H{"error": "No price info available"})
 			return
 		}
-		logger.InfoLogger.Printf("返回价格信息: %+v", priceInfo)
+		logger.InfoLogger.Printf("Returning price info: %+v", priceInfo)
 		c.JSON(200, priceInfo)
 		recordLatency(time.Since(start))
 	})
@@ -264,7 +264,7 @@ func main() {
 	r.GET("/api/carbon-price/history", func(c *gin.Context) {
 		start := time.Now()
 		atomic.AddInt64(&apiCalls, 1)
-		logger.InfoLogger.Println("收到获取历史记录请求")
+		logger.InfoLogger.Println("Received history request")
 		priceMutex.RLock()
 		history := priceStorage.GetHistory()
 		priceMutex.RUnlock()
@@ -275,9 +275,9 @@ func main() {
 	r.POST("/api/carbon-price/update", func(c *gin.Context) {
 		start := time.Now()
 		atomic.AddInt64(&apiCalls, 1)
-		logger.InfoLogger.Println("收到手动更新请求")
+		logger.InfoLogger.Println("Received manual update request")
 		if err := updatePriceInfo(); err != nil {
-			logger.ErrorLogger.Printf("手动更新失败: %v", err)
+			logger.ErrorLogger.Printf("Manual update failed: %v", err)
 			atomic.AddInt64(&errorCount, 1)
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
@@ -285,46 +285,46 @@ func main() {
 		priceMutex.RLock()
 		priceInfo := priceStorage.GetLatest()
 		priceMutex.RUnlock()
-		logger.InfoLogger.Printf("手动更新成功: %+v", priceInfo)
+		logger.InfoLogger.Printf("Manual update successful: %+v", priceInfo)
 		c.JSON(200, gin.H{
-			"message": "价格信息已更新",
+			"message": "Price info updated",
 			"data":    priceInfo,
 		})
 		recordLatency(time.Since(start))
 	})
 
-	// 设置定时任务
-	logger.InfoLogger.Println("正在设置定时任务...")
+	// Set up scheduled tasks
+	logger.InfoLogger.Println("Setting up scheduled tasks...")
 	c := cron.New()
-	// 每12小时执行一次更新（每天0点和12点），注意周末停牌获取不到数据
+	// Update every 12 hours (daily at 0:00 and 12:00), note: no data on weekends
 	_, err := c.AddFunc("0 0,12 * * *", func() {
-		logger.InfoLogger.Println("执行定时更新...")
+		logger.InfoLogger.Println("Executing scheduled update...")
 		if err := updatePriceInfo(); err != nil {
-			logger.ErrorLogger.Printf("定时更新失败: %v", err)
+			logger.ErrorLogger.Printf("Scheduled update failed: %v", err)
 		}
 	})
 	if err != nil {
-		logger.ErrorLogger.Fatalf("设置定时任务失败: %v", err)
+		logger.ErrorLogger.Fatalf("Failed to set up scheduled task: %v", err)
 	}
 	c.Start()
-	logger.InfoLogger.Println("定时任务设置完成")
+	logger.InfoLogger.Println("Scheduled tasks setup completed")
 
-	// 首次运行立即更新一次价格信息
-	logger.InfoLogger.Println("开始首次更新...")
+	// Run initial update immediately
+	logger.InfoLogger.Println("Starting initial update...")
 	if err := updatePriceInfo(); err != nil {
-		logger.ErrorLogger.Printf("首次更新失败: %v", err)
+		logger.ErrorLogger.Printf("Initial update failed: %v", err)
 	}
 
-	// 启动服务器
+	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "10000" // fallback
-		fmt.Println("使用默认端口 10000")
+		fmt.Println("Using default port 10000")
 	} else {
-		fmt.Printf("使用环境变量端口: %s\n", port)
+		fmt.Printf("Using environment variable port: %s\n", port)
 	}
 
-	// 创建一个自定义的 HTTP 服务器
+	// Create custom HTTP server
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + port,
 		Handler:      r,
@@ -333,32 +333,32 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// 在 goroutine 中启动服务器
+	// Start server in goroutine
 	go func() {
-		fmt.Printf("HTTP服务器启动中... 地址: 0.0.0.0:%s\n", port)
+		fmt.Printf("HTTP server starting... Address: 0.0.0.0:%s\n", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("启动服务器失败: %v\n", err)
-			fmt.Printf("错误类型: %T\n", err)
+			fmt.Printf("Failed to start server: %v\n", err)
+			fmt.Printf("Error type: %T\n", err)
 			os.Exit(1)
 		}
 	}()
 
-	// 等待服务器启动
-	fmt.Println("等待服务器启动...")
+	// Wait for server to start
+	fmt.Println("Waiting for server to start...")
 	time.Sleep(1 * time.Second)
 
-	// 测试服务器是否正常启动
+	// Test if server started successfully
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%s/healthz", port))
 	if err != nil {
-		fmt.Printf("服务器启动测试失败: %v\n", err)
+		fmt.Printf("Server startup test failed: %v\n", err)
 	} else {
-		fmt.Printf("服务器启动测试成功: %s\n", resp.Status)
+		fmt.Printf("Server startup test successful: %s\n", resp.Status)
 		resp.Body.Close()
 	}
 
-	fmt.Println("=== 服务启动完成 ===")
-	fmt.Printf("启动耗时: %v\n", time.Since(startTime))
+	fmt.Println("=== Service startup completed ===")
+	fmt.Printf("Startup time: %v\n", time.Since(startTime))
 
-	// 保持主程序运行
+	// Keep main program running
 	select {}
 }

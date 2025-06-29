@@ -1,8 +1,8 @@
-# 数据文件
+# data
 internal/data/*.json
 internal/logs/*.log
 
-# Go 相关
+# Go 
 *.exe
 *.exe~
 *.dll
@@ -12,12 +12,12 @@ internal/logs/*.log
 *.out
 go.work
 
-# IDE 相关
+# IDE 
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# 系统文件
+# system
 .DS_Store
 Thumbs.db 

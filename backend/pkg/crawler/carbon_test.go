@@ -6,16 +6,16 @@ import (
 	"backend/pkg/models"
 )
 
-// TestParsePriceInfo 测试价格信息解析功能
+// TestParsePriceInfo test price info parsing functionality
 func TestParsePriceInfo(t *testing.T) {
-	// 测试用例
+	// Test cases
 	tests := []struct {
 		name     string
 		input    string
 		expected *models.PriceInfo
 	}{
 		{
-			name: "价格上涨测试",
+			name: "Price increase test",
 			input: "EU Carbon Permits increased to 85.23 EUR on January 15, 2024, up 2.5% from yesterday. " +
 				"The price has risen 5.2% this month and is up 15.3% compared to the same time last year.",
 			expected: &models.PriceInfo{
@@ -27,7 +27,7 @@ func TestParsePriceInfo(t *testing.T) {
 			},
 		},
 		{
-			name: "价格下降测试",
+			name: "Price decrease test",
 			input: "EU Carbon Permits decreased to 82.15 EUR on January 15, 2024, down 3.2% from yesterday. " +
 				"The price has fallen 4.1% this month and is down 8.5% compared to the same time last year.",
 			expected: &models.PriceInfo{
@@ -39,72 +39,71 @@ func TestParsePriceInfo(t *testing.T) {
 			},
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 解析价格信息
+			// Parse price info
 			result, err := parsePriceInfo(tt.input)
 			if err != nil {
-				t.Errorf("解析失败: %v", err)
+				t.Errorf("Parsing failed: %v", err)
 				return
 			}
 
-			// 验证价格
+			// Verify price
 			if result.Price != tt.expected.Price {
-				t.Errorf("价格不匹配: 期望 %.2f, 实际 %.2f", tt.expected.Price, result.Price)
+				t.Errorf("Price mismatch: expected %.2f, got %.2f", tt.expected.Price, result.Price)
 			}
 
-			// 验证日期
+			// Verify date
 			if result.Date != tt.expected.Date {
-				t.Errorf("日期不匹配: 期望 %s, 实际 %s", tt.expected.Date, result.Date)
+				t.Errorf("Date mismatch: expected %s, got %s", tt.expected.Date, result.Date)
 			}
 
-			// 验证日涨跌幅
+			// Verify daily change
 			if result.DailyChange != tt.expected.DailyChange {
-				t.Errorf("日涨跌幅不匹配: 期望 %.1f, 实际 %.1f", tt.expected.DailyChange, result.DailyChange)
+				t.Errorf("Daily change mismatch: expected %.1f, got %.1f", tt.expected.DailyChange, result.DailyChange)
 			}
 
-			// 验证月涨跌幅
+			// Verify monthly change
 			if result.MonthlyChange != tt.expected.MonthlyChange {
-				t.Errorf("月涨跌幅不匹配: 期望 %.1f, 实际 %.1f", tt.expected.MonthlyChange, result.MonthlyChange)
+				t.Errorf("Monthly change mismatch: expected %.1f, got %.1f", tt.expected.MonthlyChange, result.MonthlyChange)
 			}
 
-			// 验证年涨跌幅
+			// Verify yearly change
 			if result.YearlyChange != tt.expected.YearlyChange {
-				t.Errorf("年涨跌幅不匹配: 期望 %.1f, 实际 %.1f", tt.expected.YearlyChange, result.YearlyChange)
+				t.Errorf("Yearly change mismatch: expected %.1f, got %.1f", tt.expected.YearlyChange, result.YearlyChange)
 			}
 		})
 	}
 }
 
-// TestFetchPrice 测试实际爬取功能
+// TestFetchPrice test actual crawling functionality
 func TestFetchPrice(t *testing.T) {
-	// 创建爬虫实例
+	// Create crawler instance
 	crawler := NewCarbonCrawler()
 
-	// 获取价格信息
+	// Get price info
 	priceInfo, err := crawler.FetchPrice()
 	if err != nil {
-		t.Errorf("获取价格信息失败: %v", err)
+		t.Errorf("Failed to get price info: %v", err)
 		return
 	}
 
-	// 验证价格信息不为空
+	// Verify price info is not empty
 	if priceInfo == nil {
-		t.Error("价格信息为空")
+		t.Error("Price info is empty")
 		return
 	}
 
-	// 验证价格大于0
+	// Verify price is greater than 0
 	if priceInfo.Price <= 0 {
-		t.Errorf("价格无效: %.2f", priceInfo.Price)
+		t.Errorf("Invalid price: %.2f", priceInfo.Price)
 	}
 
-	// 验证最后更新时间
+	// Verify last update time
 	if priceInfo.LastUpdated == "" {
-		t.Error("最后更新时间为空")
+		t.Error("Last update time is empty")
 	}
 
-	// 打印价格信息用于调试
-	t.Logf("获取到的价格信息: %+v", priceInfo)
+	// Print price info for debugging
+	t.Logf("Retrieved price info: %+v", priceInfo)
 }
