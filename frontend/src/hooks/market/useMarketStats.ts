@@ -129,7 +129,17 @@ export const useMarketStats = (): UseMarketStatsReturn => {
       storyTitle: nft.storyTitle
     })));
     
-    const priceDetails = [];
+    // 定义价格详情数组的类型
+    const priceDetails: Array<{
+      tokenId: string;
+      title: string;
+      raw: string;
+      formatted: string;
+      parsed: number;
+      修复前解析: number;
+      修复后解析: number;
+    }> = [];
+    
     const total = nfts.reduce((sum, nft) => {
       // Use format carbon price to correctly handle price in wei format
 

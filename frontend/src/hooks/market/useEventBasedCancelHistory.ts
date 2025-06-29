@@ -170,7 +170,7 @@ export const useEventBasedCancelHistory = () => {
 
       let cachedData: CachedCancelHistory | null = null;
       let existingRecords: MyListing[] = [];
-      let fromBlock: bigint;
+      let fromBlock: bigint = BigInt(0);
       
       if (!forceRefresh) {
         cachedData = loadCachedData(address, chainId);
@@ -234,9 +234,9 @@ export const useEventBasedCancelHistory = () => {
 
           // Get nft metadata (title, etc.)
 
-          let title = `绿色NFT #${tokenId}`;
-          let carbonReduction = '0';
-          let price = '0';
+          const title = `绿色NFT #${tokenId}`;
+          const carbonReduction = '0';
+          const price = '0';
           
           try {
             // Here you can get the details of NFT through contract calls

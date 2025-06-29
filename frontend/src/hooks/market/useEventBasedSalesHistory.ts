@@ -176,14 +176,15 @@ export const useEventBasedSalesHistory = () => {
 
       let cachedData: CachedSalesHistory | null = null;
       let existingRecords: MyListing[] = [];
-      let fromBlock: bigint;
+      let fromBlock: bigint = BigInt(0);
       
       if (!forceRefresh) {
         cachedData = loadCachedData(address, chainId);
         if (cachedData) {
           existingRecords = cachedData.records;
-          fromBlock = cachedData.lastBlockNumber; // Start with the block you searched last time
-
+          fromBlock = typeof cachedData.lastBlockNumber === 'string'
+            ? BigInt(cachedData.lastBlockNumber)
+            : cachedData.lastBlockNumber;
           console.log(`📅 增量查询从区块 ${fromBlock} 开始`);
         }
       }
@@ -192,12 +193,12 @@ export const useEventBasedSalesHistory = () => {
 
       const latestBlock = await publicClient.getBlockNumber();
       if (!cachedData || forceRefresh) {
-        // First query or forced refresh, query the last 100,000 blocks
-
         fromBlock = latestBlock - BigInt(100000);
         console.log(`📅 全量查询区块范围: ${fromBlock} - ${latestBlock}`);
-      } else {
-        console.log(`📅 增量查询区块范围: ${fromBlock} - ${latestBlock}`);
+      }
+      // 保底赋值，防止未赋值
+      if (fromBlock === undefined) {
+        fromBlock = BigInt(0);
       }
 
       // 3. If there is no new block, return cached data directly
@@ -242,7 +243,7 @@ export const useEventBasedSalesHistory = () => {
 
       for (const log of soldLogs) {
         try {
-          const { tokenId, seller, buyer, price, sellerAmount, timestamp } = log.args;
+          const { tokenId, seller, buyer, price, timestamp } = log.args;
           
           if (!tokenId || !seller || !buyer || !price || !timestamp) {
             console.warn('⚠️ 事件数据不完整:', log);
@@ -280,8 +281,8 @@ export const useEventBasedSalesHistory = () => {
 
           // Get nft metadata (title, etc.)
 
-          let title = `绿色NFT #${tokenId}`;
-          let carbonReduction = '0';
+          const title = `绿色NFT #${tokenId}`;
+          const carbonReduction = '0';
           
           try {
             // Here you can get the details of NFT through contract calls

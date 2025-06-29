@@ -217,7 +217,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
               <div className="text-blue-800 text-sm">
                 <div className="flex items-center justify-between">
                   <span>当前:</span>
-                  <span className="font-medium">{formatContractPrice(listing.currentPrice)} CARB</span>
+                  <span className="font-medium">{formatCarbonPrice(listing.currentPrice)} CARB</span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span>更新为:</span>

@@ -20,8 +20,8 @@ export const MarketStats: React.FC = () => {
   
   // Manual verification of average price calculation
 
-  const verifyAveragePrice = () => {
-    if (!nfts || nfts.length === 0) return '0';
+  const verifyAveragePrice = (): number => {
+    if (!nfts || nfts.length === 0) return 0;
     
     console.log('🔎 手动验证平均价格计算');
     console.log('📝 NFT数量:', nfts.length);
@@ -55,7 +55,7 @@ export const MarketStats: React.FC = () => {
   React.useEffect(() => {
     if (nfts && nfts.length > 0) {
       const manualAverage = verifyAveragePrice();
-      const hookAverage = stats ? parseFloat(stats.averagePrice) : 0;
+      const hookAverage = stats ? parseFloat(stats.averagePrice) || 0 : 0;
       
       console.log('🔍 平均价格对比:', {
         手动计算: manualAverage,

@@ -66,7 +66,10 @@ export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
       requestExchange(BigInt(nft.tokenId));
     } catch (error) {
       console.error(t('exchange.errors.requestFailed', '申请兑换失败:'), error);
-      alert(t('exchange.errors.requestFailed', '申请兑换失败: {error}', { error: error instanceof Error ? error.message : t('common.unknownError', '未知错误') }));
+      alert(
+        t('exchange.errors.requestFailed', '兑换申请失败:') +
+        (error instanceof Error ? error.message : t('common.unknownError', '未知错误'))
+      );
     }
   };
 
@@ -92,7 +95,10 @@ export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
   React.useEffect(() => {
     if (error) {
       console.error(t('exchange.errors.requestFailed', '兑换申请错误:'), error);
-      alert(t('exchange.errors.requestFailed', '兑换申请失败: {error}', { error: error.message }));
+      alert(
+        t('exchange.errors.requestFailed', '兑换申请失败:') +
+        (error instanceof Error ? error.message : t('common.unknownError', '未知错误'))
+      );
     }
   }, [error, t]);
 

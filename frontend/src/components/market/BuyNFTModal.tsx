@@ -31,8 +31,10 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
 
   const {
     currentStep,
+    setCurrentStep,
     isLoading,
     errorMessage,
+    setErrorMessage,
     carbBalance,
     allowance,
     hasEnoughBalance,

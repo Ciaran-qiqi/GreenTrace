@@ -68,7 +68,10 @@ export const NFTExchangeCenter: React.FC = () => {
   useEffect(() => {
     if (error) {
       console.error('兑换申请错误:', error);
-      alert(t('exchange.errors.applicationFailed', '兑换申请失败: {error}', { error: error.message }));
+      alert(
+        t('exchange.errors.applicationFailed', '兑换申请失败:') +
+        (error instanceof Error ? error.message : t('common.unknownError', '未知错误'))
+      );
     }
   }, [error, t]);
 

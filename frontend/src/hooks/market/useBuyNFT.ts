@@ -19,8 +19,10 @@ interface UseBuyNFTReturn {
   // state
 
   currentStep: BuyStep;
+  setCurrentStep: (step: BuyStep) => void;
   isLoading: boolean;
   errorMessage: string;
+  setErrorMessage: (message: string) => void;
   
   // Balance and authorization information
 
@@ -254,13 +256,15 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     // state
 
     currentStep,
+    setCurrentStep,
     isLoading,
     errorMessage,
+    setErrorMessage,
     
     // Balance and authorization information
 
-    carbBalance,
-    allowance,
+    carbBalance: carbBalance as bigint | undefined,
+    allowance: allowance as bigint | undefined,
     hasEnoughBalance,
     needsApproval,
     
