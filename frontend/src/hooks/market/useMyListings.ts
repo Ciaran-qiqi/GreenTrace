@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { useChainId } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
@@ -71,7 +71,7 @@ export const useMyListings = (): UseMyListingsReturn => {
 
   // Process the obtained pending order data
 
-  const fetchListingsDetails = async () => {
+  const fetchListingsDetails = useCallback(async () => {
     if (!address) {
       setListings([]);
       return;
@@ -160,7 +160,7 @@ export const useMyListings = (): UseMyListingsReturn => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [address, userListings, marketAddress]);
 
   // Listen to changes in user orders
 
@@ -171,7 +171,7 @@ export const useMyListings = (): UseMyListingsReturn => {
       setListings([]);
       setIsLoading(false);
     }
-  }, [userListings, address, marketAddress]);
+  }, [fetchListingsDetails, address, marketAddress]);
 
   // How to refresh data
 

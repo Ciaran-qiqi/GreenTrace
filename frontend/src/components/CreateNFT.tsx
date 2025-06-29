@@ -555,18 +555,17 @@ export const CreateNFT: React.FC = () => {
   // Get button text
 
   const getButtonText = () => {
-    if (!isConnected) return t('createNFT.buttons.connectWallet', '请先连接钱包');
-    if (!isFormValid) return t('createNFT.buttons.fillCompleteInfo', '请填写完整信息');
-    if (hasInsufficientETH()) return t('createNFT.buttons.ethInsufficient', 'ETH余额不足，Gas费可能不够');
-    if (hasInsufficientBalance()) return t('createNFT.buttons.carbInsufficient', 'CARB余额不足');
-    if (needsApproval()) return t('createNFT.buttons.needCarbAuth', '需要授权碳代币');
+    if (!isConnected) return t('createNFT.buttons.connectWallet', '连接钱包');
+    if (!isFormValid) return t('createNFT.buttons.fillForm', '请填写完整信息');
+    if (hasInsufficientETH()) return t('createNFT.buttons.insufficientETH', 'ETH余额不足');
+    if (hasInsufficientBalance()) return t('createNFT.buttons.insufficientBalance', 'CARB余额不足');
     if (currentStep === 'uploading') return t('createNFT.buttons.uploading', '上传中...');
-    if (currentStep === 'approving') return t('createNFT.buttons.authorizing', '授权中...');
+    if (currentStep === 'approving') return t('createNFT.buttons.approving', '授权中...');
     if (currentStep === 'minting') return t('createNFT.buttons.submittingApplication', '提交申请中...');
     // If there is a transaction hash but is still waiting for confirmation
 
     if (mintHash && !mintConfirmed) return t('createNFT.buttons.waitingConfirmation', '等待区块链确认...');
-    return t('createNFT.buttons.submitNFTApplication', '提交NFT铸造申请 (需支付 {fee} CARB)', { fee: fee.toString() });
+    return `提交NFT铸造申请 (需支付 ${fee} CARB)`;
   };
 
   // Get button status

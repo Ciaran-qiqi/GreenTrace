@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useChainId } from 'wagmi';
 import { readContracts } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
@@ -114,7 +114,7 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
 
   // Get market nft data
 
-  const fetchMarketNFTs = async (currentOffset: number = 0, shouldAppend: boolean = false) => {
+  const fetchMarketNFTs = useCallback(async (currentOffset: number = 0, shouldAppend: boolean = false) => {
     try {
       console.log(`🔍 开始获取市场NFT数据，偏移量: ${currentOffset}, 限制: ${limit}`);
       
@@ -252,7 +252,7 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [marketAddress, nftAddress, limit, config]);
 
   // Load more data
 

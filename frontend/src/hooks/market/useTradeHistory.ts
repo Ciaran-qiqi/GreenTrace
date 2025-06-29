@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useChainId } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
-import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
 
 // Transaction history interface
 
@@ -53,7 +52,6 @@ export const useTradeHistory = ({
   userAddress,
   limit = 50
 }: UseTradeHistoryParams = {}): UseTradeHistoryReturn => {
-  const { address } = useAccount();
   const chainId = useChainId();
   const [trades, setTrades] = useState<TradeRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,18 +68,18 @@ export const useTradeHistory = ({
     }
   };
 
-  const marketAddress = getMarketAddress(chainId);
+  // 暂时注释掉未使用的变量，避免警告
+  // const marketAddress = getMarketAddress(chainId);
 
   // Temporarily disable getting transaction history directly from the contract, because getTradeHistory requires a specific tokenId
   // In actual applications, the complete transaction history should be obtained through event listening or external indexing services
-
 
   // Process transaction history data
 
   const processTradeHistory = (rawData: any[]): TradeRecord[] => {
     if (!Array.isArray(rawData)) return [];
 
-    return rawData.map((trade: any, index: number) => ({
+    return rawData.map((trade: any) => ({
       tokenId: trade.tokenId?.toString() || '',
       seller: trade.seller || '',
       buyer: trade.buyer || '',
