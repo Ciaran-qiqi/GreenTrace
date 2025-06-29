@@ -1,15 +1,3 @@
-├── cmd/              # Main program entry
-│   └── server/      # Server entry
-├── pkg/             # Core functionality packages
-│   ├── crawler/     # Crawler logic
-│   ├── logger/      # Logging
-│   ├── models/      # Data models
-│   └── storage/     # Data storage
-├── data/            # Data storage directory
-├── logs/            # Log files directory
-├── go.mod           # Go module definition
-└── go.sum           # Dependency version lock
-
 We currently have three API endpoints:
 
 1. Get latest price
