@@ -10,6 +10,7 @@ import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import "forge-std/console.sol";
 
 /**
  * @title GreenTalesMarket
@@ -54,6 +55,12 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     mapping(uint256 => Listing) public listings;              // NFT ID => 挂单信息
     mapping(uint256 => TradeHistory[]) public tradeHistory;   // NFT ID => 历史成交记录
     mapping(uint256 => uint256) public lastTradePrice;        // NFT ID => 最后成交价格
+    
+    // 新增：支持前端查询的映射
+    mapping(address => uint256[]) public userListings;        // 用户地址 => 挂单的NFT ID数组
+    mapping(uint256 => uint256) public listingIndex;          // NFT ID => 在用户挂单数组中的索引
+    uint256[] public allListedNFTs;                          // 所有挂单的NFT ID数组
+    mapping(uint256 => uint256) public allListingIndex;       // NFT ID => 在全局挂单数组中的索引
 
     // 事件定义
     event NFTListed(
@@ -154,6 +161,14 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
             isActive: true
         });
 
+        // 更新用户挂单记录
+        userListings[msg.sender].push(_tokenId);
+        listingIndex[_tokenId] = userListings[msg.sender].length - 1;
+        
+        // 添加到全局挂单列表
+        allListedNFTs.push(_tokenId);
+        allListingIndex[_tokenId] = allListedNFTs.length - 1;
+
         emit NFTListed(_tokenId, msg.sender, _price, block.timestamp);
     }
 
@@ -172,17 +187,18 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
         uint256 price = listing.price;
         uint256 platformFee = (price * platformFeeRate) / 10000;
         uint256 sellerAmount = price - platformFee;
+        address seller = listing.seller;
 
         // 转移碳币
         carbonToken.safeTransferFrom(msg.sender, feeCollector, platformFee);
-        carbonToken.safeTransferFrom(msg.sender, listing.seller, sellerAmount);
+        carbonToken.safeTransferFrom(msg.sender, seller, sellerAmount);
 
         // 转移NFT
         nftContract.safeTransferFrom(address(this), msg.sender, _tokenId);
 
         // 更新历史记录
         tradeHistory[_tokenId].push(TradeHistory({
-            seller: listing.seller,
+            seller: seller,
             buyer: msg.sender,
             price: price,
             timestamp: block.timestamp
@@ -194,10 +210,16 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
 
         // 清除挂单信息
         delete listings[_tokenId];
+        
+        // 从用户挂单记录中移除
+        _removeFromUserListings(seller, _tokenId);
+        
+        // 从全局挂单列表中移除
+        _removeFromAllListings(_tokenId);
 
         emit NFTSold(
             _tokenId,
-            listing.seller,
+            seller,
             msg.sender,
             price,
             platformFee,
@@ -222,6 +244,12 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
 
         // 清除挂单信息
         delete listings[_tokenId];
+        
+        // 从用户挂单记录中移除
+        _removeFromUserListings(msg.sender, _tokenId);
+        
+        // 从全局挂单列表中移除
+        _removeFromAllListings(_tokenId);
 
         emit ListingCancelled(_tokenId, msg.sender, block.timestamp);
     }
@@ -271,5 +299,144 @@ contract GreenTalesMarket is Ownable, ReentrancyGuard, IERC721Receiver {
     function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         // 返回 IERC721Receiver 接口的 selector，表示接收成功
         return IERC721Receiver.onERC721Received.selector;
+    }
+
+    // 辅助函数
+    function _removeFromUserListings(address _seller, uint256 _tokenId) internal {
+        uint256[] storage userListingsArray = userListings[_seller];
+        uint256 index = listingIndex[_tokenId];
+
+        if (index < userListingsArray.length - 1) {
+            uint256 lastTokenId = userListingsArray[userListingsArray.length - 1];
+            userListingsArray[index] = lastTokenId;
+            listingIndex[lastTokenId] = index;
+        }
+        userListingsArray.pop();
+        delete listingIndex[_tokenId];
+    }
+
+    function _removeFromAllListings(uint256 _tokenId) internal {
+        uint256 indexToRemove = allListingIndex[_tokenId];
+        uint256 lastIndex = allListedNFTs.length - 1;
+
+        if (indexToRemove != lastIndex) {
+            uint256 lastTokenId = allListedNFTs[lastIndex];
+            allListedNFTs[indexToRemove] = lastTokenId;
+            // 更新移动过来的最后一个元素的索引
+            allListingIndex[lastTokenId] = indexToRemove;
+        }
+        
+        // 移除最后一个元素
+        allListedNFTs.pop();
+        // 删除被移除的tokenId的索引
+        delete allListingIndex[_tokenId];
+    }
+
+    // ========== 前端查询函数 ==========
+
+    /**
+     * @dev 获取用户的所有挂单
+     * @param _user 用户地址
+     * @return 用户挂单的NFT ID数组
+     */
+    function getUserListings(address _user) external view returns (uint256[] memory) {
+        return userListings[_user];
+    }
+
+    /**
+     * @dev 获取所有挂单的NFT
+     * @return 所有挂单的NFT ID数组
+     */
+    function getAllListedNFTs() external view returns (uint256[] memory) {
+        return allListedNFTs;
+    }
+
+    /**
+     * @dev 分页获取挂单信息
+     * @param _offset 起始位置
+     * @param _limit 获取数量
+     * @return tokenIds NFT ID数组
+     * @return listingInfos 挂单信息数组
+     */
+    function getListingsWithPagination(uint256 _offset, uint256 _limit) external view returns (
+        uint256[] memory tokenIds,
+        Listing[] memory listingInfos
+    ) {
+        uint256 totalListings = allListedNFTs.length;
+        uint256 endIndex = _offset + _limit;
+        if (endIndex > totalListings) {
+            endIndex = totalListings;
+        }
+        
+        uint256 count = endIndex - _offset;
+        tokenIds = new uint256[](count);
+        listingInfos = new Listing[](count);
+        
+        for (uint256 i = 0; i < count; i++) {
+            uint256 tokenId = allListedNFTs[_offset + i];
+            tokenIds[i] = tokenId;
+            listingInfos[i] = listings[tokenId];
+        }
+    }
+
+    /**
+     * @dev 获取挂单统计信息
+     * @return totalListings 总挂单数量
+     * @return totalUsers 挂单用户数量
+     */
+    function getListingStats() external view returns (uint256 totalListings, uint256 totalUsers) {
+        totalListings = allListedNFTs.length;
+        
+        // 计算有挂单的用户数量（简化实现）
+        uint256 userCount = 0;
+        for (uint256 i = 0; i < allListedNFTs.length; i++) {
+            address seller = listings[allListedNFTs[i]].seller;
+            bool found = false;
+            for (uint256 j = 0; j < i; j++) {
+                if (listings[allListedNFTs[j]].seller == seller) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                userCount++;
+            }
+        }
+        totalUsers = userCount;
+    }
+
+    /**
+     * @dev 获取NFT的完整信息（包括元数据）
+     * @param _tokenId NFT ID
+     * @return listing 挂单信息
+     * @return storyMeta NFT元数据
+     * @return tradeCount 交易次数
+     */
+    function getNFTFullInfo(uint256 _tokenId) external view returns (
+        Listing memory listing,
+        GreenTalesNFT.StoryMeta memory storyMeta,
+        uint256 tradeCount
+    ) {
+        listing = listings[_tokenId];
+        storyMeta = nftContract.getStoryMeta(_tokenId);
+        tradeCount = tradeHistory[_tokenId].length;
+    }
+
+    /**
+     * @dev 检查NFT是否已挂单
+     * @param _tokenId NFT ID
+     * @return 是否已挂单
+     */
+    function isNFTListed(uint256 _tokenId) external view returns (bool) {
+        return listings[_tokenId].isActive;
+    }
+
+    /**
+     * @dev 获取用户挂单数量
+     * @param _user 用户地址
+     * @return 挂单数量
+     */
+    function getUserListingCount(address _user) external view returns (uint256) {
+        return userListings[_user].length;
     }
 } 
