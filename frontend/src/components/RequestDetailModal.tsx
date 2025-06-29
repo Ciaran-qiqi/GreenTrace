@@ -5,7 +5,7 @@ import { formatFeeAmount } from '@/utils/tokenUtils';
 import { formatTimestamp } from '@/utils/timeUtils';
 import { NFTInfoSection } from './NFTInfoSection';
 
-// 通用申请记录接口
+// General application record interface
 export interface RequestRecord {
   tokenId: number | string;
   title: string;
@@ -20,7 +20,7 @@ export interface RequestRecord {
   reason?: string;
   transactionHash?: string;
   source?: 'event' | 'contract';
-  // 审计中心特有字段
+  // Audit Center-specific fields
   auditStatus?: 'pending' | 'approved' | 'rejected';
   auditedCarbonValue?: string;
   auditComment?: string;
@@ -30,7 +30,7 @@ export interface RequestRecord {
   requestId?: string;
 }
 
-// 状态标签组件
+// Status Tag Component
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -79,12 +79,12 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 
 
 
-// 通用申请详情弹窗组件
+// General application details pop-up component
 interface RequestDetailModalProps {
   record: RequestRecord | null;
   isOpen: boolean;
   onClose: () => void;
-  onContinueMint?: (record: RequestRecord) => void; // NFT创建记录专用
+  onContinueMint?: (record: RequestRecord) => void; // Nft record creation dedicated
 }
 
 export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
@@ -95,38 +95,38 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
 }) => {
   if (!isOpen || !record) return null;
 
-  // 使用统一的时间格式化工具
+  // Use a unified time formatting tool
 
-  // 获取显示的状态
+  // Get the displayed status
   const getDisplayStatus = () => {
     if (record.auditStatus) {
-      return record.auditStatus; // 审计中心使用
+      return record.auditStatus; // Audit center use
     }
-    return record.status; // NFT创建记录使用
+    return record.status; // Nft creates records using
   };
 
-  // 获取申请人地址
+  // Obtain the applicant's address
   const getRequesterAddress = () => {
     if (record.requester) {
-      return record.requester; // 审计中心有完整地址
+      return record.requester; // Audit Center has a full address
     }
-    return '当前用户'; // NFT创建记录是用户自己的
+    return '当前用户'; // Nft records are created by the user
   };
 
-  // 获取时间戳
+  // Get the timestamp
   const getTimestamp = () => {
     if (record.blockTimestamp) {
-      return record.blockTimestamp; // 审计中心使用
+      return record.blockTimestamp; // Audit center use
     }
-    return record.timestamp; // NFT创建记录使用
+    return record.timestamp; // Nft creates records using
   };
 
-  // 获取审计确认价值
+  // Obtain audit recognition value
   const getAuditedValue = () => {
     return record.auditedCarbonValue || record.carbonValue;
   };
 
-  // 获取审计意见
+  // Obtain audit opinion
   const getAuditComment = () => {
     return record.auditComment || record.reason;
   };
@@ -152,7 +152,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
         </div>
 
         <div className="space-y-6">
-          {/* 基本信息 */}
+          {/* Basic information */}
           <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl p-6 border border-green-200/30 shadow-sm">
             <div className="flex items-center space-x-2 mb-4">
               <span className="text-lg">🔍</span>
@@ -194,7 +194,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
             </div>
           </div>
 
-          {/* 项目信息 */}
+          {/* Project Information */}
           <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-6 border border-emerald-200/40 shadow-sm">
             <div className="flex items-center space-x-2 mb-4">
               <span className="text-lg">🌱</span>
@@ -238,7 +238,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
             </div>
           </div>
 
-          {/* 审计信息 */}
+          {/* Audit information */}
           {(getDisplayStatus() !== 'pending' || getAuditedValue() || getAuditComment()) && (
             <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200/40 shadow-sm">
               <div className="flex items-center space-x-2 mb-4">
@@ -300,7 +300,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
             </div>
           )}
 
-          {/* NFT详细信息 */}
+          {/* Nft details */}
           {getDisplayStatus() === 'minted' && record.nftTokenId && (
             <NFTInfoSection 
               nftTokenId={record.nftTokenId} 
@@ -311,9 +311,9 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
           )}
         </div>
 
-        {/* 底部按钮 */}
+        {/* Bottom button */}
         <div className="mt-8 flex justify-end space-x-3">
-          {/* NFT创建记录专用的继续铸造按钮 */}
+          {/* Nft creates record-specific Continue casting button */}
           {onContinueMint && record.status === 'approved' && (
             <button
               onClick={() => onContinueMint(record)}

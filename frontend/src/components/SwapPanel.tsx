@@ -6,23 +6,28 @@ import { useTranslation } from '@/hooks/useI18n'
 import toast from 'react-hot-toast'
 
 /**
- * 市价兑换区块组件（双向分栏优化版）
- * 左侧：碳币换USDT，右侧：USDT换碳币，顶部显示余额
+ * Market exchange block components (two-way column optimization version)
+ * Left: USDT for carbon coins, right: USDT for carbon coins, balance is displayed at the top
  */
 export default function SwapPanel() {
   const { t } = useTranslation();
   
-  // 输入状态
-  const [carbonIn, setCarbonIn] = useState('') // 碳币换USDT输入
-  const [usdtIn, setUsdtIn] = useState('')    // USDT换碳币输入
-  // 预估结果
+  // Input status
+
+  const [carbonIn, setCarbonIn] = useState('') // Carbon coins for usdt input
+
+  const [usdtIn, setUsdtIn] = useState('')    // USDT exchange carbon coins input
+  // Estimated results
+
   const [carbonToUsdtEstimate, setCarbonToUsdtEstimate] = useState<null | { amountOut: string, fee: string, priceImpact: string }>(null)
   const [usdtToCarbonEstimate, setUsdtToCarbonEstimate] = useState<null | { amountOut: string, fee: string, priceImpact: string }>(null)
-  // 授权状态
+  // Authorization status
+
   const [isApprovingCarbon, setIsApprovingCarbon] = useState(false)
   const [isApprovingUsdt, setIsApprovingUsdt] = useState(false)
 
-  // 获取流动性池hook
+  // Get liquidity pool hook
+
   const {
     getSwapEstimate,
     swapCarbonToUsdt,
@@ -32,14 +37,17 @@ export default function SwapPanel() {
     carbonTokenAddress,
     usdtTokenAddress,
     liquidityPoolAddress,
-    poolData, // 获取池子数据，包含当前价格和参考价格
+    poolData, // Get pool data, including current price and reference price
+
   } = useGreenTalesLiquidityPool()
 
-  // 授权hook
+  // Authorized hook
+
   const approvalCarbon = useTokenApproval(carbonTokenAddress, liquidityPoolAddress)
   const approvalUsdt = useTokenApproval(usdtTokenAddress, liquidityPoolAddress)
 
-  // 实时获取碳币换USDT预估
+  // Get real-time carbon coins for usdt estimates
+
   useEffect(() => {
     if (!carbonIn || isNaN(Number(carbonIn)) || Number(carbonIn) <= 0) {
       setCarbonToUsdtEstimate(null)
@@ -48,7 +56,8 @@ export default function SwapPanel() {
     getSwapEstimate(carbonIn, true).then(res => setCarbonToUsdtEstimate(res))
   }, [carbonIn, getSwapEstimate])
 
-  // 实时获取USDT换碳币预估
+  // Get the estimate of usdt exchange carbon coins in real time
+
   useEffect(() => {
     if (!usdtIn || isNaN(Number(usdtIn)) || Number(usdtIn) <= 0) {
       setUsdtToCarbonEstimate(null)
@@ -57,14 +66,17 @@ export default function SwapPanel() {
     getSwapEstimate(usdtIn, false).then(res => setUsdtToCarbonEstimate(res))
   }, [usdtIn, getSwapEstimate])
 
-  // 计算兑换后的新价格和偏差（基于AMM公式）
+  // Calculate the new price and deviation after redemption (based on the amm formula)
+
   const calculatePriceImpact = (amountIn: string, isCarbonToUsdt: boolean) => {
     if (!amountIn || isNaN(Number(amountIn)) || Number(amountIn) <= 0) return null
     
     try {
       const amountInNum = parseFloat(amountIn)
-      const currentCarbonBalance = parseFloat(poolData.carbonBalance || '1000000') // 默认100万
-      const currentUsdtBalance = parseFloat(poolData.usdtBalance || '88000000') // 默认8800万
+      const currentCarbonBalance = parseFloat(poolData.carbonBalance || '1000000') // Default 1 million
+
+      const currentUsdtBalance = parseFloat(poolData.usdtBalance || '88000000') // Default 88 million
+
       const currentPrice = parseFloat(poolData.currentPrice || '88.00')
       const referencePrice = parseFloat(poolData.referencePrice || '88.00')
       
@@ -73,45 +85,61 @@ export default function SwapPanel() {
       let newPrice: number
       
       if (isCarbonToUsdt) {
-        // 碳币换USDT：用户输入碳币，池子碳币增加，USDT减少，价格下跌
-        // 使用精确的AMM公式：k = x * y
+        // Carbon coins for USDT: Users enter carbon coins, the pool carbon coins increase, USDT decreases, and the price falls
+        // Use exact AMM formula: k = x *y
+
         
-        // 计算实际兑换出的USDT数量（考虑手续费）
+        // Calculate the actual number of usdts redeemed (consider the handling fee)
+
         const amountOutBeforeFee = (amountInNum * currentUsdtBalance) / currentCarbonBalance
-        const feeRate = 0.003 // 0.3%手续费
+        const feeRate = 0.003 // 0.3% handling fee
+
         const fee = amountOutBeforeFee * feeRate
         const amountOutAfterFee = amountOutBeforeFee - fee
         
-        // 计算新的池子状态
-        const newCarbonBalance = currentCarbonBalance + amountInNum // 池子碳币增加
-        const newUsdtBalance = currentUsdtBalance - amountOutAfterFee // 池子USDT减少（扣除实际给用户的）
+        // Calculate the new pool state
+
+        const newCarbonBalance = currentCarbonBalance + amountInNum // Pool carbon coins increase
+
+        const newUsdtBalance = currentUsdtBalance - amountOutAfterFee // Pool usdt reduction (deducted actually to the user)
+
         
-        // 计算新价格
+        // Calculate the new price
+
         newPrice = newUsdtBalance / newCarbonBalance
       } else {
-        // USDT换碳币：用户输入USDT，池子USDT增加，碳币减少，价格上涨
+        // Usdt exchange carbon coins: User input usdt, pool usdt increases, carbon coins decreases, price increases
+
         
-        // 计算实际兑换出的碳币数量（考虑手续费）
+        // Calculate the actual amount of carbon coins redeemed (consider the handling fee)
+
         const amountOutBeforeFee = (amountInNum * currentCarbonBalance) / currentUsdtBalance
-        const feeRate = 0.003 // 0.3%手续费
+        const feeRate = 0.003 // 0.3% handling fee
+
         const fee = amountOutBeforeFee * feeRate
         const amountOutAfterFee = amountOutBeforeFee - fee
         
-        // 计算新的池子状态
-        const newUsdtBalance = currentUsdtBalance + amountInNum // 池子USDT增加
-        const newCarbonBalance = currentCarbonBalance - amountOutAfterFee // 池子碳币减少（扣除实际给用户的）
+        // Calculate the new pool state
+
+        const newUsdtBalance = currentUsdtBalance + amountInNum // Pool usdt increases
+
+        const newCarbonBalance = currentCarbonBalance - amountOutAfterFee // Pool carbon coins are reduced (deducted to users)
+
         
-        // 计算新价格
+        // Calculate the new price
+
         newPrice = newUsdtBalance / newCarbonBalance
       }
       
-      // 计算与参考价格的偏差
+      // Deviation between calculation and reference price
+
       const deviation = ((newPrice - referencePrice) / referencePrice) * 100
       
       return {
         newPrice: newPrice.toFixed(2),
         deviation: deviation.toFixed(2),
-        isDeviated: Math.abs(deviation) > (poolData.priceDeviationThreshold || 10) // 超过阈值认为偏离
+        isDeviated: Math.abs(deviation) > (poolData.priceDeviationThreshold || 10) // Deviation after exceeding the threshold
+
       }
     } catch (error) {
       console.error('计算价格影响失败:', error)
@@ -119,13 +147,16 @@ export default function SwapPanel() {
     }
   }
 
-  // 计算碳币换USDT的价格影响
+  // Calculate the price impact of carbon coins for usdt
+
   const carbonToUsdtPriceImpact = calculatePriceImpact(carbonIn, true)
 
-  // 计算USDT换碳币的价格影响
+  // Calculate the price impact of usdt exchange carbon coins
+
   const usdtToCarbonPriceImpact = calculatePriceImpact(usdtIn, false)
 
-  // 调试：显示当前阈值信息
+  // Debugging: Display current threshold information
+
   useEffect(() => {
     console.log('🔍 价格偏离阈值调试信息:', {
       poolDataThreshold: poolData.priceDeviationThreshold,
@@ -135,7 +166,8 @@ export default function SwapPanel() {
     })
   }, [poolData.priceDeviationThreshold, poolData])
 
-  // 处理碳币换USDT
+  // Process carbon coins for usdt
+
   const handleCarbonToUsdt = async () => {
     if (!carbonIn || isNaN(Number(carbonIn)) || Number(carbonIn) <= 0) {
       toast.error(t('swap.errors.invalidCarbonAmount', '请输入有效碳币数量'))
@@ -146,7 +178,8 @@ export default function SwapPanel() {
       return
     }
     
-    // 检查价格偏离 - 如果兑换后价格偏离超过阈值，阻止交易
+    // Check price deviation -If the price deviation exceeds the threshold after redemption, block transactions
+
     if (carbonToUsdtPriceImpact?.isDeviated === true) {
       const threshold = poolData.priceDeviationThreshold || 10
       toast.error(`⚠️ 价格偏离过大！兑换后价格将偏离参考价 ${carbonToUsdtPriceImpact.deviation}%，超过${threshold}%阈值。请减少兑换数量或等待价格稳定。`)
@@ -166,7 +199,8 @@ export default function SwapPanel() {
     setCarbonToUsdtEstimate(null)
   }
 
-  // 处理USDT换碳币
+  // Process usdt to exchange carbon coins
+
   const handleUsdtToCarbon = async () => {
     if (!usdtIn || isNaN(Number(usdtIn)) || Number(usdtIn) <= 0) {
       toast.error(t('swap.errors.invalidUsdtAmount', '请输入有效USDT数量'))
@@ -177,7 +211,8 @@ export default function SwapPanel() {
       return
     }
     
-    // 检查价格偏离 - 如果兑换后价格偏离超过阈值，阻止交易
+    // Check price deviation -If the price deviation exceeds the threshold after redemption, block transactions
+
     if (usdtToCarbonPriceImpact?.isDeviated === true) {
       const threshold = poolData.priceDeviationThreshold || 10
       toast.error(`⚠️ 价格偏离过大！兑换后价格将偏离参考价 ${usdtToCarbonPriceImpact.deviation}%，超过${threshold}%阈值。请减少兑换数量或等待价格稳定。`)
@@ -199,7 +234,7 @@ export default function SwapPanel() {
 
   return (
     <div className="bg-white/80 rounded-2xl shadow-xl p-6 border border-white/20 mb-8">
-      {/* 标题和余额 */}
+      {/* Title and balance */}
       <div className="flex items-center gap-3 mb-6">
         <span className="text-2xl">🔄</span>
         <h3 className="text-xl font-semibold text-gray-900">{t('swap.title', '市价兑换')}</h3>
@@ -209,9 +244,9 @@ export default function SwapPanel() {
           <div className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full">阈值: {poolData.priceDeviationThreshold || 10}%</div>
         </div>
       </div>
-      {/* 主体分栏 */}
+      {/* Main column */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* 左栏：碳币换USDT */}
+        {/* Left column: Carbon coins for usdt */}
         <div className="p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-200 shadow-lg flex flex-col gap-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">🌱</span>
@@ -224,7 +259,7 @@ export default function SwapPanel() {
             placeholder={t('swap.carbonToUsdt.placeholder', '输入碳币数量')}
             className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-lg font-semibold text-black outline-none"
           />
-          {/* 预估结果 - 始终显示 */}
+          {/* Estimated results -Always show */}
           <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm space-y-1">
             <div className="flex justify-between">
               <span>{t('swap.estimate.receiveUsdt', '可获得USDT')}:</span>
@@ -245,7 +280,7 @@ export default function SwapPanel() {
               </span>
             </div>
             
-            {/* 新增：兑换后价格和偏差显示 */}
+            {/* New: Price and deviation display after redemption */}
             {carbonToUsdtPriceImpact && (
               <>
                 <div className="flex justify-between">
@@ -299,7 +334,7 @@ export default function SwapPanel() {
             }
           </button>
         </div>
-        {/* 右栏：USDT换碳币 */}
+        {/* Right column: usdt exchange carbon coins */}
         <div className="p-6 bg-gradient-to-br from-blue-50 to-green-50 rounded-xl border border-blue-200 shadow-lg flex flex-col gap-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">💵</span>
@@ -312,7 +347,7 @@ export default function SwapPanel() {
             placeholder={t('swap.usdtToCarbon.placeholder', '输入USDT数量')}
             className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-lg font-semibold text-black outline-none"
           />
-          {/* 预估结果 - 始终显示 */}
+          {/* Estimated results -Always show */}
           <div className="p-3 bg-green-50 rounded-lg border border-green-200 text-sm space-y-1">
             <div className="flex justify-between">
               <span>{t('swap.estimate.receiveCarbon', '可获得碳币')}:</span>
@@ -333,7 +368,7 @@ export default function SwapPanel() {
               </span>
             </div>
             
-            {/* 新增：兑换后价格和偏差显示 */}
+            {/* New: Price and deviation display after redemption */}
             {usdtToCarbonPriceImpact && (
               <>
                 <div className="flex justify-between">

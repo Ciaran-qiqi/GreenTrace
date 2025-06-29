@@ -5,7 +5,8 @@ import { formatContractPrice } from '@/utils/formatUtils';
 import { useTranslation } from '@/hooks/useI18n';
 import { MarketSearch } from './MarketSearch';
 
-// 筛选条件接口
+// Filtering criteria interface
+
 export interface FilterOptions {
   searchTerm: string;
   priceRange: [number, number];
@@ -20,8 +21,8 @@ interface MarketFiltersProps {
 }
 
 /**
- * 市场筛选器组件
- * @description 功能完整的NFT市场筛选和排序组件，支持实时筛选
+ * Market Filter Components
+ * @description Complete functional NFT market filtering and sorting components, supporting real-time filtering
  */
 export const MarketFilters: React.FC<MarketFiltersProps> = ({
   onFiltersChange,
@@ -29,16 +30,20 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
   isLoading = false,
 }) => {
   const { t } = useTranslation();
-  // 筛选状态
+  // Filter status
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]); // 提高默认上限
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]); // Increase the default upper limit
+
   const [sortBy, setSortBy] = useState<FilterOptions['sortBy']>('time_desc');
   const [minCarbonReduction, setMinCarbonReduction] = useState<number>(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
-  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false); // 标记价格筛选是否激活
+  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false); // Tag price filter is activated
 
-  // 检查是否有活跃的筛选条件
+
+  // Check if there are active filter criteria
+
   useEffect(() => {
     const hasFilters = 
       searchTerm.trim() !== '' ||
@@ -49,11 +54,13 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
     setHasActiveFilters(hasFilters);
   }, [searchTerm, isPriceFilterActive, minCarbonReduction, sortBy]);
 
-  // 应用筛选条件（实时更新）
+  // Apply filter criteria (real-time update)
+
   useEffect(() => {
     const filters: FilterOptions = {
       searchTerm: searchTerm.trim(),
-      priceRange: isPriceFilterActive ? priceRange : [0, Number.MAX_SAFE_INTEGER], // 只有激活时才应用价格筛选
+      priceRange: isPriceFilterActive ? priceRange : [0, Number.MAX_SAFE_INTEGER], // Price filtering is applied only when activated
+
       sortBy,
       minCarbonReduction: minCarbonReduction > 0 ? minCarbonReduction : undefined,
     };
@@ -61,16 +68,19 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
     onFiltersChange(filters);
   }, [searchTerm, priceRange, sortBy, minCarbonReduction, isPriceFilterActive, onFiltersChange]);
 
-  // 重置筛选条件
+  // Reset filters
+
   const resetFilters = () => {
     setSearchTerm('');
     setPriceRange([0, 10000]);
     setSortBy('time_desc');
     setMinCarbonReduction(0);
-    setIsPriceFilterActive(false); // 重置价格筛选状态
+    setIsPriceFilterActive(false); // Reset price filter status
+
   };
 
-  // 排序选项
+  // Sort options
+
   const sortOptions = [
     { value: 'time_desc', label: `🕒 ${t('nftMarket.filters.sort.timeDesc')}`, icon: '⬇️' },
     { value: 'time_asc', label: `🕰️ ${t('nftMarket.filters.sort.timeAsc')}`, icon: '⬆️' },
@@ -82,7 +92,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
-      {/* 筛选器头部 */}
+      {/* Filter header */}
       <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -121,7 +131,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
         </div>
       </div>
 
-      {/* 快速排序栏（始终显示） */}
+      {/* Quick sort bar (always show) */}
       <div className="px-6 py-3 bg-gray-50/50">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-600 font-medium mr-2">{t('nftMarket.filters.quickSort')}</span>
@@ -142,11 +152,11 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
         </div>
       </div>
 
-      {/* 高级筛选区域（可展开） */}
+      {/* Advanced Filter Area (expandable) */}
       {isExpanded && (
         <div className="px-6 py-5 border-t border-gray-100">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* 搜索框 */}
+                        {/* Search box */}
              <div className="space-y-2">
                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                  <span>🔍</span>
@@ -159,7 +169,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
                />
              </div>
 
-            {/* 价格范围 */}
+            {/* Price range */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <span>💰</span>
@@ -206,7 +216,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
               </div>
             </div>
 
-            {/* 碳减排量筛选 */}
+            {/* Carbon emission reduction screening */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <span>🌱</span>
@@ -229,7 +239,7 @@ export const MarketFilters: React.FC<MarketFiltersProps> = ({
             </div>
           </div>
 
-          {/* 预设快捷筛选 */}
+          {/* Preset quick filtering */}
           <div className="mt-6 pt-4 border-t border-gray-100">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm font-medium text-gray-700">⚡ {t('nftMarket.filters.quickFilters')}</span>

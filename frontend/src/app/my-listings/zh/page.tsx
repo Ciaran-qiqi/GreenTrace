@@ -1,6 +1,6 @@
 import MyListingsPage from '../page';
 
-// 我的挂单页面中文版
+// My order page in Chinese version
 export default function ZHMyListingsPage() {
   return <MyListingsPage />;
 }

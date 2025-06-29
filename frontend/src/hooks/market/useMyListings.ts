@@ -6,7 +6,8 @@ import { useChainId } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
 
-// 我的挂单数据接口
+// My pending data interface
+
 export interface MyListing {
   listingId: string;
   tokenId: string;
@@ -29,9 +30,9 @@ export interface UseMyListingsReturn {
 }
 
 /**
- * 获取用户挂单数据的Hook
- * @description 从智能合约获取当前用户的所有挂单信息
- * @returns 用户挂单数据和操作方法
+ * Get user order data
+ * @description Get all pending order information of the current user from the smart contract
+ * @returns User order data and operation methods
  */
 export const useMyListings = (): UseMyListingsReturn => {
   const { address } = useAccount();
@@ -40,7 +41,8 @@ export const useMyListings = (): UseMyListingsReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -52,19 +54,23 @@ export const useMyListings = (): UseMyListingsReturn => {
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 获取用户挂单数据
+  // Obtain user order data
+
   const { data: userListings, refetch: refetchUserListings } = useReadContract({
     address: marketAddress as `0x${string}`,
     abi: GreenTalesMarketABI.abi,
     functionName: 'getUserListings',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address && !!marketAddress && address.length === 42, // 确保地址格式正确
-      retry: false, // 避免重复调用
+      enabled: !!address && !!marketAddress && address.length === 42, // Make sure the address format is correct
+
+      retry: false, // Avoid repeated calls
+
     }
   });
 
-  // 处理获取到的挂单数据
+  // Process the obtained pending order data
+
   const fetchListingsDetails = async () => {
     if (!address) {
       setListings([]);
@@ -77,20 +83,23 @@ export const useMyListings = (): UseMyListingsReturn => {
     try {
       console.log('🏪 开始获取用户完整挂单历史...');
       
-      // 使用 readContracts 批量获取详细信息
+      // Use readContracts to get detailed information in batches
+
       const { readContracts } = await import('wagmi/actions');
       const { config } = await import('@/lib/wagmi');
 
       const myListings: MyListing[] = [];
 
-      // 1. 获取当前活跃的挂单
+      // 1. Get the currently active order
+
       if (userListings) {
         const tokenIds = userListings as bigint[];
         
         if (tokenIds.length > 0) {
           console.log('📋 获取当前活跃挂单...');
           
-          // 批量获取每个NFT的完整信息
+          // Get full information for each nft in batches
+
           const nftInfoContracts = tokenIds.map(tokenId => ({
             address: marketAddress as `0x${string}`,
             abi: GreenTalesMarketABI.abi as any,
@@ -105,7 +114,8 @@ export const useMyListings = (): UseMyListingsReturn => {
               const [listing, storyMeta] = result.result as [any, any, bigint];
               const tokenId = tokenIds[index];
 
-              // 只有当前用户的挂单才添加
+              // Only the current user's pending order is added
+
               if (listing.seller.toLowerCase() === address.toLowerCase()) {
                 myListings.push({
                   listingId: tokenId.toString(),
@@ -126,11 +136,13 @@ export const useMyListings = (): UseMyListingsReturn => {
         }
       }
 
-      // 2. 注释：交易历史获取逻辑暂时禁用，因为getTradeHistory需要特定tokenId参数
-      // 实际应用中，交易历史应该通过区块链事件监听或者外部索引服务获取
+      // 2. Note: Transaction history acquisition logic is temporarily disabled because getTradeHistory requires a specific tokenId parameter
+      // In actual applications, transaction history should be obtained through blockchain event monitoring or external indexing services.
+
       console.log('📈 跳过交易历史获取（需要重新设计）');
 
-      // 3. 按时间排序（最新的在前）
+      // 3. Sort by time (the latest one is first)
+
       myListings.sort((a, b) => parseInt(b.listedAt) - parseInt(a.listedAt));
 
       console.log(`✅ 成功获取 ${myListings.length} 个用户挂单记录`);
@@ -150,7 +162,8 @@ export const useMyListings = (): UseMyListingsReturn => {
     }
   };
 
-  // 监听用户挂单数据变化
+  // Listen to changes in user orders
+
   useEffect(() => {
     if (address && marketAddress) {
       fetchListingsDetails();
@@ -160,7 +173,8 @@ export const useMyListings = (): UseMyListingsReturn => {
     }
   }, [userListings, address, marketAddress]);
 
-  // 刷新数据的方法
+  // How to refresh data
+
   const refetch = () => {
     refetchUserListings();
   };

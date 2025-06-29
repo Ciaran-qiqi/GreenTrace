@@ -16,30 +16,33 @@ interface UseBuyNFTParams {
 type BuyStep = 'check' | 'approve' | 'buy' | 'success' | 'error';
 
 interface UseBuyNFTReturn {
-  // 状态
+  // state
+
   currentStep: BuyStep;
   isLoading: boolean;
   errorMessage: string;
   
-  // 余额和授权信息
+  // Balance and authorization information
+
   carbBalance: bigint | undefined;
   allowance: bigint | undefined;
   hasEnoughBalance: boolean;
   needsApproval: boolean;
   
-  // 操作函数
+  // Operation functions
+
   handleApprove: () => Promise<void>;
   handleBuy: () => Promise<void>;
   reset: () => void;
 }
 
 /**
- * 购买NFT Hook
- * @description 提供完整的NFT购买流程，包括余额检查、代币授权和购买操作
+ * Buy NFT Hook
+ * @description Provides a complete NFT purchase process, including balance checks, token authorization and purchase operations
  * @param tokenId NFT Token ID
- * @param price NFT价格（wei格式）
- * @param onSuccess 购买成功回调
- * @returns 购买相关的状态和操作函数
+ * @param price NFT price (wei format)
+ * @param onSuccess Successful purchase callback
+ * @returns Purchase related state and operation functions
  */
 export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBuyNFTReturn => {
   const { address } = useAccount();
@@ -47,7 +50,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
   const [currentStep, setCurrentStep] = useState<BuyStep>('check');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -69,7 +73,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
   const marketAddress = getMarketAddress(chainId);
   const carbonTokenAddress = getCarbonTokenAddress(chainId);
 
-  // 检查CARB余额
+  // Check the carb balance
+
   const { data: carbBalance, refetch: refetchBalance } = useReadContract({
     address: carbonTokenAddress as `0x${string}`,
     abi: CarbonTokenABI.abi,
@@ -78,7 +83,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     query: { enabled: !!address }
   });
 
-  // 检查CARB授权额度
+  // Check the carb authorization amount
+
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: carbonTokenAddress as `0x${string}`,
     abi: CarbonTokenABI.abi,
@@ -87,28 +93,34 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     query: { enabled: !!address && !!marketAddress }
   });
 
-  // 授权CARB合约调用
+  // Authorize carb contract calls
+
   const { writeContract: approveCarb, data: approveHash } = useWriteContract();
   
-  // 购买NFT合约调用
+  // Purchase nft contract call
+
   const { writeContract: buyNFT, data: buyHash } = useWriteContract();
 
-  // 监听授权交易状态
+  // Listen to authorized transaction status
+
   const { isSuccess: approveSuccess, isError: approveError, error: approveErrorDetails, isLoading: approveLoading } = useWaitForTransactionReceipt({
     hash: approveHash,
   });
 
-  // 监听购买交易状态
+  // Listen to the purchase transaction status
+
   const { isSuccess: buySuccess, isError: buyError, error: buyErrorDetails, isLoading: buyLoading } = useWaitForTransactionReceipt({
     hash: buyHash,
   });
 
-  // 计算状态
+  // Calculate the status
+
   const needsApproval = !allowance || BigInt(price) > BigInt(allowance.toString());
   const hasEnoughBalance = Boolean(carbBalance && BigInt(price) <= BigInt(carbBalance.toString()));
   const isLoading = approveLoading || buyLoading || currentStep === 'approve' || currentStep === 'buy';
 
-  // 处理授权
+  // Processing Authorization
+
   const handleApprove = async (): Promise<void> => {
     if (!address) {
       toast.error('请先连接钱包');
@@ -119,8 +131,10 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
       setCurrentStep('approve');
       setErrorMessage('');
       
-      // 授权稍微多一点的代币，以防价格波动
-      const approveAmount = BigInt(price) * BigInt(110) / BigInt(100); // 多授权10%
+      // Authorize slightly more tokens to prevent price fluctuations
+
+      const approveAmount = BigInt(price) * BigInt(110) / BigInt(100); // More authorization 10%
+
       
       await approveCarb({
         address: carbonTokenAddress as `0x${string}`,
@@ -137,7 +151,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     }
   };
 
-  // 处理购买
+  // Process the purchase
+
   const handleBuy = async (): Promise<void> => {
     if (!address) {
       toast.error('请先连接钱包');
@@ -163,13 +178,15 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     }
   };
 
-  // 重置状态
+  // Reset status
+
   const reset = (): void => {
     setCurrentStep('check');
     setErrorMessage('');
   };
 
-  // 监听授权交易完成
+  // Listen to authorized transactions completed
+
   useEffect(() => {
     if (approveSuccess) {
       refetchAllowance();
@@ -179,7 +196,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     }
   }, [approveSuccess, refetchAllowance, refetchBalance]);
 
-  // 监听购买交易完成
+  // Listen to purchase transactions completed
+
   useEffect(() => {
     if (buySuccess) {
       setCurrentStep('success');
@@ -188,7 +206,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     }
   }, [buySuccess, onSuccess]);
 
-  // 监听授权错误
+  // Listening authorization error
+
   useEffect(() => {
     if (approveError && approveErrorDetails) {
       console.error('授权交易失败:', approveErrorDetails);
@@ -208,7 +227,8 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
     }
   }, [approveError, approveErrorDetails]);
 
-  // 监听购买错误
+  // Listen to purchase errors
+
   useEffect(() => {
     if (buyError && buyErrorDetails) {
       console.error('购买交易失败:', buyErrorDetails);
@@ -231,18 +251,21 @@ export const useBuyNFT = ({ tokenId, price, onSuccess }: UseBuyNFTParams): UseBu
   }, [buyError, buyErrorDetails]);
 
   return {
-    // 状态
+    // state
+
     currentStep,
     isLoading,
     errorMessage,
     
-    // 余额和授权信息
+    // Balance and authorization information
+
     carbBalance,
     allowance,
     hasEnoughBalance,
     needsApproval,
     
-    // 操作函数
+    // Operation functions
+
     handleApprove,
     handleBuy,
     reset,

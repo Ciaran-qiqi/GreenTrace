@@ -9,21 +9,26 @@ import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
 import { useTranslation, useLocalizedNavigation } from '@/hooks/useI18n';
 import { LanguageToggle } from '@/components/LanguageToggle';
 
-// 根据链ID获取GreenTrace合约地址
+// Get the green trace contract address according to the chain id
+
 const getGreenTraceAddress = (chainId: number): string => {
   switch (chainId) {
-    case 1: // 以太坊主网
+    case 1: // Ethereum Main Network
+
       return CONTRACT_ADDRESSES.mainnet.GreenTrace;
-    case 11155111: // Sepolia测试网
+    case 11155111: // Sepolia Test Network
+
       return CONTRACT_ADDRESSES.sepolia.GreenTrace;
-    case 31337: // 本地Foundry测试网
+    case 31337: // Local foundry test network
+
       return CONTRACT_ADDRESSES.foundry.GreenTrace;
     default:
       return CONTRACT_ADDRESSES.sepolia.GreenTrace;
   }
 };
 
-// 导航组件 - 包含钱包连接和三级权限导航菜单
+// Navigation Component -Includes wallet connection and three-level permission navigation menu
+
 export const Navigation: React.FC = () => {
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
@@ -31,15 +36,18 @@ export const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { getLocalizedPath, mounted: i18nMounted } = useLocalizedNavigation();
 
-  // 确保组件只在客户端渲染
+  // Make sure components are rendered only on the client side
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 获取合约地址
+  // Get the contract address
+
   const greenTraceAddress = getGreenTraceAddress(chainId);
 
-  // 检查用户是否是合约所有者
+  // Check whether the user is the contract owner
+
   const { data: contractOwner } = useReadContract({
     address: greenTraceAddress as `0x${string}`,
     abi: GreenTraceABI.abi,
@@ -49,7 +57,8 @@ export const Navigation: React.FC = () => {
     }
   });
 
-  // 检查用户是否是审计员
+  // Check whether the user is an auditor
+
   const { data: isAuditor } = useReadContract({
     address: greenTraceAddress as `0x${string}`,
     abi: GreenTraceABI.abi,
@@ -60,18 +69,20 @@ export const Navigation: React.FC = () => {
     }
   });
 
-  // 判断用户权限
+  // Determine user permissions
+
   const isContractOwner = Boolean(mounted && address && contractOwner && 
     address.toLowerCase() === (contractOwner as string).toLowerCase());
   const isAuthorizedAuditor = Boolean(mounted && address && isAuditor);
 
-  // 在服务器端渲染时显示基础导航结构
+  // Display basic navigation structure when rendering on server side
+
   if (!mounted || !i18nMounted) {
     return (
       <nav className="bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex justify-between h-16">
-            {/* 左侧Logo */}
+            {/* Logo on the left */}
             <div className="flex items-center">
               <div className="flex items-center space-x-2 group">
                 <div className="text-2xl group-hover:scale-110 transition-transform duration-200">🌱</div>
@@ -81,7 +92,7 @@ export const Navigation: React.FC = () => {
               </div>
             </div>
             
-            {/* 右侧占位符 */}
+            {/* Right placeholder */}
             <div className="flex items-center space-x-4">
               <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
             </div>
@@ -95,7 +106,7 @@ export const Navigation: React.FC = () => {
     <nav className="bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex justify-between h-16">
-          {/* 左侧Logo和导航链接 */}
+          {/* Logo and navigation link on the left */}
           <div className="flex items-center">
             <Link href={getLocalizedPath("/")} className="flex items-center space-x-2 group">
               <div className="text-2xl group-hover:scale-110 transition-transform duration-200">🌱</div>
@@ -104,9 +115,9 @@ export const Navigation: React.FC = () => {
               </span>
             </Link>
             
-            {/* 桌面端导航菜单 */}
+            {/* Desktop navigation menu */}
             <div className="ml-16 flex items-center space-x-2">
-              {/* 第一组：无需钱包即可访问 */}
+              {/* Group 1: Access without a wallet */}
               <div className="flex space-x-2">
               <Link 
                 href={getLocalizedPath("/")} 
@@ -149,7 +160,7 @@ export const Navigation: React.FC = () => {
               </Link>
               </div>
               
-              {/* 第二组：需要连接钱包 */}
+              {/* Group 2: Need to connect to the wallet */}
               {mounted && isConnected && (
                 <>
                   <div className="w-px h-6 bg-gray-200 mx-4 self-center"></div>
@@ -181,12 +192,12 @@ export const Navigation: React.FC = () => {
                 </>
               )}
               
-              {/* 第三组：需要特殊权限 */}
+              {/* Group 3: Special permissions are required */}
               {mounted && isConnected && (isAuthorizedAuditor || isContractOwner) && (
                 <>
                   <div className="w-px h-6 bg-gray-200 mx-4 self-center"></div>
                   <div className="flex space-x-2">
-                    {/* 审计中心 - 仅审计员可见 */}
+                    {/* Audit Center -only visible to the auditor */}
                     {isAuthorizedAuditor && (
                   <Link 
                     href={getLocalizedPath("/audit")} 
@@ -197,7 +208,7 @@ export const Navigation: React.FC = () => {
                   </Link>
                     )}
                   
-                    {/* 管理中心 - 仅合约所有者可见 */}
+                    {/* Management Center -Only visible to contract owners */}
                     {isContractOwner && (
                   <Link 
                         href={getLocalizedPath("/admin")} 
@@ -213,16 +224,16 @@ export const Navigation: React.FC = () => {
             </div>
           </div>
 
-          {/* 右侧语言切换、权限状态和钱包连接按钮 */}
+          {/* Language toggle, permission status and wallet connection buttons on the right */}
           <div className="flex items-center space-x-4">
-            {/* 语言切换器 */}
+            {/* Language Switcher */}
             <LanguageToggle 
               style="dropdown" 
               size="md" 
               showFlag={true} 
               showName={true}
             />
-            {/* 权限状态指示器 */}
+            {/* Permission status indicator */}
             {mounted && isConnected && (
               <div className="flex items-center space-x-2 text-xs">
                 {isContractOwner && (
@@ -240,7 +251,7 @@ export const Navigation: React.FC = () => {
               </div>
             )}
             
-            {/* 钱包连接按钮 */}
+            {/* Wallet Connection Button */}
             {mounted && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-1">
                 <ConnectButton 
@@ -257,10 +268,10 @@ export const Navigation: React.FC = () => {
         </div>
       </div>
 
-      {/* 移动端导航菜单 */}
+      {/* Mobile navigation menu */}
       <div className="md:hidden bg-white border-t border-gray-100">
         <div className="px-4 py-3 space-y-2">
-          {/* 移动端语言切换器 */}
+          {/* Mobile language switcher */}
           <div className="flex justify-center mb-4">
             <LanguageToggle 
               style="buttons" 
@@ -269,7 +280,7 @@ export const Navigation: React.FC = () => {
               showName={false}
             />
           </div>
-          {/* 第一组：无需钱包 */}
+          {/* Group 1: No wallet required */}
           <div className="space-y-1">
           <Link 
             href={getLocalizedPath("/")} 
@@ -303,7 +314,7 @@ export const Navigation: React.FC = () => {
           </Link>
           </div>
           
-          {/* 第二组：需要钱包 */}
+          {/* Group 2: Wallet required */}
           {mounted && isConnected && (
             <>
               <div className="border-t border-gray-200 my-2"></div>
@@ -330,7 +341,7 @@ export const Navigation: React.FC = () => {
             </>
           )}
           
-          {/* 第三组：需要权限 */}
+          {/* Group 3: Permissions required */}
           {mounted && isConnected && (isAuthorizedAuditor || isContractOwner) && (
             <>
               <div className="border-t border-gray-200 my-2"></div>
@@ -355,7 +366,7 @@ export const Navigation: React.FC = () => {
             </>
           )}
           
-          {/* 权限状态显示 */}
+          {/* Permission status display */}
           {mounted && isConnected && (isContractOwner || isAuthorizedAuditor) && (
             <div className="border-t border-gray-200 my-3 pt-3">
               <div className="px-4">

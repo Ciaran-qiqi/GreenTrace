@@ -20,27 +20,31 @@ export const NFTRequestSuccessModal: React.FC<NFTRequestSuccessModalProps> = ({
 
   if (!isOpen) return null;
 
-  // 处理继续创建
+  // Processing Continue Creation
+
   const handleContinueCreate = () => {
     onClose();
   };
 
-  // 处理查看记录 - 跳转到created页面
+  // Processing viewing records -Jump to created page
+
   const handleViewRecords = () => {
     onClose();
     router.push('/created');
   };
 
-  // 生成区块链浏览器链接
+  // Generate blockchain browser links
+
   const getExplorerUrl = (hash: string) => {
-    // Sepolia测试网浏览器
+    // Sepolia Test Network Browser
+
     return `https://sepolia.etherscan.io/tx/${hash}`;
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl">
-        {/* 成功图标 */}
+        {/* Success Icon */}
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,7 +55,7 @@ export const NFTRequestSuccessModal: React.FC<NFTRequestSuccessModalProps> = ({
           <p className="text-gray-600">您的NFT铸造申请已成功提交</p>
         </div>
 
-        {/* 申请信息 */}
+        {/* Application Information */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <div className="space-y-3">
             {tokenId && (
@@ -77,7 +81,7 @@ export const NFTRequestSuccessModal: React.FC<NFTRequestSuccessModalProps> = ({
           </div>
         </div>
 
-        {/* 流程说明 */}
+        {/* Process description */}
         <div className="mb-6">
           <h3 className="font-semibold text-gray-800 mb-3">接下来的步骤:</h3>
           <div className="space-y-2 text-sm text-gray-600">
@@ -96,7 +100,7 @@ export const NFTRequestSuccessModal: React.FC<NFTRequestSuccessModalProps> = ({
           </div>
         </div>
 
-        {/* 操作按钮 */}
+        {/* Operation button */}
         <div className="flex space-x-3">
           <button
             onClick={handleContinueCreate}

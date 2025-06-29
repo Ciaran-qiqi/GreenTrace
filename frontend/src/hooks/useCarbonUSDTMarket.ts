@@ -8,56 +8,56 @@ import CarbonTokenABI from '@/contracts/abi/CarbonToken.json'
 import USDTABI from '@/contracts/abi/USDT.json'
 import { useChainId } from 'wagmi'
 
-// 订单类型枚举 - 与合约保持一致
+// Order Type Enumeration -Consistent with the contract
 export type OrderType = 'Buy' | 'Sell'
 export type OrderStatus = 'Active' | 'Filled' | 'Cancelled'
 
-// 订单结构体 - 与合约保持一致
+// Order structure -consistent with the contract
 export interface Order {
   user: Address
   orderType: OrderType
   amount: bigint
-  remainingAmount: bigint // 剩余未成交数量
+  remainingAmount: bigint // Remaining untransactions
   price: bigint
   timestamp: bigint
   status: OrderStatus
   orderFee: bigint
 }
 
-// 市场统计信息 - 与合约保持一致
+// Market Statistics -Consistent with the contract
 export interface MarketStats {
   totalOrdersCreated: bigint
   totalOrdersFilled: bigint
   totalOrdersCancelled: bigint
   totalVolumeTraded: bigint
   totalFeesCollected: bigint
-  totalLimitOrderFees: bigint // 总挂单手续费
-  totalFillOrderFees: bigint  // 总成交手续费
+  totalLimitOrderFees: bigint // Total order handling fee
+  totalFillOrderFees: bigint  // Total transaction fee
   nextOrderId: bigint
 }
 
-// 手续费率信息 - 与合约保持一致
+// Process rate information -consistent with the contract
 export interface FeeRates {
   platformFee: bigint
   limitOrderFee: bigint
   fillOrderFee: bigint
 }
 
-// 市价单预估信息
+// Market order estimate information
 export interface MarketOrderEstimate {
   estimatedAmount: bigint
   platformFee: bigint
   totalAmount: bigint
 }
 
-// 价格偏离检查结果
+// Price deviation check results
 export interface PriceDeviationCheck {
   isBlocked: boolean
   deviation: bigint
   referencePrice: bigint
 }
 
-// 用户余额信息
+// User balance information
 export interface UserBalances {
   carbonBalance: string
   carbonBalanceRaw: bigint
@@ -70,17 +70,17 @@ export const useCarbonUSDTMarket = () => {
   const chainId = useChainId()
   const { writeContract, data: hash, isPending: isWritePending, error: writeError } = useWriteContract()
   
-  // 获取合约地址 - 使用新的辅助函数
+  // Get the contract address -use the new helper function
   const marketAddress = getCarbonUSDTMarketAddress(chainId) as Address
   const carbonTokenAddress = getCarbonTokenAddress(chainId) as Address
   const usdtTokenAddress = getUSDTAddress(chainId) as Address
 
-  // 等待交易确认
+  // Wait for transaction confirmation
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   })
 
-  // 读取用户碳币余额
+  // Read the user's carbon currency balance
   const { data: carbonBalance } = useReadContract({
     address: carbonTokenAddress,
     abi: CarbonTokenABI.abi,
@@ -89,7 +89,7 @@ export const useCarbonUSDTMarket = () => {
     query: { enabled: !!userAddress }
   })
 
-  // 读取用户USDT余额
+  // Read user usdt balance
   const { data: usdtBalance } = useReadContract({
     address: usdtTokenAddress,
     abi: USDTABI.abi,
@@ -98,15 +98,15 @@ export const useCarbonUSDTMarket = () => {
     query: { enabled: !!userAddress }
   })
 
-  // 地址验证函数
+  // Address verification function
   const isValidAddress = (address: string): boolean => {
     return !!(address && address !== '0x' && address.length === 42)
   }
 
-  // 检查市场地址是否有效
+  // Check if the market address is valid
   const isMarketAddressValid = marketAddress && isValidAddress(marketAddress)
 
-  // 读取市场统计 - 使用新的getDetailedMarketStats函数
+  // Read Market Statistics -Use the new getDetailedMarketStats function
   const { data: marketStatsData } = useReadContract({
     address: marketAddress,
     abi: CarbonUSDTMarketABI.abi,
@@ -114,7 +114,7 @@ export const useCarbonUSDTMarket = () => {
     query: { enabled: isMarketAddressValid }
   })
 
-  // 读取手续费率
+  // Reading handling rate
   const { data: feeRatesData } = useReadContract({
     address: marketAddress,
     abi: CarbonUSDTMarketABI.abi,
@@ -122,7 +122,7 @@ export const useCarbonUSDTMarket = () => {
     query: { enabled: isMarketAddressValid }
   })
 
-  // 读取活跃订单列表
+  // Read active order list
   const { data: activeOrdersData } = useReadContract({
     address: marketAddress,
     abi: CarbonUSDTMarketABI.abi,
@@ -130,7 +130,7 @@ export const useCarbonUSDTMarket = () => {
     query: { enabled: isMarketAddressValid }
   })
 
-  // 读取订单簿信息
+  // Read order book information
   const { data: orderBookData } = useReadContract({
     address: marketAddress,
     abi: CarbonUSDTMarketABI.abi,
@@ -139,9 +139,9 @@ export const useCarbonUSDTMarket = () => {
   })
 
   /**
-   * 创建买单 - 支持自动撮合
-   * @param amount 要购买的碳币数量（字符串格式）
-   * @param price 出价（USDT基础单位，例如：88表示88 USDT）
+   * Create a pay order -Support automatic matching
+   * @param amount Number of carbon coins to be purchased (string format)
+   * @param price Bid (USDT basic unit, for example: 88 means 88 USDT)
    */
   const createBuyOrder = useCallback(async (amount: string, price: string) => {
     if (!userAddress || !amount || !price) {
@@ -151,7 +151,7 @@ export const useCarbonUSDTMarket = () => {
 
     try {
       const amountWei = parseUnits(amount, 18)
-      // 价格传递基础数值（不带精度），合约中直接相乘：amount(wei) * price(basic) = USDT(wei)
+      // Price transfer basic values ​​(without precision), multiply directly in the contract: amount(wei) *price(basic) = USDT(wei)
       const priceBasic = BigInt(Math.round(Number(price)))
       
       console.log('创建买单参数:', {
@@ -178,9 +178,9 @@ export const useCarbonUSDTMarket = () => {
   }, [userAddress, marketAddress, writeContract])
 
   /**
-   * 创建卖单 - 支持自动撮合
-   * @param amount 要出售的碳币数量（字符串格式）
-   * @param price 出价（USDT基础单位，例如：88表示88 USDT）
+   * Create a sell order -supports automatic matching
+   * @param amount Number of carbon coins to be sold (string format)
+   * @param price Bid (USDT basic unit, for example: 88 means 88 USDT)
    */
   const createSellOrder = useCallback(async (amount: string, price: string) => {
     if (!userAddress || !amount || !price) {
@@ -190,7 +190,7 @@ export const useCarbonUSDTMarket = () => {
 
     try {
       const amountWei = parseUnits(amount, 18)
-      // 价格传递基础数值（不带精度），合约中直接相乘：amount(wei) * price(basic) = USDT(wei)
+      // Price transfer basic values ​​(without precision), multiply directly in the contract: amount(wei) *price(basic) = USDT(wei)
       const priceBasic = BigInt(Math.round(Number(price)))
       
       console.log('创建卖单参数:', {
@@ -217,8 +217,8 @@ export const useCarbonUSDTMarket = () => {
   }, [userAddress, marketAddress, writeContract])
 
   /**
-   * 成交订单 - 手动匹配其他用户的订单
-   * @param orderId 要成交的订单ID
+   * Deal orders -Manually match orders from other users
+   * @param orderId Order ID to be sold
    */
   const fillOrder = useCallback(async (orderId: string) => {
     if (!userAddress || !orderId) {
@@ -242,8 +242,8 @@ export const useCarbonUSDTMarket = () => {
   }, [userAddress, marketAddress, writeContract])
 
   /**
-   * 取消订单 - 撤销自己的挂单
-   * @param orderId 要取消的订单ID
+   * Cancel an order -Revoke your own order
+   * @param orderId Order ID to cancel
    */
   const cancelOrder = useCallback(async (orderId: string) => {
     if (!userAddress || !orderId) {
@@ -267,9 +267,9 @@ export const useCarbonUSDTMarket = () => {
   }, [userAddress, marketAddress, writeContract])
 
   /**
-   * 检查价格偏离 - 验证价格是否在允许范围内
-   * @param price 要检查的价格
-   * @returns 价格偏离检查结果
+   * Check price deviation -Verify that the price is within the allowable range
+   * @param price Prices to be checked
+   * @returns Price deviation check results
    */
   const checkPriceDeviation = useCallback(async (price: string): Promise<PriceDeviationCheck | null> => {
     if (!price || !isMarketAddressValid) return null
@@ -277,7 +277,7 @@ export const useCarbonUSDTMarket = () => {
     try {
       const priceBasic = BigInt(Math.round(Number(price)))
       
-      // 动态导入wagmi的readContract函数
+      // Dynamically import wagmi's read contract function
       const { readContract } = await import('wagmi/actions')
       const { config } = await import('@/lib/wagmi')
       
@@ -300,15 +300,15 @@ export const useCarbonUSDTMarket = () => {
   }, [marketAddress, isMarketAddressValid])
 
   /**
-   * 获取订单信息 - 根据订单ID获取详细信息
-   * @param orderId 订单ID
-   * @returns 订单详细信息
+   * Get order information -Get detailed information based on order ID
+   * @param orderId Order ID
+   * @returns Order details
    */
   const getOrder = useCallback(async (orderId: string) => {
     if (!orderId || !isMarketAddressValid) return null
 
     try {
-      // 动态导入wagmi的readContract函数
+      // Dynamically import wagmi's read contract function
       const { readContract } = await import('wagmi/actions')
       const { config } = await import('@/lib/wagmi')
       
@@ -327,15 +327,15 @@ export const useCarbonUSDTMarket = () => {
   }, [marketAddress, isMarketAddressValid])
 
   /**
-   * 获取用户订单列表 - 获取指定用户的所有订单ID
-   * @param user 用户地址
-   * @returns 用户订单ID数组
+   * Get the user order list -Get all order IDs of the specified user
+   * @param user User address
+   * @returns User Order ID Array
    */
   const getUserOrders = useCallback(async (user: Address) => {
     if (!user || !isMarketAddressValid) return []
 
     try {
-      // 动态导入wagmi的readContract函数
+      // Dynamically import wagmi's read contract function
       const { readContract } = await import('wagmi/actions')
       const { config } = await import('@/lib/wagmi')
       
@@ -354,17 +354,17 @@ export const useCarbonUSDTMarket = () => {
   }, [marketAddress, isMarketAddressValid])
 
   /**
-   * 获取分页订单簿 - 更高效的订单数据获取方式
-   * @param offset 起始位置
-   * @param limit 数量限制
-   * @param orderType 订单类型过滤（0=买单，1=卖单，2=全部）
-   * @returns 订单列表和是否还有更多数据
+   * Get paging order book -More efficient way to obtain order data
+   * @param offset Starting location
+   * @param limit Quantity Limit
+   * @param orderType Order type filtering (0=buy order, 1=sell order, 2=all)
+   * @returns Order list and whether there is more data
    */
   const getOrderBookPaginated = useCallback(async (offset: number, limit: number, orderType: number) => {
     if (!isMarketAddressValid) return { orderList: [], hasMore: false }
 
     try {
-      // 动态导入wagmi的readContract函数
+      // Dynamically import wagmi's read contract function
       const { readContract } = await import('wagmi/actions')
       const { config } = await import('@/lib/wagmi')
       
@@ -385,14 +385,14 @@ export const useCarbonUSDTMarket = () => {
     }
   }, [marketAddress, isMarketAddressValid])
 
-  // 监听交易确认
+  // Listen to transaction confirmation
   useEffect(() => {
     if (isConfirmed) {
       toast.success('交易已确认！')
     }
   }, [isConfirmed])
 
-  // 监听交易错误 - 改进错误处理
+  // Listen to transaction errors -Improve error handling
   useEffect(() => {
     if (writeError) {
       console.error('Transaction error details:', writeError)
@@ -415,7 +415,7 @@ export const useCarbonUSDTMarket = () => {
     }
   }, [writeError])
 
-  // 格式化代币数量
+  // Format number of tokens
   const formatTokenAmount = (value: bigint | undefined, decimals = 18) => {
     if (!value) return '0'
     try {
@@ -426,7 +426,7 @@ export const useCarbonUSDTMarket = () => {
     }
   }
 
-  // 格式化用户余额
+  // Format user balance
   const userBalances: UserBalances = {
     carbonBalance: formatTokenAmount(carbonBalance as bigint),
     carbonBalanceRaw: carbonBalance as bigint || BigInt(0),
@@ -434,7 +434,7 @@ export const useCarbonUSDTMarket = () => {
     usdtBalanceRaw: usdtBalance as bigint || BigInt(0),
   }
 
-  // 格式化市场统计
+  // Format market statistics
   const marketStats: MarketStats | null = marketStatsData ? {
     totalOrdersCreated: (marketStatsData as any)[0],
     totalOrdersFilled: (marketStatsData as any)[1],
@@ -446,7 +446,7 @@ export const useCarbonUSDTMarket = () => {
     nextOrderId: (marketStatsData as any)[7],
   } : null
 
-  // 格式化手续费率
+  // Format handling rate
   const feeRates: FeeRates | null = feeRatesData ? {
     platformFee: (feeRatesData as any)[0],
     limitOrderFee: (feeRatesData as any)[1],
@@ -454,32 +454,32 @@ export const useCarbonUSDTMarket = () => {
   } : null
 
   return {
-    // 状态
+    // state
     isConnected,
     isWritePending,
     isConfirming,
     isConfirmed,
     writeError,
     
-    // 合约地址
+    // Contract address
     marketAddress,
     carbonTokenAddress,
     usdtTokenAddress,
     
-    // 用户余额
+    // User balance
     carbonBalance: userBalances.carbonBalance,
     carbonBalanceRaw: userBalances.carbonBalanceRaw,
     usdtBalance: userBalances.usdtBalance,
     usdtBalanceRaw: userBalances.usdtBalanceRaw,
     userBalances,
     
-    // 市场数据
+    // Market data
     marketStats,
     feeRates,
     activeOrders: activeOrdersData as bigint[] || [],
     orderBook: orderBookData || [],
     
-    // 方法
+    // method
     createBuyOrder,
     createSellOrder,
     fillOrder,

@@ -4,13 +4,13 @@ import React from 'react';
 import { SalesHistory } from '@/components/market/SalesHistory';
 
 /**
- * 销售历史页面
- * @description 展示用户的NFT销售历史记录
+ * Sales History Page
+ * @description Show user's NFT sales history
  */
 export default function SalesHistoryPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* 页面标题 */}
+      {/* Page title */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-2xl">📊</span>
@@ -21,7 +21,7 @@ export default function SalesHistoryPage() {
         </p>
       </div>
 
-      {/* 销售历史组件 */}
+      {/* Sales History Components */}
       <SalesHistory />
     </div>
   );

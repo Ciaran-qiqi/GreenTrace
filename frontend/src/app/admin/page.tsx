@@ -11,7 +11,8 @@ import { AuditDataManagement } from '@/components/admin/AuditDataManagement';
 import { BusinessContractManagement } from '@/components/admin/BusinessContractManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 
-// 管理中心菜单项
+// Management Center Menu Items
+
 type AdminMenuItem = 'dashboard' | 'auditors' | 'audits' | 'contracts' | 'settings';
 
 interface AdminMenuConfig {
@@ -23,15 +24,16 @@ interface AdminMenuConfig {
 }
 
 /**
- * 管理中心主页面
- * @description GreenTrace管理中心，提供系统管理和数据分析功能
+ * Management Center Main Page
+ * @description GreenTrace Management Center, providing system management and data analysis capabilities
  */
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
   const [activeMenu, setActiveMenu] = useState<AdminMenuItem>('dashboard');
   const { t } = useI18n();
   
-  // 获取管理数据
+  // Get management data
+
   const {
     systemStats,
     statsLoading,
@@ -40,7 +42,8 @@ export default function AdminPage() {
     refetchAll,
   } = useAdminData();
 
-  // 构建菜单项配置
+  // Build menu item configuration
+
   const adminMenuItems: AdminMenuConfig[] = [
     {
       id: 'dashboard',
@@ -77,7 +80,8 @@ export default function AdminPage() {
     },
   ];
 
-  // 未连接钱包
+  // Not connected to the wallet
+
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center">
@@ -95,7 +99,8 @@ export default function AdminPage() {
     );
   }
 
-  // 渲染活跃组件
+  // Render active components
+
   const renderActiveComponent = () => {
     switch (activeMenu) {
       case 'dashboard':
@@ -113,7 +118,8 @@ export default function AdminPage() {
     }
   };
 
-  // 获取权限显示文本
+  // Get permission to display text
+
   const getPermissionText = () => {
     if (isOwner && isAuditor) return t('admin.userInfo.adminAndAuditor');
     if (isOwner) return t('admin.userInfo.admin');
@@ -126,7 +132,7 @@ export default function AdminPage() {
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* 页面头部 */}
+          {/* Page header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -140,7 +146,7 @@ export default function AdminPage() {
               </div>
               
               <div className="flex items-center gap-4">
-                {/* 快速统计 */}
+                {/* Quick statistics */}
                 {systemStats && !statsLoading && (
                   <div className="flex gap-4">
                     <div className="text-center">
@@ -158,7 +164,7 @@ export default function AdminPage() {
                   </div>
                 )}
                 
-                {/* 刷新按钮 */}
+                {/* Refresh button */}
                 <button
                   onClick={refetchAll}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -168,7 +174,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* 当前用户信息条 */}
+            {/* Current user information bar */}
             <div className="bg-white rounded-lg p-3 border-l-4 border-green-500 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-lg">👤</span>
@@ -187,7 +193,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 水平标签页菜单 */}
+          {/* Horizontal Tab Menu */}
           <div className="mb-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2">
               <nav className="flex gap-1">
@@ -225,7 +231,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 主内容区域 */}
+          {/* Main content area */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[700px]">
             {renderActiveComponent()}
           </div>

@@ -11,16 +11,17 @@ import { useEventBasedCancelHistory } from '@/hooks/market/useEventBasedCancelHi
 import { PriceUpdateModal } from './PriceUpdateModal';
 import { CancelListingModal } from './CancelListingModal';
 
-// MyListing接口已从useMyListings导入
+// My listing interface has been imported from use my listings
+
 
 interface MyListingsProps {
   className?: string;
 }
 
 /**
- * 我的挂单管理组件
- * @description 展示用户的所有NFT挂单，支持价格更新、取消挂单等操作
- * @param className 样式类名
+ * My Pending Order Management Component
+ * @description Display all NFT orders of users, and support price updates, cancellations and other operations
+ * @param className Style class name
  */
 export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
   const { t, language } = useTranslation();
@@ -30,10 +31,12 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   
-  // 使用真实的挂单数据
+  // Use real pending order data
+
   const { listings, isLoading, error, refetch } = useMyListings();
   
-  // 获取销售历史数据（支持缓存）
+  // Get sales history data (support cache)
+
   const { 
     salesHistory, 
     isLoading: salesLoading, 
@@ -42,7 +45,8 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
     clearCache: clearSalesCache
   } = useUserSalesHistory();
 
-  // 获取取消挂单历史数据（支持缓存）
+  // Get historical data for canceling orders (support cache)
+
   const { 
     cancelHistory, 
     isLoading: cancelLoading, 
@@ -51,13 +55,16 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
     clearCache: clearCancelCache
   } = useEventBasedCancelHistory();
 
-  // 合并所有数据（包括销售历史和取消记录）
+  // Consolidate all data (including sales history and cancellation records)
+
   const allListings = [...listings, ...salesHistory, ...cancelHistory];
   
-  // 过滤挂单
+  // Filter order
+
   const filteredListings = allListings.filter(listing => listing.status === selectedTab);
 
-  // 获取状态颜色
+  // Get the status color
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'text-green-600 bg-green-100';
@@ -67,7 +74,8 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
     }
   };
 
-  // 获取状态文本
+  // Get status text
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'active': return t('myListings.status.active', '挂单中');
@@ -77,19 +85,22 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
     }
   };
 
-  // 处理取消挂单
+  // Process cancellation order
+
   const handleCancelListing = (listing: MyListing) => {
     setSelectedListing(listing);
     setShowCancelModal(true);
   };
 
-  // 处理价格更新
+  // Process price updates
+
   const handleUpdatePrice = (listing: MyListing) => {
     setSelectedListing(listing);
     setShowUpdateModal(true);
   };
 
-  // 标签数据（包含销售历史）
+  // Tag data (including sales history)
+
   const tabs = [
     { key: 'active', label: t('myListings.tabs.active', '挂单中'), count: allListings.filter(l => l.status === 'active').length },
     { key: 'sold', label: t('myListings.tabs.sold', '已售出'), count: allListings.filter(l => l.status === 'sold').length },
@@ -108,7 +119,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
 
   return (
     <div className={className}>
-      {/* 头部 */}
+      {/* head */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-2xl font-bold text-gray-800">{t('myListings.myListings', '我的挂单')}</h2>
@@ -116,8 +127,10 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
             <button
               onClick={() => {
                 refetch();
-                refetchSales(); // 增量刷新，保留历史记录
-                refetchCancel(); // 刷新取消记录
+                refetchSales(); // Refresh incrementally, keep history
+
+                refetchCancel(); // Refresh Cancel Record
+
               }}
               disabled={isLoading || salesLoading || cancelLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
@@ -130,14 +143,16 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
               >
                 ⚙️
               </button>
-              {/* 下拉菜单 */}
+              {/* Pull-down menu */}
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                 <div className="p-1">
                   <button
                     onClick={() => {
                       refetch();
-                      forceRefreshSales(); // 强制全量刷新
-                      forceRefreshCancel(); // 强制刷新取消记录
+                      forceRefreshSales(); // Force full refresh
+
+                      forceRefreshCancel(); // Force refresh and cancel record
+
                     }}
                     disabled={isLoading || salesLoading || cancelLoading}
                     className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded disabled:opacity-50"
@@ -161,7 +176,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
         </div>
         <p className="text-gray-600">{t('myListings.manageDescription', '管理您在市场上的NFT挂单')}</p>
         
-        {/* 错误提示 */}
+        {/* Error message */}
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="text-red-600 text-sm">
@@ -170,7 +185,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
           </div>
         )}
 
-        {/* 标签页说明提示 */}
+        {/* Tag page description tips */}
         <div className="mt-4">
           {selectedTab === 'active' && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -196,7 +211,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
         </div>
       </div>
 
-      {/* 标签页 */}
+      {/* Tags */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           {tabs.map(tab => (
@@ -220,7 +235,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
         </nav>
       </div>
 
-      {/* 挂单列表 */}
+      {/* Pending order list */}
       {filteredListings.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-400 text-4xl mb-4">
@@ -239,7 +254,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
           {filteredListings.map(listing => (
             <div key={listing.listingId} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
-                {/* 左侧信息 */}
+                {/* Information on the left */}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -265,7 +280,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                     </div>
                   </div>
 
-                  {/* 价格信息 */}
+                  {/* Price information */}
                   <div className="mt-4 flex items-center gap-6">
                     <div>
                       <div className="text-gray-500 text-sm mb-1">{t('myListings.currentPrice', '当前价格')}</div>
@@ -290,7 +305,7 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
                   </div>
                 </div>
 
-                {/* 右侧操作 */}
+                {/* Right side operation */}
                 {listing.status === 'active' && (
                   <div className="flex flex-col gap-2 ml-4">
                     <button
@@ -315,13 +330,14 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
         </div>
       )}
 
-      {/* 价格更新模态框 */}
+      {/* Price update modal box */}
       {showUpdateModal && selectedListing && (
         <PriceUpdateModal
           isOpen={showUpdateModal}
           onClose={() => setShowUpdateModal(false)}
           onSuccess={() => {
-            refetch(); // 刷新挂单数据
+            refetch(); // Refresh pending order data
+
           }}
           listing={{
             tokenId: selectedListing.tokenId,
@@ -332,13 +348,14 @@ export const MyListings: React.FC<MyListingsProps> = ({ className = '' }) => {
         />
       )}
 
-      {/* 取消挂单模态框 */}
+      {/* Cancel the pending modal box */}
       {showCancelModal && selectedListing && (
         <CancelListingModal
           isOpen={showCancelModal}
           onClose={() => setShowCancelModal(false)}
           onSuccess={() => {
-            refetch(); // 刷新挂单数据
+            refetch(); // Refresh pending order data
+
           }}
           listing={{
             tokenId: selectedListing.tokenId,

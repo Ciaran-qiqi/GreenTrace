@@ -1,6 +1,6 @@
 /**
- * 审计申请内容翻译映射
- * 为链上审计申请内容提供多语言支持
+ * Audit application content translation mapping
+ * Provide multilingual support for on-chain audit application content
  */
 
 export interface AuditTranslation {
@@ -16,11 +16,11 @@ export interface AuditTranslations {
 }
 
 /**
- * 审计申请翻译数据库
- * 根据requestId提供中英文翻译
+ * Audit application translation database
+ * Provide Chinese and English translations based on requestId
  */
 export const auditTranslations: AuditTranslations = {
-  // Request ID #1 - 示例申请
+  // Request ID #1 - Example application
   '1': {
     zh: {
       title: '杭州西湖区垃圾分类示范项目',
@@ -32,7 +32,7 @@ export const auditTranslations: AuditTranslations = {
     }
   },
 
-  // Request ID #2 - 示例申请
+  // Request ID #2 - Example application
   '2': {
     zh: {
       title: '上海浦东新区屋顶绿化碳汇项目',
@@ -44,7 +44,7 @@ export const auditTranslations: AuditTranslations = {
     }
   },
 
-  // Request ID #3 - 陕西延安薛张小流域项目
+  // Request ID #3 - Shaanxi Yan'an Xuezhang Small Watershed Project
   '3': {
     zh: {
       title: '陕西延安薛张小流域水土保持碳汇项目',
@@ -56,7 +56,7 @@ export const auditTranslations: AuditTranslations = {
     }
   },
 
-  // Request ID #4 - 深圳海绵城市项目
+  // Request ID #4 - Shenzhen Sponge City Project
   '4': {
     zh: {
       title: '深圳福田区海绵城市建设项目',
@@ -68,17 +68,17 @@ export const auditTranslations: AuditTranslations = {
     }
   },
 
-  // 可以继续添加更多申请的翻译...
+  // More application translations can be added...
 };
 
 /**
- * 获取审计申请翻译内容
- * @param requestId - 申请的ID
- * @param language - 目标语言 ('zh' | 'en')
- * @param originalTitle - 原始标题（作为备选）
- * @param originalDetails - 原始详情（作为备选）
- * @param preferOriginal - 是否优先使用原始数据（默认true，优先显示真实链上数据）
- * @returns 翻译后的申请内容
+ * Get audit application translation content
+ * @param requestId - Application ID
+ * @param language - Target language ('zh' | 'en')
+ * @param originalTitle - Original title (as fallback)
+ * @param originalDetails - Original details (as fallback)
+ * @param preferOriginal - Whether to prefer original data (default true, show real on-chain data first)
+ * @returns Translated application content
  */
 export function getAuditTranslation(
   requestId: string,
@@ -87,23 +87,23 @@ export function getAuditTranslation(
   originalDetails?: string,
   preferOriginal: boolean = true
 ): AuditTranslation {
-  // 🔥 修复：优先使用真实的链上数据
+  // 🔥 Fix: Prefer real on-chain data
   if (preferOriginal && originalTitle && originalDetails) {
-    // 如果有原始数据且优先使用原始数据，直接返回原始内容
+    // If original data exists and preferOriginal is true, return original content
     return {
       title: originalTitle,
       details: originalDetails
     };
   }
   
-  // 获取翻译映射
+  // Get translation mapping
   const translation = auditTranslations[requestId];
   
   if (translation && translation[language as 'zh' | 'en']) {
     return translation[language as 'zh' | 'en'];
   }
   
-  // 如果没有找到翻译，返回原始内容
+  // If no translation found, return original content
   return {
     title: originalTitle || `Request #${requestId}`,
     details: originalDetails || 'This is an environmental protection project application...'
@@ -111,10 +111,10 @@ export function getAuditTranslation(
 }
 
 /**
- * 检查是否有翻译可用
- * @param requestId - 申请的ID
- * @param language - 目标语言
- * @returns 是否有翻译可用
+ * Check if translation is available
+ * @param requestId - Application ID
+ * @param language - Target language
+ * @returns Whether translation is available
  */
 export function hasAuditTranslation(requestId: string, language: string): boolean {
   const translation = auditTranslations[requestId];
@@ -122,10 +122,10 @@ export function hasAuditTranslation(requestId: string, language: string): boolea
 }
 
 /**
- * 获取示例翻译数据（当链上数据为空或不可读时使用）
- * @param requestId - 申请的ID
- * @param language - 目标语言 ('zh' | 'en')
- * @returns 示例翻译内容，如果没有则返回null
+ * Get example translation data (used when on-chain data is empty or unreadable)
+ * @param requestId - Application ID
+ * @param language - Target language ('zh' | 'en')
+ * @returns Example translation content, or null if not found
  */
 export function getExampleTranslation(
   requestId: string,
@@ -141,8 +141,8 @@ export function getExampleTranslation(
 }
 
 /**
- * 获取所有支持翻译的申请ID列表
- * @returns 支持翻译的申请ID数组
+ * Get all supported application ID list
+ * @returns Array of supported application IDs
  */
 export function getSupportedAuditIds(): string[] {
   return Object.keys(auditTranslations);

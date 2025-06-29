@@ -1,40 +1,40 @@
 /**
- * 时间工具函数
- * 统一处理区块链时间戳的格式化显示
+ * Time utility functions
+ * Unified formatting for blockchain timestamps
  */
 
 /**
- * 智能格式化时间戳
- * 自动检测时间戳是秒还是毫秒，并转换为可读格式
- * @param timestamp - 时间戳（字符串或数字，可能是秒或毫秒）
- * @param locale - 本地化设置，默认为中文
- * @returns 格式化的时间字符串
+ * Smart timestamp formatting
+ * Automatically detects if the timestamp is in seconds or milliseconds and converts to readable format
+ * @param timestamp - Timestamp (string or number, could be seconds or milliseconds)
+ * @param locale - Locale setting, default is Chinese
+ * @returns Formatted time string
  */
 export function formatTimestamp(timestamp: string | number | undefined, locale: string = 'zh-CN'): string {
-  if (!timestamp) return '未知时间';
+  if (!timestamp) return 'Unknown time';
   
   try {
     const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
     
-    // 检测时间戳单位：
-    // 如果是10位数字，认为是秒级时间戳
-    // 如果是13位数字，认为是毫秒级时间戳
-    // 如果小于10位，可能是相对时间，乘以1000
+    // Detect timestamp unit:
+    // If 10 digits, treat as seconds
+    // If 13 digits, treat as milliseconds
+    // If less than 10 digits, maybe relative time, multiply by 1000
     let milliseconds: number;
     
     if (numTimestamp > 1e12) {
-      // 13位或更多，认为已经是毫秒
+      // 13 digits or more, treat as milliseconds
       milliseconds = numTimestamp;
     } else if (numTimestamp > 1e9) {
-      // 10-12位，认为是秒，转换为毫秒
+      // 10-12 digits, treat as seconds, convert to milliseconds
       milliseconds = numTimestamp * 1000;
     } else {
-      // 小于10位，可能是相对时间或其他格式
-      // 尝试直接使用，如果结果不合理则乘以1000
+      // Less than 10 digits, maybe relative time or other format
+      // Try direct use, if result is unreasonable then multiply by 1000
       const directDate = new Date(numTimestamp);
-      // const convertedDate = new Date(numTimestamp * 1000); // 未使用，注释掉
+      // const convertedDate = new Date(numTimestamp * 1000); // Unused, commented out
       
-      // 如果直接使用的结果在1970年之前，使用转换后的
+      // If direct use results in year before 1970, use converted
       if (directDate.getFullYear() < 1990) {
         milliseconds = numTimestamp * 1000;
       } else {
@@ -44,23 +44,23 @@ export function formatTimestamp(timestamp: string | number | undefined, locale: 
     
     const date = new Date(milliseconds);
     
-    // 检查日期是否有效
+    // Check if date is valid
     if (isNaN(date.getTime())) {
-      console.warn('无效的时间戳:', timestamp);
-      return '无效时间';
+      console.warn('Invalid timestamp:', timestamp);
+      return 'Invalid time';
     }
     
-    // 检查日期是否合理（不能早于2020年或晚于2030年）
+    // Check if date is reasonable (not before 2020 or after 2030)
     const year = date.getFullYear();
     if (year < 2020 || year > 2030) {
-      console.warn('时间戳可能有误:', {
+      console.warn('Timestamp may be incorrect:', {
         original: timestamp,
         converted: milliseconds,
         date: date.toISOString(),
         year
       });
       
-      // 尝试另一种转换方式
+      // Try another conversion method
       const alternativeMs = numTimestamp > 1e9 ? numTimestamp : numTimestamp * 1000;
       const alternativeDate = new Date(alternativeMs);
       const alternativeYear = alternativeDate.getFullYear();
@@ -69,23 +69,23 @@ export function formatTimestamp(timestamp: string | number | undefined, locale: 
         return alternativeDate.toLocaleString(locale);
       }
       
-      return `时间异常 (${date.toLocaleDateString(locale)})`;
+      return `Abnormal time (${date.toLocaleDateString(locale)})`;
     }
     
     return date.toLocaleString(locale);
   } catch (error) {
-    console.error('格式化时间戳失败:', error, { timestamp });
-    return '时间格式错误';
+    console.error('Failed to format timestamp:', error, { timestamp });
+    return 'Time format error';
   }
 }
 
 /**
- * 格式化相对时间（多久之前）
- * @param timestamp - 时间戳
- * @returns 相对时间字符串，如 "3分钟前"
+ * Format relative time (how long ago)
+ * @param timestamp - Timestamp
+ * @returns Relative time string, e.g. "3 minutes ago"
  */
 export function formatRelativeTime(timestamp: string | number | undefined): string {
-  if (!timestamp) return '未知时间';
+  if (!timestamp) return 'Unknown time';
   
   try {
     const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
@@ -94,36 +94,36 @@ export function formatRelativeTime(timestamp: string | number | undefined): stri
     const now = Date.now();
     const diff = now - milliseconds;
     
-    if (diff < 0) return '将来';
+    if (diff < 0) return 'In the future';
     
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
     
-    if (days > 0) return `${days}天前`;
-    if (hours > 0) return `${hours}小时前`;
-    if (minutes > 0) return `${minutes}分钟前`;
-    if (seconds > 0) return `${seconds}秒前`;
+    if (days > 0) return `${days} days ago`;
+    if (hours > 0) return `${hours} hours ago`;
+    if (minutes > 0) return `${minutes} minutes ago`;
+    if (seconds > 0) return `${seconds} seconds ago`;
     
-    return '刚刚';
+    return 'Just now';
   } catch (error) {
-    console.error('格式化相对时间失败:', error);
-    return '时间错误';
+    console.error('Failed to format relative time:', error);
+    return 'Time error';
   }
 }
 
 /**
- * 格式化为简短日期格式
- * @param timestamp - 时间戳
- * @returns 简短日期字符串，如 "2024-01-15"
+ * Format as short date
+ * @param timestamp - Timestamp
+ * @returns Short date string, e.g. "2024-01-15"
  */
 export function formatShortDate(timestamp: string | number | undefined): string {
-  if (!timestamp) return '未知日期';
+  if (!timestamp) return 'Unknown date';
   
   try {
     const formatted = formatTimestamp(timestamp);
-    if (formatted.includes('异常') || formatted.includes('错误')) {
+    if (formatted.includes('Abnormal') || formatted.includes('error')) {
       return formatted;
     }
     
@@ -133,39 +133,39 @@ export function formatShortDate(timestamp: string | number | undefined): string 
     
     return date.toLocaleDateString('zh-CN');
   } catch (error) {
-    console.error('格式化短日期失败:', error);
-    return '日期错误';
+    console.error('Failed to format short date:', error);
+    return 'Date error';
   }
 }
 
 /**
- * 格式化时间（多久之前）- formatTimeAgo函数别名
- * @param timestamp - 时间戳或ISO字符串
- * @returns 相对时间字符串
+ * Format time ago (alias for formatRelativeTime)
+ * @param timestamp - Timestamp or ISO string
+ * @returns Relative time string
  */
 export function formatTimeAgo(timestamp: string | number | undefined): string {
   return formatRelativeTime(timestamp);
 }
 
 /**
- * 格式化时间 - 简单的时间格式化函数
- * @param timestamp - 时间戳或ISO字符串
- * @returns 格式化的时间字符串
+ * Format time - simple time formatting function
+ * @param timestamp - Timestamp or ISO string
+ * @returns Formatted time string
  */
 export function formatTime(timestamp: string | number | undefined): string {
-  if (!timestamp) return '未知时间';
+  if (!timestamp) return 'Unknown time';
   
   try {
-    // 如果是ISO字符串，直接解析
+    // If ISO string, parse directly
     if (typeof timestamp === 'string' && timestamp.includes('T')) {
       const date = new Date(timestamp);
       return date.toLocaleString('zh-CN');
     }
     
-    // 否则使用通用的时间戳格式化
+    // Otherwise use general timestamp formatting
     return formatTimestamp(timestamp);
   } catch (error) {
-    console.error('格式化时间失败:', error);
-    return '时间错误';
+    console.error('Failed to format time:', error);
+    return 'Time error';
   }
 } 

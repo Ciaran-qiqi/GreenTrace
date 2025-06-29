@@ -12,7 +12,8 @@ import { NFTExchangeButton } from './NFTExchangeButton';
 import { ListNFTModal } from './market/ListNFTModal';
 import { useTranslation } from '@/hooks/useI18n';
 
-// NFT信息接口
+// Nft information interface
+
 interface NFTInfo {
   tokenId: string;
   title: string;
@@ -24,7 +25,8 @@ interface NFTInfo {
   owner: string;
 }
 
-// 我的资产组件
+// My Asset Component
+
 export const MyAssets: React.FC = () => {
   const { t, language } = useTranslation();
   const { address, isConnected } = useAccount();
@@ -33,15 +35,18 @@ export const MyAssets: React.FC = () => {
   const [userNFTs, setUserNFTs] = useState<NFTInfo[]>([]);
   const [loadingNFTs, setLoadingNFTs] = useState(false);
   
-  // 挂单模态框状态
+  // Single modal box status
+
   const [showListModal, setShowListModal] = useState(false);
   const [selectedNFTForList, setSelectedNFTForList] = useState<NFTInfo | null>(null);
 
-  // 获取合约地址
+  // Get the contract address
+
   const carbonTokenAddress = getCarbonTokenAddress(chainId);
   const nftContractAddress = getGreenTalesNFTAddress(chainId);
 
-  // 获取CARB代币余额 - 使用wagmi直接调用（实时更新，自动缓存）
+  // Get CARB token balance -Direct call using wagmi (real-time update, automatic cache)
+
   const { data: carbBalance, refetch: refetchCarbBalance } = useReadContract({
     address: carbonTokenAddress as `0x${string}`,
     abi: CarbonTokenABI.abi,
@@ -52,7 +57,8 @@ export const MyAssets: React.FC = () => {
     }
   });
 
-  // 获取NFT余额 - 使用wagmi直接调用（简单查询，实时更新）
+  // Get NFT balance -Direct call using wagmi (simple query, real-time update)
+
   const { data: nftBalance, refetch: refetchNftBalance } = useReadContract({
     address: nftContractAddress as `0x${string}`,
     abi: GreenTalesNFTABI.abi,
@@ -63,25 +69,30 @@ export const MyAssets: React.FC = () => {
     }
   });
 
-  // 只在客户端渲染
+  // Render only on the client side
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // 处理挂单
+  // Processing orders
+
   const handleListNFT = (nft: NFTInfo) => {
     setSelectedNFTForList(nft);
     setShowListModal(true);
   };
 
-  // 挂单成功回调
+  // Callback successfully
+
   const handleListSuccess = () => {
     setShowListModal(false);
     setSelectedNFTForList(null);
-    refreshAssets(); // 刷新资产数据
+    refreshAssets(); // Refresh asset data
+
   };
 
-  // 使用改进的NFT查询逻辑
+  // Use improved nft query logic
+
   const fetchUserNFTs = async () => {
     if (!address || !nftBalance || Number(nftBalance) === 0) {
       console.log('🔍 NFT获取条件不满足:', { address, nftBalance: nftBalance?.toString() });
@@ -96,11 +107,13 @@ export const MyAssets: React.FC = () => {
       const balance = Number(nftBalance);
       console.log(`📊 用户${address}拥有${balance}个NFT，开始查询详情...`);
 
-      // 使用wagmi的readContracts进行批量查询
+      // Use wagmi's read contracts for batch query
+
       const { readContracts } = await import('wagmi/actions');
       const { config } = await import('@/lib/wagmi');
       
-      // 1. 批量获取用户拥有的所有NFT Token ID
+      // 1. Bulkly obtain all NFT Token IDs owned by the user
+
       const tokenIdContracts = Array.from({ length: balance }, (_, i) => ({
         address: nftContractAddress as `0x${string}`,
         abi: GreenTalesNFTABI.abi as any,
@@ -116,7 +129,8 @@ export const MyAssets: React.FC = () => {
       const tokenIdResults = await readContracts(config, { contracts: tokenIdContracts });
       console.log('📋 Token ID查询结果:', tokenIdResults);
       
-      // 提取成功的Token ID
+      // Extract the successful Token ID
+
       const validTokenIds: bigint[] = [];
       tokenIdResults.forEach((result, index) => {
         console.log(`🔢 Token ID ${index} 查询结果:`, result);
@@ -131,8 +145,9 @@ export const MyAssets: React.FC = () => {
       if (validTokenIds.length === 0) {
         console.log('⚠️ tokenOfOwnerByIndex查询失败，尝试备用查询方式...');
         
-        // 备用方案：尝试从最大可能的Token ID范围内查找用户拥有的NFT
-        // 先查询NFT合约的nextTokenId，确定Token ID范围
+        // Alternative solution: Try to find the user-owned NFT from the range of the maximum possible Token ID
+        // First query the nextTokenId of the NFT contract and determine the Token ID range
+
         const nextTokenIdResult = await readContracts(config, {
           contracts: [{
             address: nftContractAddress as `0x${string}`,
@@ -146,7 +161,8 @@ export const MyAssets: React.FC = () => {
           const nextTokenId = Number(nextTokenIdResult[0].result);
           console.log(`🔍 NFT合约nextTokenId: ${nextTokenId}，开始逐个检查Token ID 0-${nextTokenId-1}`);
           
-          // 逐个检查每个Token ID的拥有者
+          // Check each Token ID owner one by one
+
           const ownerCheckContracts = Array.from({ length: nextTokenId }, (_, tokenId) => ({
             address: nftContractAddress as `0x${string}`,
             abi: GreenTalesNFTABI.abi as any,
@@ -157,7 +173,8 @@ export const MyAssets: React.FC = () => {
           const ownerResults = await readContracts(config, { contracts: ownerCheckContracts });
           console.log('👤 所有Token ID拥有者查询结果:', ownerResults);
           
-          // 找到用户拥有的Token ID
+          // Find the Token ID owned by the user
+
           ownerResults.forEach((result, tokenId) => {
             if (result.status === 'success' && result.result === address) {
               validTokenIds.push(BigInt(tokenId));
@@ -168,7 +185,8 @@ export const MyAssets: React.FC = () => {
         
         if (validTokenIds.length === 0) {
           console.log('⚠️ 备用查询也未找到NFT，但余额显示有NFT');
-          // 创建占位符数据，显示查询问题
+          // Create placeholder data to display query problems
+
           const placeholderNFTs: NFTInfo[] = Array.from({ length: balance }, (_, i) => ({
             tokenId: `unknown_${i}`,
             title: t('assets.unknownNFT', '未知NFT #{id}').replace('{id}', i.toString()),
@@ -187,7 +205,8 @@ export const MyAssets: React.FC = () => {
 
       console.log(`✅ 找到${validTokenIds.length}个有效Token ID:`, validTokenIds.map(id => id.toString()));
 
-      // 2. 批量获取NFT元数据
+      // 2. Bulk acquisition of NFT metadata
+
       const metaContracts = validTokenIds.map(tokenId => ({
         address: nftContractAddress as `0x${string}`,
         abi: GreenTalesNFTABI.abi as any,
@@ -199,7 +218,8 @@ export const MyAssets: React.FC = () => {
       const metaResults = await readContracts(config, { contracts: metaContracts });
       console.log('📋 元数据查询结果:', metaResults);
       
-      // 3. 组装NFT信息
+      // 3. Assemble NFT information
+
       const nfts: NFTInfo[] = [];
       metaResults.forEach((result, index) => {
         const tokenId = validTokenIds[index];
@@ -222,7 +242,8 @@ export const MyAssets: React.FC = () => {
           console.log(`✅ NFT #${tokenId} 处理完成`);
         } else {
           console.warn(`❌ 获取NFT #${tokenId}元数据失败:`, result);
-          // 即使元数据获取失败，也创建基本信息
+          // Create basic information even if metadata acquisition fails
+
           nfts.push({
             tokenId: tokenId.toString(),
             title: t('assets.greenNFT', '绿色NFT #{id}').replace('{id}', tokenId.toString()),
@@ -243,7 +264,8 @@ export const MyAssets: React.FC = () => {
     } catch (error) {
       console.error('💥 获取用户NFT列表失败:', error);
       
-      // 如果所有查询都失败，但确实有NFT余额，创建错误信息
+      // If all queries fail but do have nft balances, create error message
+
       if (nftBalance && Number(nftBalance) > 0) {
         console.log('🔧 所有查询方式都失败，显示错误信息');
         const errorNFTs: NFTInfo[] = Array.from({ length: Number(nftBalance) }, (_, i) => ({
@@ -267,21 +289,24 @@ export const MyAssets: React.FC = () => {
     }
   };
 
-  // 当NFT余额变化时，重新获取NFT列表
+  // When the nft balance changes, re-get the nft list
+
   useEffect(() => {
     if (isClient && address && nftBalance !== undefined) {
       fetchUserNFTs();
     }
   }, [isClient, address, nftBalance]);
 
-  // 刷新所有资产数据
+  // Refresh all asset data
+
   const refreshAssets = () => {
     refetchCarbBalance();
     refetchNftBalance();
     fetchUserNFTs();
   };
 
-  // 等待客户端渲染
+  // Waiting for client rendering
+
   if (!isClient) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -311,9 +336,9 @@ export const MyAssets: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* 资产概览 */}
+      {/* Asset Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* CARB代币余额 */}
+        {/* Carb token balance */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-800">{t('assets.carbToken', 'CARB代币')}</h2>
@@ -330,7 +355,7 @@ export const MyAssets: React.FC = () => {
           </div>
         </div>
 
-        {/* NFT资产统计 */}
+        {/* Nft Asset Statistics */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-800">{t('assets.nftCollection', 'NFT收藏')}</h2>
@@ -348,7 +373,7 @@ export const MyAssets: React.FC = () => {
         </div>
       </div>
 
-      {/* NFT资产列表 */}
+      {/* Nft Asset List */}
       <div className="bg-white rounded-xl shadow-lg p-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">{t('assets.myNFTCollection', '我的NFT收藏')}</h2>
@@ -407,7 +432,7 @@ export const MyAssets: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* NFT网格展示 */}
+            {/* Nft grid display */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userNFTs.map((nft) => (
                 <div
@@ -474,7 +499,7 @@ export const MyAssets: React.FC = () => {
               ))}
             </div>
 
-            {/* 底部操作区 */}
+            {/* Bottom operation area */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-600">
@@ -508,7 +533,7 @@ export const MyAssets: React.FC = () => {
         )}
       </div>
 
-      {/* 挂单模态框 */}
+      {/* Single modal box */}
       {showListModal && selectedNFTForList && (
         <ListNFTModal
           nft={selectedNFTForList}

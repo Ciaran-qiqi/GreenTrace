@@ -9,9 +9,9 @@ interface PurchaseHistoryProps {
 }
 
 /**
- * 购买历史组件
- * @description 显示当前用户的NFT购买历史记录
- * @param className 样式类名
+ * Purchase history components
+ * @description Display the current user's NFT purchase history
+ * @param className Style class name
  */
 export const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({
   className = ''
@@ -30,7 +30,7 @@ export const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({
 
   return (
     <div className={className}>
-      {/* 头部说明 */}
+      {/* Head instructions */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-start">
           <div className="text-blue-500 text-2xl mr-3">🛒</div>
@@ -45,7 +45,7 @@ export const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({
         </div>
       </div>
 
-      {/* 使用TradeHistoryTable组件，筛选当前用户作为买家的记录 */}
+      {/* Use the trade history table component to filter the records of the current user as the buyer */}
       <TradeHistoryTable
         userAddress={address}
         limit={100}

@@ -8,9 +8,9 @@ import { useTranslation } from '@/hooks/useI18n'
 import toast from 'react-hot-toast'
 
 /**
- * 订单簿组件
- * 显示市场订单和用户订单，支持成交和取消操作
- * 集成新的CarbonUSDTMarket合约功能
+ * Order Book Components
+ * Display market orders and user orders, support transactions and cancellation operations
+ * Integrate new CarbonUSDTMarket contract functionality
  */
 export default function OrderBook() {
   const { t } = useTranslation()
@@ -19,12 +19,14 @@ export default function OrderBook() {
   const { orders, loading, loadOrders, refreshOrders, totalOrders } = useOrderData(marketAddress)
   const [activeTab, setActiveTab] = useState<'market' | 'my'>('market')
 
-  // 初始化时加载订单
+  // Loading orders at initialization
+
   useEffect(() => {
     loadOrders()
   }, [loadOrders])
 
-  // 监听订单簿刷新事件
+  // Listen to order book refresh events
+
   useEffect(() => {
     const handleRefresh = () => {
       refreshOrders()
@@ -35,14 +37,15 @@ export default function OrderBook() {
   }, [refreshOrders])
 
   /**
-   * 处理取消订单
-   * @param orderId 订单ID
+   * Process cancellation order
+   * @param orderId Order ID
    */
   const handleCancelOrder = async (orderId: string) => {
     try {
       await cancelOrder(orderId)
       toast.success('取消订单已提交')
-      // 重新加载订单
+      // Reload the order
+
       setTimeout(refreshOrders, 2000)
     } catch (error) {
       console.error('取消订单失败:', error)
@@ -51,14 +54,15 @@ export default function OrderBook() {
   }
 
   /**
-   * 处理成交订单
-   * @param orderId 订单ID
+   * Processing orders
+   * @param orderId Order ID
    */
   const handleFillOrder = async (orderId: string) => {
     try {
       await fillOrder(orderId)
       toast.success('成交订单已提交')
-      // 重新加载订单
+      // Reload the order
+
       setTimeout(refreshOrders, 2000)
     } catch (error) {
       console.error('成交订单失败:', error)
@@ -66,26 +70,31 @@ export default function OrderBook() {
     }
   }
 
-  // 根据用户地址筛选订单
+  // Filter orders by user address
+
   const userAddress = address?.toLowerCase()
   const myOrders = orders.filter(order => order.user.toLowerCase() === userAddress)
   const marketOrders = orders.filter(order => order.user.toLowerCase() !== userAddress)
 
-  // 根据当前标签选择要显示的订单
+  // Select the order to display based on the current label
+
   const displayOrders = activeTab === 'my' ? myOrders : marketOrders
   
-  // 分离买单和卖单，并按价格排序
+  // Separate the pay and sell orders and sort by price
+
   const buyOrders = displayOrders
     .filter(order => order.orderType === 'Buy')
-    .sort((a, b) => Number(b.price) - Number(a.price)) // 买单按价格从高到低
+    .sort((a, b) => Number(b.price) - Number(a.price)) // Pay orders from high to low price
+
   
   const sellOrders = displayOrders
     .filter(order => order.orderType === 'Sell')
-    .sort((a, b) => Number(a.price) - Number(b.price)) // 卖单按价格从低到高
+    .sort((a, b) => Number(a.price) - Number(b.price)) // Sell ​​orders from low to high by price
+
 
   return (
     <div className="bg-white/90 rounded-2xl shadow-xl border border-white/20">
-      {/* 标签切换 */}
+      {/* Tag switching */}
       <div className="flex border-b border-gray-200">
         <button
           onClick={() => setActiveTab('market')}
@@ -124,7 +133,7 @@ export default function OrderBook() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 买单区域 */}
+          {/* Payment area */}
           <div>
             <h3 className="text-lg font-semibold text-green-600 mb-4 flex items-center gap-2">
               📈 {t('orderBook.buyOrders')} ({buyOrders.length})
@@ -145,7 +154,7 @@ export default function OrderBook() {
                         <div className="text-sm text-gray-600">
                           {t('orderBook.totalValue')}: {(Number(order.amount) * Number(order.price)).toFixed(2)} USDT
                         </div>
-                        {/* 显示剩余数量 */}
+                        {/* Show remaining quantity */}
                         {Number(order.remainingAmount) < Number(order.amount) && (
                           <div className="text-xs text-orange-600">
                             {t('orderBook.remaining')}: {Number(order.remainingAmount).toFixed(2)} {t('orderBook.carbonToken')}
@@ -186,7 +195,7 @@ export default function OrderBook() {
             </div>
           </div>
 
-          {/* 卖单区域 */}
+          {/* Selling area */}
           <div>
             <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
               📉 {t('orderBook.sellOrders')} ({sellOrders.length})
@@ -207,7 +216,7 @@ export default function OrderBook() {
                         <div className="text-sm text-gray-600">
                           {t('orderBook.totalValue')}: {(Number(order.amount) * Number(order.price)).toFixed(2)} USDT
                         </div>
-                        {/* 显示剩余数量 */}
+                        {/* Show remaining quantity */}
                         {Number(order.remainingAmount) < Number(order.amount) && (
                           <div className="text-xs text-orange-600">
                             {t('orderBook.remaining')}: {Number(order.remainingAmount).toFixed(2)} {t('orderBook.carbonToken')}
@@ -249,7 +258,7 @@ export default function OrderBook() {
           </div>
         </div>
 
-        {/* 订单说明 */}
+        {/* Order description */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <h4 className="font-medium text-gray-800 mb-2">{t('orderBook.orderExplanation')}</h4>
           <div className="text-sm text-gray-600 space-y-1">

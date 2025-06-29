@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 
-// 网络状态接口
+// Network status interface
+
 export interface NetworkStatus {
   isOnline: boolean;
   rpcStatus: 'healthy' | 'degraded' | 'failed';
@@ -10,7 +11,8 @@ export interface NetworkStatus {
   canRetry: boolean;
 }
 
-// RPC节点健康检查
+// Rpc node health check
+
 const checkRPCHealth = async (rpcUrl: string): Promise<boolean> => {
   try {
     const response = await fetch(rpcUrl, {
@@ -24,7 +26,8 @@ const checkRPCHealth = async (rpcUrl: string): Promise<boolean> => {
         params: [],
         id: 1,
       }),
-      signal: AbortSignal.timeout(5000), // 5秒超时
+      signal: AbortSignal.timeout(5000), // 5 seconds timeout
+
     });
     
     if (!response.ok) {
@@ -38,7 +41,8 @@ const checkRPCHealth = async (rpcUrl: string): Promise<boolean> => {
   }
 };
 
-// 网络状态管理Hook
+// Network status management hook
+
 export const useNetworkStatus = () => {
   const { isConnected } = useAccount();
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>({
@@ -49,7 +53,8 @@ export const useNetworkStatus = () => {
     canRetry: true,
   });
 
-  // 检测浏览器网络状态
+  // Detect the browser network status
+
   useEffect(() => {
     const handleOnline = () => {
       setNetworkStatus(prev => ({
@@ -78,7 +83,8 @@ export const useNetworkStatus = () => {
     };
   }, []);
 
-  // RPC节点健康检查
+  // Rpc node health check
+
   const checkRPCNodes = useCallback(async () => {
     if (!networkStatus.isOnline || !isConnected) {
       return;
@@ -112,29 +118,35 @@ export const useNetworkStatus = () => {
     }));
   }, [networkStatus.isOnline, isConnected]);
 
-  // 定期检查RPC节点健康状态
+  // Regularly check the health status of rpc nodes
+
   useEffect(() => {
-    // 立即检查一次
+    // Check it now
+
     checkRPCNodes();
 
-    // 每30秒检查一次
+    // Check every 30 seconds
+
     const interval = setInterval(checkRPCNodes, 30000);
 
     return () => clearInterval(interval);
   }, [checkRPCNodes]);
 
-  // 记录网络错误
+  // Log network errors
+
   const recordNetworkError = useCallback((error: string) => {
     setNetworkStatus(prev => ({
       ...prev,
       lastError: error,
       retryCount: prev.retryCount + 1,
-      canRetry: prev.retryCount < 5, // 最多重试5次
+      canRetry: prev.retryCount < 5, // Try up to 5 times
+
       rpcStatus: 'degraded',
     }));
   }, []);
 
-  // 重置错误状态
+  // Reset the error status
+
   const resetNetworkStatus = useCallback(() => {
     setNetworkStatus(prev => ({
       ...prev,
@@ -145,7 +157,8 @@ export const useNetworkStatus = () => {
     }));
   }, []);
 
-  // 手动重试连接
+  // Retry the connection manually
+
   const retryConnection = useCallback(async () => {
     if (!networkStatus.canRetry) {
       return false;

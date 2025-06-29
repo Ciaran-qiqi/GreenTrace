@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi';
-import { useAdminData } from '@/hooks/useAdminData';
+import React, { useState, useEffect } from 'react';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useAuditorOperations } from '@/hooks/useAuditorOperations';
 import { useI18n } from '@/hooks/useI18n';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
@@ -10,12 +9,11 @@ import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
 import { toast } from 'react-hot-toast';
 
 /**
- * 审计员管理组件
- * @description 管理审计员权限，查看审计员工作统计和绩效
+ * Auditor management components
+ * @description Manage auditor permissions to view auditor job statistics and performance
  */
 export const AuditorManagement: React.FC = () => {
   const { t } = useI18n();
-  const { address } = useAccount();
   const [newAuditorAddress, setNewAuditorAddress] = useState('');
   const [removeAuditorAddress, setRemoveAuditorAddress] = useState('');
 
@@ -29,54 +27,76 @@ export const AuditorManagement: React.FC = () => {
     isCurrentUserAuditor
   } = useAuditorOperations();
 
-  // 添加审计员的合约写入
+  // Add an auditor's contract write
+
   const { 
     writeContract: addAuditor, 
     data: addTxHash, 
     isPending: isAddPending 
   } = useWriteContract();
 
-  // 移除审计员的合约写入
+  // Remove the auditor's contract write
+
   const { 
     writeContract: removeAuditor, 
     data: removeTxHash, 
     isPending: isRemovePending 
   } = useWriteContract();
 
-  // 等待添加审计员交易确认
-  const { isLoading: isAddConfirming } = useWaitForTransactionReceipt({
+  // Wait for the addition of auditor transaction confirmation
+
+  const { isLoading: isAddConfirming, isSuccess: isAddSuccess, error: addError } = useWaitForTransactionReceipt({
     hash: addTxHash,
-    onSuccess: () => {
+  });
+
+  // Wait for the removal of auditor transaction confirmation
+
+  const { isLoading: isRemoveConfirming, isSuccess: isRemoveSuccess, error: removeError } = useWaitForTransactionReceipt({
+    hash: removeTxHash,
+  });
+
+  // Handle add auditor success
+  useEffect(() => {
+    if (isAddSuccess) {
       toast.success(t('admin.auditorManagement.auditorAddedSuccess'));
       addAuditorToList(newAuditorAddress);
       setNewAuditorAddress('');
       refetchAuditors();
-    },
-    onError: (error) => {
-      toast.error(`${t('admin.auditorManagement.addFailed')} ${error.message}`);
     }
-  });
+  }, [isAddSuccess, newAuditorAddress, addAuditorToList, refetchAuditors, t]);
 
-  // 等待移除审计员交易确认
-  const { isLoading: isRemoveConfirming } = useWaitForTransactionReceipt({
-    hash: removeTxHash,
-    onSuccess: () => {
+  // Handle add auditor error
+  useEffect(() => {
+    if (addError) {
+      toast.error(`${t('admin.auditorManagement.addFailed')} ${addError.message}`);
+    }
+  }, [addError, t]);
+
+  // Handle remove auditor success
+  useEffect(() => {
+    if (isRemoveSuccess) {
       toast.success(t('admin.auditorManagement.auditorRemovedSuccess'));
       removeAuditorFromList(removeAuditorAddress);
       setRemoveAuditorAddress('');
       refetchAuditors();
-    },
-    onError: (error) => {
-      toast.error(`${t('admin.auditorManagement.removeFailed')} ${error.message}`);
     }
-  });
+  }, [isRemoveSuccess, removeAuditorAddress, removeAuditorFromList, refetchAuditors, t]);
 
-  // 验证地址格式
+  // Handle remove auditor error
+  useEffect(() => {
+    if (removeError) {
+      toast.error(`${t('admin.auditorManagement.removeFailed')} ${removeError.message}`);
+    }
+  }, [removeError, t]);
+
+  // Verify address format
+
   const isValidAddress = (addr: string): boolean => {
     return /^0x[a-fA-F0-9]{40}$/.test(addr);
   };
 
-  // 处理添加审计员
+  // Processing Adding Auditors
+
   const handleAddAuditor = () => {
     if (!isValidAddress(newAuditorAddress)) {
       toast.error(t('admin.auditorManagement.enterValidAddressError'));
@@ -91,7 +111,8 @@ export const AuditorManagement: React.FC = () => {
     });
   };
 
-  // 处理移除审计员
+  // Handle removal of auditors
+
   const handleRemoveAuditor = () => {
     if (!isValidAddress(removeAuditorAddress)) {
       toast.error(t('admin.auditorManagement.enterValidAddressError'));
@@ -108,13 +129,13 @@ export const AuditorManagement: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* 页面标题 */}
+      {/* Page title */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.auditorManagement.title')}</h2>
         <p className="text-gray-600">{t('admin.auditorManagement.subtitle')}</p>
       </div>
 
-      {/* 权限提醒 */}
+      {/* Permission reminder */}
       <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-center gap-3">
           <span className="text-xl">⚠️</span>
@@ -128,7 +149,7 @@ export const AuditorManagement: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* 添加审计员 */}
+        {/* Add an auditor */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
             <span className="text-xl">➕</span>
@@ -169,7 +190,7 @@ export const AuditorManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* 移除审计员 */}
+        {/* Remove the auditor */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
             <span className="text-xl">➖</span>
@@ -211,9 +232,9 @@ export const AuditorManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 审计员列表和统计 */}
+      {/* Auditor list and statistics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 审计员统计 */}
+        {/* Auditor statistics */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.auditorManagement.auditorStats')}</h3>
           
@@ -267,7 +288,7 @@ export const AuditorManagement: React.FC = () => {
           )}
         </div>
 
-        {/* 审计员列表 */}
+        {/* List of auditors */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.auditorManagement.auditorList')}</h3>
           

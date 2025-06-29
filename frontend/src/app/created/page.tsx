@@ -7,7 +7,8 @@ import { NFTMintRecords } from '@/components/NFTMintRecords';
 import { CreateNFTCard } from '@/components/CreateNFTCard';
 import { useTranslation } from '@/hooks/useI18n';
 
-// NFT创建记录页面 - 显示所有创建记录
+// NFT Creation Record Page -Show all Creation Records
+
 export default function CreatedPage() {
   const { t, language } = useTranslation();
   const router = useRouter();
@@ -15,7 +16,8 @@ export default function CreatedPage() {
   const [shouldAutoRefresh, setShouldAutoRefresh] = useState(false);
   const [showRefreshTip, setShowRefreshTip] = useState(false);
 
-  // 检查是否需要自动刷新（从创建页面跳转过来）
+  // Check if automatic refresh is required (jump from the creation page)
+
   useEffect(() => {
     const fromCreate = searchParams.get('from');
     const refresh = searchParams.get('refresh');
@@ -25,11 +27,13 @@ export default function CreatedPage() {
       setShouldAutoRefresh(true);
       setShowRefreshTip(true);
       
-      // 清除URL参数，避免重复刷新
+      // Clear the url parameter to avoid repeated refresh
+
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
       
-      // 10秒后隐藏提示
+      // Hide the prompt after 10 seconds
+
       setTimeout(() => {
         setShowRefreshTip(false);
       }, 10000);
@@ -42,12 +46,12 @@ export default function CreatedPage() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="space-y-8">
-            {/* 页面标题 */}
+            {/* Page title */}
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('created.title')}</h1>
               <p className="text-gray-600">{t('created.subtitle')}</p>
               
-              {/* 自动刷新提示 */}
+              {/* Automatic refresh prompt */}
               {showRefreshTip && (
                 <div className="mt-4 mx-auto max-w-lg">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -69,13 +73,14 @@ export default function CreatedPage() {
               )}
             </div>
             
-            {/* 记录列表 */}
+            {/* Record list */}
             <NFTMintRecords autoRefresh={shouldAutoRefresh} />
             
-            {/* 创建新NFT卡片 */}
+            {/* Create a new nft card */}
             <CreateNFTCard 
               onShowForm={() => {
-                // 跳转到创建页面
+                // Jump to the creation page
+
                 router.push(`/create/${language}`);
               }} 
             />

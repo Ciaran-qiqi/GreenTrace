@@ -6,8 +6,8 @@ import { NFTExchangeCenter } from '@/components/NFTExchangeCenter';
 import { useTranslation } from '@/hooks/useI18n';
 
 /**
- * NFT兑换页面
- * @description 提供NFT兑换为碳币的申请和管理功能
+ * NFT redemption page
+ * @description Provides application and management functions for NFT exchange to carbon coins
  */
 export default function ExchangePage() {
   const { t } = useTranslation();
@@ -18,7 +18,7 @@ export default function ExchangePage() {
       <main className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto space-y-8">
-            {/* 页面标题区域 */}
+            {/* Page title area */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
                 🔄 {t('exchange.title', 'NFT兑换中心')}
@@ -28,7 +28,7 @@ export default function ExchangePage() {
               </p>
             </div>
 
-            {/* 主要兑换区域 */}
+            {/* Main redemption area */}
             <NFTExchangeCenter />
           </div>
         </div>

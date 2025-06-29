@@ -7,7 +7,8 @@ import { formatCarbonReduction } from '@/utils/formatUtils';
 import { useListNFT } from '@/hooks/market/useListNFT';
 import { toast } from 'react-hot-toast';
 
-// NFT信息接口（简化版本）
+// Nft information interface (simplified version)
+
 interface NFTInfo {
   tokenId: string;
   title: string;
@@ -25,12 +26,12 @@ interface ListNFTModalProps {
 }
 
 /**
- * 挂单NFT模态框组件
- * @description 处理NFT挂单流程，包括价格设置、授权和挂单操作
- * @param nft NFT信息
- * @param isOpen 是否显示模态框
- * @param onClose 关闭回调
- * @param onSuccess 挂单成功回调
+ * Pending order NFT modal box component
+ * @description Handle NFT order pending process, including price setting, authorization and order pending operations
+ * @param nft NFT information
+ * @param isOpen Whether to display the modal box
+ * @param onClose Close callback
+ * @param onSuccess Callback successfully
  */
 export const ListNFTModal: React.FC<ListNFTModalProps> = ({
   nft,
@@ -52,33 +53,40 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
     approveNFT,
   } = useListNFT();
 
-  // 验证价格输入
+  // Verify price input
+
   const validatePrice = (priceStr: string): boolean => {
     try {
       const priceNum = parseFloat(priceStr);
-      return priceNum > 0 && priceNum <= 1000000; // 最高100万CARB
+      return priceNum > 0 && priceNum <= 1000000; // Up to 1 million carbs
+
     } catch {
       return false;
     }
   };
 
-  // 处理价格输入
+  // Process price input
+
   const handlePriceChange = (value: string) => {
-    // 只允许数字和小数点
+    // Only numbers and decimal points are allowed
+
     const validValue = value.replace(/[^0-9.]/g, '');
-    // 防止多个小数点
+    // Prevent multiple decimal points
+
     const parts = validValue.split('.');
     if (parts.length > 2) {
       return;
     }
-    // 限制小数位数
+    // Limit the number of decimal places
+
     if (parts[1] && parts[1].length > 18) {
       return;
     }
     setPrice(validValue);
   };
 
-  // 处理授权
+  // Processing Authorization
+
   const handleApprove = async () => {
     try {
       setCurrentStep('approve');
@@ -89,7 +97,8 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
     }
   };
 
-  // 处理挂单
+  // Processing orders
+
   const handleList = async () => {
     if (!validatePrice(price)) {
       toast.error('请输入有效的价格');
@@ -108,22 +117,27 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
 
 
 
-  // 计算手续费（假设1%）
+  // Calculate the handling fee (assuming 1%)
+
   const calculateFee = (priceStr: string) => {
     if (!validatePrice(priceStr)) return '0';
     const priceNum = parseFloat(priceStr);
-    return (priceNum * 0.01).toFixed(4); // 1%手续费
+    return (priceNum * 0.01).toFixed(4); // 1% handling fee
+
   };
 
-  // 监听授权成功，自动进入挂单步骤
+  // The monitoring authorization is successful and the order is automatically entered.
+
   React.useEffect(() => {
     if (isApproveSuccess && currentStep === 'approve') {
       console.log('🎉 授权成功，准备挂单...');
-      setCurrentStep('input'); // 返回输入步骤，显示挂单按钮
+      setCurrentStep('input'); // Return to the input step and display the pending order button
+
     }
   }, [isApproveSuccess, currentStep]);
 
-  // 监听挂单成功
+  // Listening to order successfully
+
   React.useEffect(() => {
     if (isSuccess) {
       setCurrentStep('success');
@@ -131,7 +145,8 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
     }
   }, [isSuccess, onSuccess]);
 
-  // 监听错误
+  // Listening error
+
   React.useEffect(() => {
     if (error) {
       console.error('挂单过程中出错:', error);
@@ -156,10 +171,10 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-md w-full max-h-[90vh] overflow-y-auto relative overflow-hidden">
-        {/* 装饰性顶部渐变 */}
+        {/* Decorative top gradient */}
         <div className="h-1 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600"></div>
         
-        {/* 头部 */}
+        {/* head */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-800">
@@ -174,9 +189,9 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
           </div>
         </div>
 
-        {/* 内容 */}
+        {/* content */}
         <div className="p-6">
-          {/* NFT信息展示 */}
+          {/* Nft information display */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium text-gray-800 mb-2">{nft.title}</h4>
             <div className="text-sm text-gray-600 space-y-1">
@@ -186,10 +201,10 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </div>
           </div>
 
-          {/* 步骤显示 */}
+          {/* Steps display */}
           {currentStep === 'input' && (
             <div className="space-y-4">
-              {/* 价格输入 */}
+              {/* Price input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   设置售价 (CARB) *
@@ -213,7 +228,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
                 )}
               </div>
 
-              {/* 费用预览 */}
+              {/* Fee preview */}
               {price && validatePrice(price) && (
                 <div className="bg-blue-50 rounded-lg p-4">
                   <div className="text-sm text-blue-700 font-medium mb-2">费用预览</div>
@@ -236,7 +251,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
                 </div>
               )}
 
-              {/* 操作按钮 */}
+              {/* Operation button */}
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
@@ -266,7 +281,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </div>
           )}
 
-          {/* 授权中 */}
+          {/* Authorization */}
           {currentStep === 'approve' && (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -284,7 +299,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </div>
           )}
 
-          {/* 挂单中 */}
+          {/* Put in order */}
           {currentStep === 'list' && (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
@@ -303,7 +318,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </div>
           )}
 
-          {/* 挂单成功 */}
+          {/* Successful order */}
           {currentStep === 'success' && (
             <div className="text-center py-8">
               <div className="text-6xl mb-4">🎉</div>
@@ -327,7 +342,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
             </div>
           )}
 
-          {/* 错误状态 */}
+          {/* Error status */}
           {currentStep === 'error' && (
             <div className="text-center py-8">
               <div className="text-6xl mb-4">❌</div>
@@ -358,7 +373,7 @@ export const ListNFTModal: React.FC<ListNFTModalProps> = ({
 
         </div>
 
-        {/* 底部提示 */}
+        {/* Bottom tips */}
         {currentStep === 'input' && (
           <div className="px-6 pb-6">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">

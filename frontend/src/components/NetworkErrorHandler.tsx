@@ -3,22 +3,25 @@
 import React from 'react';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
-// 网络错误处理组件
+// Network Error Handling Component
+
 export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { networkStatus, retryConnection, resetNetworkStatus } = useNetworkStatus();
 
-  // 如果网络状态正常，直接渲染子组件
+  // If the network state is normal, directly render the subcomponent
+
   if (networkStatus.isOnline && networkStatus.rpcStatus !== 'failed') {
     return <>{children}</>;
   }
 
-  // 网络完全失败时的处理
+  // Handling when the network fails completely
+
   if (!networkStatus.isOnline || networkStatus.rpcStatus === 'failed') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
           <div className="text-center">
-            {/* 错误图标 */}
+            {/* Error icon */}
             <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <span className="text-white text-2xl">🌐</span>
             </div>
@@ -34,7 +37,7 @@ export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ c
               }
             </p>
 
-            {/* 错误详情 */}
+            {/* Error details */}
             {networkStatus.lastError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <div className="text-sm text-red-800">
@@ -44,7 +47,7 @@ export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ c
               </div>
             )}
 
-            {/* 重试统计 */}
+            {/* Try statistics again */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="text-sm text-gray-700">
                 <div className="flex justify-between items-center mb-2">
@@ -60,7 +63,7 @@ export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ c
               </div>
             </div>
 
-            {/* 解决方案建议 */}
+            {/* Solution suggestions */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <div className="text-sm text-blue-800">
                 <div className="font-semibold mb-2">💡 解决方案:</div>
@@ -74,7 +77,7 @@ export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ c
               </div>
             </div>
 
-            {/* 操作按钮 */}
+            {/* Operation button */}
             <div className="space-y-3">
               <button
                 onClick={retryConnection}
@@ -99,7 +102,7 @@ export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ c
               </button>
             </div>
 
-            {/* 技术信息 */}
+            {/* Technical Information */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <details className="text-left">
                 <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
@@ -122,7 +125,8 @@ export const NetworkErrorHandler: React.FC<{ children: React.ReactNode }> = ({ c
     );
   }
 
-  // 降级状态时显示警告但不阻止使用
+  // Warning is displayed when the downgrade state is not blocked
+
   return (
     <div className="relative">
       {networkStatus.rpcStatus === 'degraded' && (

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-// 简化版i18n实现
+// Simplified version of i18n implementation
+
 type Language = 'zh' | 'en';
 
 interface TranslationData {
@@ -23,22 +24,26 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
-// 获取嵌套值的辅助函数
+// Helper functions to get nested values
+
 const getNestedValue = (obj: any, path: string): any => {
   return path.split('.').reduce((current, key) => {
     return current && current[key] !== undefined ? current[key] : undefined;
   }, obj);
 };
 
-// 从URL路径中提取语言
+// Extract language from url path
+
 const getLanguageFromPath = (pathname: string): Language => {
   if (pathname.endsWith('/en')) return 'en';
   if (pathname.endsWith('/zh')) return 'zh';
-  // 如果没有语言后缀，默认返回中文
+  // If there is no language suffix, the default return to Chinese
+
   return 'zh';
 };
 
-// 移除路径中的语言后缀
+// Remove language suffixes from paths
+
 const removeLanguageSuffix = (pathname: string): string => {
   if (pathname.endsWith('/en') || pathname.endsWith('/zh')) {
     return pathname.slice(0, -3) || '/';
@@ -46,7 +51,8 @@ const removeLanguageSuffix = (pathname: string): string => {
   return pathname;
 };
 
-// 添加语言后缀到路径
+// Add language suffix to path
+
 const addLanguageSuffix = (pathname: string, language: Language): string => {
   const cleanPath = removeLanguageSuffix(pathname);
   if (cleanPath === '/') {

@@ -5,7 +5,8 @@ import { useAccount, useReadContract, useChainId } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
 
-// 交易历史记录接口
+// Transaction history interface
+
 export interface TradeRecord {
   tokenId: string;
   seller: string;
@@ -16,30 +17,36 @@ export interface TradeRecord {
 }
 
 interface UseTradeHistoryParams {
-  tokenId?: string; // 可选：特定NFT的交易历史
-  userAddress?: string; // 可选：特定用户的交易历史
-  limit?: number; // 限制返回数量
+  tokenId?: string; // Optional: Transaction history for specific nfts
+
+  userAddress?: string; // Optional: Transaction history for specific users
+
+  limit?: number; // Limit the number of return
+
 }
 
 interface UseTradeHistoryReturn {
-  // 数据
+  // data
+
   trades: TradeRecord[];
   
-  // 状态
+  // state
+
   isLoading: boolean;
   error: string | null;
   
-  // 操作函数
+  // Operation functions
+
   refetch: () => void;
 }
 
 /**
- * 交易历史 Hook
- * @description 获取NFT的交易历史记录，支持按NFT或用户筛选
- * @param tokenId 可选：特定NFT的ID
- * @param userAddress 可选：特定用户地址
- * @param limit 返回记录数量限制
- * @returns 交易历史相关的数据和状态
+ * Transaction History Hook
+ * @description Get the transaction history of NFT, support filtering by NFT or user
+ * @param tokenId Optional: ID of a specific NFT
+ * @param userAddress Optional: Specific user address
+ * @param limit Returns the limit on record count
+ * @returns Data and status related to transaction history
  */
 export const useTradeHistory = ({
   tokenId,
@@ -52,7 +59,8 @@ export const useTradeHistory = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取市场合约地址
+  // Get the market contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -64,10 +72,12 @@ export const useTradeHistory = ({
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 暂时禁用直接从合约获取交易历史，因为getTradeHistory需要特定tokenId
-  // 在实际应用中，应该通过事件监听或外部索引服务获取完整的交易历史
+  // Temporarily disable getting transaction history directly from the contract, because getTradeHistory requires a specific tokenId
+  // In actual applications, the complete transaction history should be obtained through event listening or external indexing services
 
-  // 处理交易历史数据
+
+  // Process transaction history data
+
   const processTradeHistory = (rawData: any[]): TradeRecord[] => {
     if (!Array.isArray(rawData)) return [];
 
@@ -79,26 +89,30 @@ export const useTradeHistory = ({
       timestamp: trade.timestamp?.toString() || Date.now().toString(),
       txHash: trade.txHash || '',
     })).filter(trade => {
-      // 按用户筛选
+      // Filter by user
+
       if (userAddress) {
         return trade.seller.toLowerCase() === userAddress.toLowerCase() || 
                trade.buyer.toLowerCase() === userAddress.toLowerCase();
       }
       return true;
-    }).slice(0, limit); // 限制数量
+    }).slice(0, limit); // Limit quantity
+
   };
 
-  // 获取交易历史
+  // Get transaction history
+
   const fetchTradeHistory = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // 暂时返回空数组，等待更好的实现方案
-      // 实际项目中应该：
-      // 1. 通过区块链事件日志获取
-      // 2. 使用外部索引服务（如The Graph）
-      // 3. 自建数据库存储交易记录
+      // Temporarily return an empty array, waiting for a better implementation solution
+      // In actual projects, it should be:
+      // 1. Get through blockchain event log
+      // 2. Use external indexing services (such as The Graph)
+      // 3. Built a self-built database to store transaction records
+
       console.log('📊 交易历史功能暂时禁用，等待实现');
       setTrades([]);
     } catch (err) {
@@ -110,25 +124,30 @@ export const useTradeHistory = ({
     }
   };
 
-  // 手动刷新
+  // Manual refresh
+
   const refetch = () => {
     fetchTradeHistory();
   };
 
-  // 监听数据变化
+  // Listen to data changes
+
   useEffect(() => {
     fetchTradeHistory();
   }, [userAddress, tokenId, limit]);
 
   return {
-    // 数据
+    // data
+
     trades,
     
-    // 状态
+    // state
+
     isLoading,
     error,
     
-    // 操作函数
+    // Operation functions
+
     refetch,
   };
 }; 

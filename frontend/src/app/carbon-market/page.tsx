@@ -6,8 +6,8 @@ import CarbonMarket from '@/components/CarbonMarket';
 import { useTranslation } from '@/hooks/useI18n';
 
 /**
- * 碳币市场页面
- * 提供完整的碳币交易功能，包括市价单和限价单
+ * Carbon Coin Market Page
+ * Provides complete carbon currency trading capabilities, including market orders and limit orders
  */
 export default function CarbonMarketPage() {
   const { t } = useTranslation();
@@ -18,7 +18,7 @@ export default function CarbonMarketPage() {
       <main className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
-            {/* 页面标题区域 */}
+            {/* Page title area */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
                 {t('carbon.page.title', '💰 碳币交易市场')}
@@ -28,7 +28,7 @@ export default function CarbonMarketPage() {
               </p>
             </div>
 
-            {/* 碳市场主体组件 */}
+            {/* Carbon market entity components */}
             <CarbonMarket />
           </div>
         </div>

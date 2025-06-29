@@ -6,8 +6,9 @@ import { CreateNFT } from '@/components/CreateNFT';
 import Link from 'next/link';
 import { useTranslation } from '@/hooks/useI18n';
 
-// NFT创建页面 - 专门用于创建新的绿色NFT
-// NFT Creation Page - Dedicated to creating new green NFTs
+// NFT创建页面 -专门用于创建新的绿色NFT
+// NFT Creation Page -Dedicated to creating new green NFTs
+
 export default function CreatePage() {
   const { t, language } = useTranslation();
 
@@ -16,7 +17,7 @@ export default function CreatePage() {
       <Navigation />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          {/* 页面标题和返回按钮 */}
+          {/* Page title and return button */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <Link 
@@ -40,12 +41,12 @@ export default function CreatePage() {
             </div>
           </div>
           
-          {/* 创建表单 */}
+          {/* Create a form */}
           <div className="max-w-4xl mx-auto">
             <CreateNFT />
           </div>
           
-          {/* 底部提示 */}
+          {/* Bottom tips */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500">
               {t('create.bottomTip', '创建完成后，您可以在')}{' '}

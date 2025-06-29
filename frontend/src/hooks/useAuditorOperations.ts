@@ -5,7 +5,8 @@ import { useReadContract, useChainId, useAccount } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
 
-// 审计员统计接口
+// Auditor statistics interface
+
 export interface AuditorStats {
   totalMintAudits: number;
   totalCashAudits: number;
@@ -16,8 +17,8 @@ export interface AuditorStats {
 }
 
 /**
- * 审计员操作Hook
- * @description 获取审计员列表和工作统计，管理审计员相关数据
+ * Auditor operation Hook
+ * @description Obtain auditor list and work statistics, and manage auditor-related data
  */
 export const useAuditorOperations = () => {
   const { address } = useAccount();
@@ -26,7 +27,8 @@ export const useAuditorOperations = () => {
   const [auditorStats, setAuditorStats] = useState<Record<string, AuditorStats>>({});
   const [loadingAuditors, setLoadingAuditors] = useState(false);
 
-  // 获取合约地址
+  // Get the contract address
+
   const getGreenTraceAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.GreenTrace;
@@ -38,7 +40,8 @@ export const useAuditorOperations = () => {
 
   const greenTraceAddress = getGreenTraceAddress(chainId);
 
-  // 检查当前用户是否为审计员
+  // Check whether the current user is an auditor
+
   const { data: isCurrentUserAuditor } = useReadContract({
     address: greenTraceAddress as `0x${string}`,
     abi: GreenTraceABI.abi,
@@ -49,23 +52,28 @@ export const useAuditorOperations = () => {
     }
   });
 
-  // 初始化审计员列表
+  // Initialize the auditor list
+
   const initializeAuditorList = async () => {
     setLoadingAuditors(true);
     
     try {
-      // 创建一个实用的审计员列表
+      // Create a practical auditor list
+
       const knownAuditors: string[] = [];
       
-      // 如果当前用户是审计员，添加到列表中
+      // If the current user is an auditor, add to the list
+
       if (address && isCurrentUserAuditor) {
         knownAuditors.push(address);
       }
       
-      // 您可以在这里添加其他已知的审计员地址
-      // 例如：从本地存储、配置文件或其他来源获取
+      // You can add other known auditor addresses here
+      // For example: Get from local storage, configuration files, or other sources
+
       
-      // 创建模拟统计数据
+      // Create simulation statistics
+
       const stats: Record<string, AuditorStats> = {};
       knownAuditors.forEach((auditor, index) => {
         stats[auditor] = {
@@ -88,12 +96,14 @@ export const useAuditorOperations = () => {
     }
   };
 
-  // 添加审计员到本地列表（当成功添加时调用）
+  // Add auditor to local list (called when successfully added)
+
   const addAuditorToList = (auditorAddress: string) => {
     if (!auditorList.includes(auditorAddress)) {
       setAuditorList(prev => [...prev, auditorAddress]);
       
-      // 为新审计员创建初始统计数据
+      // Create initial statistics for new auditors
+
       setAuditorStats(prev => ({
         ...prev,
         [auditorAddress]: {
@@ -108,7 +118,8 @@ export const useAuditorOperations = () => {
     }
   };
 
-  // 从本地列表移除审计员（当成功移除时调用）
+  // Remove the auditor from the local list (called when successfully removed)
+
   const removeAuditorFromList = (auditorAddress: string) => {
     setAuditorList(prev => prev.filter(addr => addr !== auditorAddress));
     setAuditorStats(prev => {
@@ -118,16 +129,19 @@ export const useAuditorOperations = () => {
     });
   };
 
-  // 刷新审计员数据
+  // Refresh auditor data
+
   const refetchAuditors = async () => {
     await initializeAuditorList();
   };
 
-  // 检查指定地址是否为审计员（实际的合约调用）
+  // Check whether the specified address is an auditor (actual contract call)
+
   const checkIsAuditor = async (targetAddress: string): Promise<boolean> => {
     try {
-      // 这里应该直接调用合约检查
-      // 暂时使用本地列表检查
+      // Contract checking should be called directly here
+      // Temporarily use local list check
+
       return auditorList.includes(targetAddress);
     } catch (error) {
       console.error('检查审计员状态失败:', error);
@@ -135,7 +149,8 @@ export const useAuditorOperations = () => {
     }
   };
 
-  // 获取审计员工作历史（简化版本）
+  // Get the auditor's job history (simplified version)
+
   const getAuditorHistory = async (auditorAddress: string) => {
     const stats = auditorStats[auditorAddress];
     return {
@@ -148,7 +163,8 @@ export const useAuditorOperations = () => {
     };
   };
 
-  // 当用户地址或审计员状态变化时重新初始化
+  // Reinitialize when the user address or auditor status changes
+
   useEffect(() => {
     if (address) {
       initializeAuditorList();

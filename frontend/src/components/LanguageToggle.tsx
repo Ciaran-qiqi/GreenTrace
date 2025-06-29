@@ -41,7 +41,8 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({
     lg: 'px-4 py-3 text-base',
   };
 
-  // 在服务器端渲染时显示占位符
+  // Display placeholders when rendering on server side
+
   if (!mounted) {
     return (
       <div className={`${className}`}>
@@ -102,7 +103,7 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({
               </button>
             ))}
             
-            {/* 加载指示器 */}
+            {/* Loading indicator */}
             {isLoading && (
               <div className="px-3 py-2 text-center text-gray-500 text-xs border-t border-gray-100">
                 <div className="flex items-center justify-center space-x-2">

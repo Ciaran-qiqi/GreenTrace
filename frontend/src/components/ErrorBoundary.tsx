@@ -6,8 +6,8 @@ interface ErrorBoundaryProps {
 }
 
 /**
- * 错误边界组件
- * 用于捕获和显示配置错误
+ * Error boundary component
+ * Used to capture and display configuration errors
  */
 export default function ErrorBoundary({ children, fallback }: ErrorBoundaryProps) {
   return (
@@ -32,7 +32,7 @@ export default function ErrorBoundary({ children, fallback }: ErrorBoundaryProps
 }
 
 /**
- * 配置错误显示组件
+ * Configuration error display component
  */
 export function ConfigError({ message, details }: { message: string; details?: string[] }) {
   return (

@@ -1,6 +1,7 @@
 import ExchangePage from '../page';
 
-// NFT兑换页面英文版
+// Nft redemption page English version
+
 export default function ENExchangePage() {
   return <ExchangePage />;
 }

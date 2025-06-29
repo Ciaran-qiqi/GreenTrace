@@ -7,15 +7,18 @@ import { config } from '@/lib/wagmi';
 import '@rainbow-me/rainbowkit/styles.css';
 import { useState, useEffect } from 'react';
 
-// Web3提供者组件 - 包装整个应用
+// Web3 Provider Components -Packaging the Whole Application
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   
-  // 创建React Query客户端实例
+  // Create a React Query client instance
+
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, // 1分钟
+        staleTime: 60 * 1000, // 1 minute
+
         refetchOnWindowFocus: false,
       },
     },

@@ -15,12 +15,12 @@ import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 import { useTranslation } from '@/hooks/useI18n';
 import { getAuditTranslation, hasAuditTranslation } from '@/utils/auditTranslations';
 
-// NFT创建记录列表组件Props接口
+// Nft create record list component props interface
 interface NFTMintRecordsProps {
-  autoRefresh?: boolean; // 是否自动刷新数据
+  autoRefresh?: boolean; // Whether to refresh the data automatically
 }
 
-// 检查NFT是否存在的Hook（用于判断是否已被兑换销毁）
+// Check whether nft exists hook (used to determine whether it has been redeemed and destroyed)
 const useCheckNFTExists = (tokenId: string | undefined) => {
   const chainId = useChainId();
   const nftContractAddress = getGreenTalesNFTAddress(chainId);
@@ -32,12 +32,12 @@ const useCheckNFTExists = (tokenId: string | undefined) => {
     args: tokenId ? [BigInt(tokenId)] : undefined,
     query: {
       enabled: !!tokenId,
-      retry: false, // 不重试，因为NFT不存在会抛出错误
+      retry: false, // Don't try again, because nft does not exist will throw an error
     }
   });
 };
 
-// NFT创建记录列表组件（只保留链上数据源）
+// Nft creates record list component (only keeps on the chain data source)
 export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = false }) => {
   const { t, language } = useTranslation();
   const { address, isConnected } = useAccount();
@@ -45,13 +45,13 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
   const [selectedRecord, setSelectedRecord] = useState<RequestRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showMintModal, setShowMintModal] = useState(false);
-  // 分页相关状态
+  // Pagination related status
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 3; // 每页显示3条记录
+  const recordsPerPage = 3; // 3 records are displayed per page
   
-  // 删除NFT弹窗相关状态，现在由NFTViewButton组件自己管理
+  // Delete the status of nft popup windows, which is now managed by the nft view button component itself.
 
-  // 链上数据hook
+  // On-chain data hook
   const { 
     records, 
     loading, 
@@ -63,14 +63,14 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
 
   const router = useRouter();
 
-  // 只在客户端渲染
+  // Render only on the client side
   useEffect(() => { setIsClient(true); }, []);
 
-  // 监听全局NFT兑换事件，实时更新状态
+  // Listen to global nft redemption events and update status in real time
   useEffect(() => {
     const handleNFTExchanged = (event: CustomEvent) => {
       console.log('创建中心检测到NFT兑换事件:', event.detail);
-      // 立即强制刷新数据以反映兑换状态
+      // Force refresh the data immediately to reflect the redemption status
       refreshRecords(true);
     };
 
@@ -83,38 +83,38 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
     }
   }, [refreshRecords]);
 
-  // 排序和分页处理
+  // Sort and pagination processing
   const sortedRecords = useMemo(() => {
     return [...records].sort((a, b) => {
-      // 从新到旧排序（时间戳降序）
+      // Sort from new to old (sequence timestamp)
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     });
   }, [records]);
 
-  // 计算分页数据
+  // Calculate paging data
   const paginatedRecords = useMemo(() => {
     const startIndex = (currentPage - 1) * recordsPerPage;
     const endIndex = startIndex + recordsPerPage;
     return sortedRecords.slice(startIndex, endIndex);
   }, [sortedRecords, currentPage, recordsPerPage]);
 
-  // 计算总页数
+  // Calculate the total number of pages
   const totalPages = Math.ceil(sortedRecords.length / recordsPerPage);
 
-  // 当记录数量变化时，重置到第一页
+  // When the number of records changes, reset to the first page
   useEffect(() => {
     setCurrentPage(1);
   }, [records.length]);
 
-  // 将MintRecord转换为RequestRecord格式
+  // Convert mint record to request record format
   const convertToRequestRecord = (record: MintRecord): RequestRecord => {
-    // 🔥 修复：优先使用真实的链上数据，只在数据为空或不合理时才使用示例翻译
+    // 🔥 Fix: Priority to using real on-chain data, only example translation is used if the data is empty or unreasonable
     const translatedContent = getAuditTranslation(
       record.tokenId.toString(), 
       language, 
       record.title, 
       record.details,
-      true // preferOriginal = true，优先使用原始链上数据
+      true // preferOriginal = true, preferentially use original on-chain data
     );
     
     return {
@@ -134,7 +134,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
     };
   };
 
-  // 自动刷新处理
+  // Automatic refresh processing
   useEffect(() => {
     if (autoRefresh && isConnected && address) {
       console.log('触发自动刷新NFT记录');
@@ -142,15 +142,15 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
     }
   }, [autoRefresh, isConnected, address, refreshRecords]);
 
-  // 移除canCancel状态监听 - 现在通过disabled属性直接控制
+  // Remove canCancel status listening -now directly control through disabled attribute
 
-  // 查看详情 - 将MintRecord转换为RequestRecord格式
+  // View details -Convert MintRecord to RequestRecord format
   const handleViewDetails = (record: MintRecord) => {
     setSelectedRecord(convertToRequestRecord(record));
     setIsModalOpen(true);
   };
 
-    // 继续铸造
+    // Continue to cast
   const handleContinueMint = async (record: RequestRecord) => {
     if (!address) {
       alert(t('auth.pleaseConnectWallet'));
@@ -168,7 +168,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
       用户地址: address
     });
 
-    // 铸造前启用事件监听
+    // Enable event monitoring before casting
     enableEventListening(30000);
     
     setSelectedRecord(record);
@@ -185,42 +185,42 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
     }
   };
 
-  // 刷新 - 手动刷新时启用短期事件监听
+  // Refresh -Enable short-term event listening when refreshing manually
   const handleRefresh = () => { 
-    // 刷新时启用事件监听15秒，以便捕获可能的新事件
+    // Enable event listening for 15 seconds on refresh to capture possible new events
     enableEventListening(15000);
     refreshRecords(); 
   };
-  // 取消铸造
+  // Cancel casting
   const handleCancelMint = () => {
     console.log('用户取消铸造');
     setShowMintModal(false);
     setSelectedRecord(null);
   };
 
-  // 铸造完成
+  // Casting completed
   const handleMintComplete = () => { 
     console.log('🎉 NFT铸造完成，开始强制刷新数据...');
     setShowMintModal(false); 
     setSelectedRecord(null);
     
-    // 🔧 强制刷新数据 - 清除缓存并重新获取最新状态
+    // 🔧 Force refresh data -Clear cache and re-get latest status
     console.log('强制刷新：清除缓存并重新查询合约数据');
-    refreshRecords(true); // force=true，清除缓存
+    refreshRecords(true); // Force=true, clear cache
     
-    // 📊 额外等待3秒后再次刷新，确保区块链状态已更新
+    // 📊 Wait for an extra 3 seconds before refreshing again to ensure that the blockchain status has been updated
     setTimeout(() => {
       console.log('延迟刷新：确保区块链状态完全同步');
       refreshRecords(true);
     }, 3000);
     
-    // 💡 启用较长时间的事件监听，捕获可能的状态变化
-    enableEventListening(45000); // 45秒监听
+    // 💡 Enable long-term event listening to capture possible state changes
+    enableEventListening(45000); // 45 seconds monitoring
   };
-  // 关闭弹窗
+  // Close pop-up window
   const handleCloseModal = () => { setIsModalOpen(false); setSelectedRecord(null); };
 
-  // 分页处理函数
+  // Pagination processing function
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -270,7 +270,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
             <div>
               <h2 className="text-2xl font-bold text-gray-800">{t('created.title')}</h2>
               <p className="text-gray-600 mt-1">{t('created.subtitle')}</p>
-              {/* 事件监听状态指示器 */}
+              {/* Event listening status indicator */}
               {isEventListening && (
                 <div className="mt-2 inline-flex items-center text-sm text-blue-600">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
@@ -296,8 +296,8 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
               </button>
             </div>
           </div>
-          {/* 错误提示 */}
-          {/* 记录列表 */}
+          {/* Error message */}
+          {/* Record list */}
           {!loading && (
             <div className="space-y-4">
               {records.length === 0 ? (
@@ -311,7 +311,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 </div>
               ) : (
                 paginatedRecords.map((record) => {
-                  // 带NFT存在性检查的记录卡片组件
+                  // Record card component with nft existence check
                   const RecordCard = () => {
                     const { error: nftError } = useCheckNFTExists(
                       record.status === 'minted' ? (record as any).nftTokenId || '0' : undefined
@@ -324,14 +324,14 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <h3 className="text-lg font-semibold text-gray-800">#{record.tokenId} {getAuditTranslation(record.tokenId.toString(), language, record.title, record.details).title}</h3>
-                              {/* 翻译指示器 */}
+                              {/* Translation indicator */}
                               {hasAuditTranslation(record.tokenId.toString(), language) && (
                                 <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                                   <span>🌐</span>
                                   <span>{t('nftRecords.contentTranslated')}</span>
                                 </div>
                               )}
-                              {/* 状态徽章 */}
+                              {/* Status Badge */}
                               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                 record.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                 record.status === 'approved' ? 'bg-green-100 text-green-800' :
@@ -343,7 +343,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                                  record.status === 'minted' ? `🎨 ${t('nftRecords.status.minted')}` :
                                  `❌ ${t('nftRecords.status.rejected')}`}
                               </span>
-                              {/* 已兑换标签 */}
+                              {/* Redeemed tags */}
                               {record.status === 'minted' && !nftExists && (
                                 <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
                                   🔥 {t('nftRecords.status.exchanged')}
@@ -358,7 +358,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                           </div>
                         </div>
 
-                        {/* 申请详情 */}
+                        {/* Application details */}
                         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                           <div>
                             <span className="text-gray-500">{t('nftRecords.carbonReduction')}:</span>
@@ -382,7 +382,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                           )}
                         </div>
 
-                        {/* 操作按钮 */}
+                        {/* Operation button */}
                         <div className="flex gap-3">
                           <button onClick={() => handleViewDetails(record)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">{t('nftRecords.viewDetails')}</button>
                           {record.status === 'approved' && (
@@ -411,10 +411,10 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
             </div>
           )}
           
-          {/* 分页控件 */}
+          {/* Pagination controls */}
           {!loading && records.length > 0 && totalPages > 1 && (
             <div className="mt-8 flex justify-center items-center space-x-2">
-              {/* 上一页按钮 */}
+              {/* Previous page button */}
               <button
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}
@@ -423,7 +423,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 {t('pagination.previous', '上一页')}
               </button>
               
-              {/* 页码按钮 */}
+              {/* Page number button */}
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
@@ -438,7 +438,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 </button>
               ))}
               
-              {/* 下一页按钮 */}
+              {/* Next page button */}
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
@@ -449,7 +449,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
             </div>
           )}
           
-          {/* 分页信息 */}
+          {/* Pagination information */}
           {!loading && records.length > 0 && (
             <div className="mt-4 text-center text-sm text-gray-500">
               {t('pagination.info', '显示第 {start} - {end} 条，共 {total} 条记录').replace('{start}', String((currentPage - 1) * recordsPerPage + 1)).replace('{end}', String(Math.min(currentPage * recordsPerPage, records.length))).replace('{total}', String(records.length))}
@@ -457,7 +457,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
           )}
         </div>
       </div>
-      {/* 详情弹窗 */}
+      {/* Details pop-up window */}
       <RequestDetailModal
         record={selectedRecord}
         isOpen={isModalOpen}
@@ -465,21 +465,21 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
         onContinueMint={handleContinueMint}
       />
 
-      {/* 铸造状态弹窗 - 优化版 */}
+      {/* Casting status pop-up window -Optimized version */}
       {showMintModal && selectedRecord && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 max-w-lg w-full mx-4 relative">
-            {/* 关闭按钮 */}
+            {/* Close button */}
             <button
               onClick={handleCancelMint}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100/80 hover:bg-gray-200/80 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200 backdrop-blur-sm"
-              disabled={isConfirming} // 确认阶段不允许关闭
+              disabled={isConfirming} // Confirmation phase does not allow closing
             >
               <span className="text-xl">×</span>
             </button>
 
             <div className="text-center">
-              {/* 准备阶段 */}
+              {/* Preparation phase */}
               {isPending && !isConfirming && !isConfirmed && !mintError && (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -506,7 +506,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 </>
               )}
               
-              {/* 确认阶段 */}
+              {/* Confirmation phase */}
               {isConfirming && (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -529,7 +529,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 </>
               )}
               
-              {/* 成功状态 */}
+              {/* Successful status */}
               {isConfirmed && (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -563,7 +563,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 </>
               )}
               
-              {/* 错误状态 */}
+              {/* Error status */}
               {mintError && (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -572,7 +572,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                   <h3 className="text-2xl font-bold text-gray-800 mb-3">铸造失败</h3>
                   <p className="text-gray-600 mb-6 leading-relaxed">很抱歉，NFT铸造过程中遇到了问题</p>
                   
-                  {/* 错误详情 */}
+                  {/* Error details */}
                   <div className="bg-gradient-to-br from-red-50 to-red-100/50 rounded-xl p-4 mb-6 border border-red-200/30">
                     <div className="text-sm text-red-800">
                       <div className="font-semibold mb-2">错误详情:</div>
@@ -583,7 +583,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                     </div>
                   </div>
 
-                  {/* NFT信息 */}
+                  {/* Nft information */}
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 mb-6 border border-gray-200/30">
                     <div className="text-sm text-gray-700">
                       <div className="font-semibold">申请信息:</div>
@@ -592,7 +592,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                     </div>
                   </div>
 
-                  {/* 常见解决方案提示 */}
+                  {/* Common Solution Tips */}
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 mb-6 border border-blue-200/30">
                     <div className="text-sm text-blue-800">
                       <div className="font-semibold mb-2">💡 可能的解决方案:</div>
@@ -608,7 +608,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                     </div>
                   </div>
 
-                  {/* 具体错误分析 */}
+                  {/* Specific error analysis */}
                   {mintError.message && (
                     <div className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-xl p-4 mb-6 border border-yellow-200/30">
                       <div className="text-sm text-yellow-800">
@@ -673,7 +673,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                     </button>
                     <button 
                       onClick={() => {
-                        // 重新尝试铸造
+                        // Try casting again
                         if (selectedRecord) {
                           console.log('🔄 重新尝试铸造 - requestId:', selectedRecord.tokenId);
                           const requestId = typeof selectedRecord.tokenId === 'string' ? parseInt(selectedRecord.tokenId) : selectedRecord.tokenId;
@@ -688,7 +688,7 @@ export const NFTMintRecords: React.FC<NFTMintRecordsProps> = ({ autoRefresh = fa
                 </>
               )}
 
-              {/* 初始状态（没有任何操作进行时） */}
+              {/* Initial state (no operation is in progress) */}
               {!isPending && !isConfirming && !isConfirmed && !mintError && (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-6">

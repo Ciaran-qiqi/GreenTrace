@@ -4,7 +4,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { I18nProvider } from "@/hooks/useI18n";
 
-// 使用支持中文的字体
+// Use Chinese-supported fonts
+
 const notoSansSC = Noto_Sans_SC({ 
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],

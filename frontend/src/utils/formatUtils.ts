@@ -1,15 +1,15 @@
 import { formatEther } from 'viem';
 
 /**
- * 格式化工具函数
- * 专门处理从智能合约获取的数据格式化
+ * Formatting utility functions
+ * Specially handle data formatting from smart contracts
  */
 
 /**
- * 格式化碳减排量
- * @description 智能合约中碳减排量以Wei格式存储（18位小数），表示tCO₂e（吨二氧化碳当量）
- * @param carbonReductionStr - 碳减排量字符串（Wei格式，表示tCO₂e）
- * @returns 格式化后的碳减排量，如 "2.5tCO₂e" 或 "0.1tCO₂e"
+ * Format carbon reduction amount
+ * @description Carbon reduction in smart contracts is stored in Wei (18 decimals), representing tCO₂e (tons of CO₂ equivalent)
+ * @param carbonReductionStr - Carbon reduction string (Wei, tCO₂e)
+ * @returns Formatted carbon reduction, e.g. "2.5tCO₂e" or "0.1tCO₂e"
  */
 export function formatCarbonReduction(carbonReductionStr: string): string {
   if (!carbonReductionStr || carbonReductionStr === '0') {
@@ -46,11 +46,11 @@ export function formatCarbonReduction(carbonReductionStr: string): string {
 }
 
 /**
- * 格式化智能合约时间戳
- * @description 处理智能合约返回的时间戳，转换为相对时间显示
- * @param timestampStr - 时间戳字符串或BigInt（秒）
- * @param locale - 语言代码，默认为'zh'（中文）
- * @returns 相对时间字符串，如 "3分钟前" 或 "3 minutes ago"
+ * Format contract timestamp
+ * @description Process smart contract return timestamp, convert to relative time display
+ * @param timestampStr - Timestamp string or BigInt (seconds)
+ * @param locale - Language code, default 'zh' (Chinese)
+ * @returns Relative time string, e.g. "3 minutes ago" or "3 minutes ago"
  */
 export function formatContractTimestamp(timestampStr: string | number | bigint, locale: string = 'zh'): string {
   if (!timestampStr) {
@@ -137,10 +137,10 @@ export function formatContractTimestamp(timestampStr: string | number | bigint, 
 }
 
 /**
- * 格式化智能合约价格
- * @description 处理智能合约返回的价格（wei格式，需要转换为正常单位）
- * @param priceStr - 价格字符串或BigInt（wei格式，如3000000000000000000000表示3000 CARB）
- * @returns 格式化后的价格字符串
+ * Format contract price
+ * @description Process smart contract return price (wei format, need to convert to normal unit)
+ * @param priceStr - Price string or BigInt (wei format, e.g. 3000000000000000000000 represents 3000 CARB)
+ * @returns Formatted price string
  */
 export function formatContractPrice(priceStr: string | bigint): string {
   if (!priceStr || priceStr === '0' || priceStr === BigInt(0)) {
@@ -190,10 +190,10 @@ export function formatContractPrice(priceStr: string | bigint): string {
 }
 
 /**
- * 调试输出数据格式
- * @description 用于调试，输出原始数据以便分析格式
- * @param label - 标签
- * @param data - 数据
+ * Debug output data format
+ * @description Used for debugging, output raw data for analysis format
+ * @param label - Label
+ * @param data - Data
  */
 export function debugLogData(label: string, data: unknown): void {
   console.log(`🐛 [${label}]`, {
@@ -206,12 +206,12 @@ export function debugLogData(label: string, data: unknown): void {
 }
 
 /**
- * 格式化区块链代币数量（支持wei转换）
- * @description 处理区块链上的代币数量，自动识别是否需要wei转换
- * @param amountStr - 代币数量字符串或BigInt（可能是wei格式）
- * @param decimals - 小数位数，默认18位
- * @param maxDecimals - 最大显示小数位数，默认2位
- * @returns 格式化后的数量字符串
+ * Format blockchain token amount (support wei conversion)
+ * @description Process blockchain token amount, automatically recognize whether wei conversion is needed
+ * @param amountStr - Token amount string or BigInt (possibly wei format)
+ * @param decimals - Decimal places, default 18
+ * @param maxDecimals - Maximum display decimal places, default 2
+ * @returns Formatted amount string
  */
 export function formatTokenAmount(amountStr: string | bigint | undefined, decimals: number = 18, maxDecimals: number = 2): string {
   if (!amountStr || amountStr === '0' || amountStr === BigInt(0)) {
@@ -280,10 +280,10 @@ export function formatTokenAmount(amountStr: string | bigint | undefined, decima
 }
 
 /**
- * 格式化CARB代币价格（专门用于NFT价格显示）
- * @description 处理CARB代币价格，确保友好的显示格式
- * @param priceStr - 价格字符串（wei格式）
- * @returns 格式化后的价格字符串（不含单位）
+ * Format CARB token price (used for NFT price display)
+ * @description Process CARB token price, ensure friendly display format
+ * @param priceStr - Price string (wei format)
+ * @returns Formatted price string (without unit)
  */
 export function formatCarbonPrice(priceStr: string | bigint): string {
   if (!priceStr || priceStr === '0' || priceStr === BigInt(0)) {
@@ -334,10 +334,10 @@ export function formatCarbonPrice(priceStr: string | bigint): string {
 }
 
 /**
- * 格式化交易量数据（用于市场统计）
- * @description 专门用于格式化市场交易量，支持大数值的友好显示
- * @param volumeStr - 交易量字符串（wei格式）
- * @returns 格式化后的交易量字符串
+ * Format trading volume data (used for market statistics)
+ * @description Used for formatting market trading volume, support friendly display for large values
+ * @param volumeStr - Trading volume string (wei format)
+ * @returns Formatted trading volume string
  */
 export function formatTradingVolume(volumeStr: string | bigint): string {
   if (!volumeStr || volumeStr === '0' || volumeStr === BigInt(0)) {

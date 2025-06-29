@@ -4,26 +4,32 @@ import { useEffect } from 'react';
 import { formatEther, formatGwei } from 'viem';
 import { useGasPriceSelector, useGasEstimation } from '../contracts/hooks/useGasEstimation';
 
-// Gas费用选择器组件属性
+// Gas fee selector component properties
+
 interface GasFeeSelectorProps {
-  // Gas估算配置
+  // Gas estimation configuration
+
   method: 'requestMintNFT' | 'payAndMintNFT' | 'requestExchangeNFT' | 'exchangeNFT';
   args: unknown[];
   value?: bigint;
-  // 回调函数
+  // Callback function
+
   onGasConfigChange: (config: {
     gasLimit: bigint;
     maxFeePerGas: bigint;
     maxPriorityFeePerGas: bigint;
     estimatedCost: bigint;
   }) => void;
-  // 是否显示详细信息
+  // Whether to display detailed information
+
   showDetails?: boolean;
-  // 自定义样式类名
+  // Custom style class name
+
   className?: string;
 }
 
-// Gas等级描述信息
+// Gas level description information
+
 const GAS_LEVEL_INFO = {
   slow: {
     name: '经济模式',
@@ -53,7 +59,8 @@ export default function GasFeeSelector({
   showDetails = true,
   className = '',
 }: GasFeeSelectorProps) {
-  // Gas价格选择器钩子
+  // Gas price selector hook
+
   const {
     gasPrices,
     selectedLevel,
@@ -62,7 +69,8 @@ export default function GasFeeSelector({
     currentGasPrice,
   } = useGasPriceSelector();
 
-  // Gas估算钩子
+  // Gas estimation hook
+
   const {
     gasLimit,
     estimatedCost,
@@ -74,7 +82,8 @@ export default function GasFeeSelector({
     value,
   });
 
-  // 当Gas配置发生变化时，通知父组件
+  // Notify the parent component when the gas configuration changes
+
   useEffect(() => {
     if (gasLimit > BigInt(0) && currentGasPrice.maxFeePerGas > BigInt(0)) {
       onGasConfigChange({
@@ -86,7 +95,8 @@ export default function GasFeeSelector({
     }
   }, [gasLimit, currentGasPrice, estimatedCost, onGasConfigChange]);
 
-  // 计算节省费用
+  // Calculate cost savings
+
   const calculateSavings = (level: 'slow' | 'standard' | 'fast') => {
     if (gasLimit === BigInt(0)) return null;
     
@@ -102,7 +112,8 @@ export default function GasFeeSelector({
     };
   };
 
-  // 加载状态
+  // Loading status
+
   if (pricesLoading || estimationLoading) {
     return (
       <div className={`bg-white rounded-lg border p-4 ${className}`}>
@@ -114,7 +125,8 @@ export default function GasFeeSelector({
     );
   }
 
-  // 错误状态
+  // Error status
+
   if (error) {
     return (
       <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
@@ -128,7 +140,7 @@ export default function GasFeeSelector({
 
   return (
     <div className={`bg-white rounded-lg border p-4 space-y-4 ${className}`}>
-      {/* 标题 */}
+      {/* title */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Gas费用选择</h3>
         <div className="text-sm text-gray-500">
@@ -136,7 +148,7 @@ export default function GasFeeSelector({
         </div>
       </div>
 
-      {/* Gas等级选择 */}
+      {/* Gas level selection */}
       <div className="space-y-2">
         {(Object.keys(GAS_LEVEL_INFO) as Array<keyof typeof GAS_LEVEL_INFO>).map((level) => {
           const info = GAS_LEVEL_INFO[level];
@@ -189,7 +201,7 @@ export default function GasFeeSelector({
         })}
       </div>
 
-      {/* 详细信息 */}
+      {/* Details */}
       {showDetails && (
         <div className="bg-gray-50 rounded-lg p-3 space-y-2">
           <h4 className="font-medium text-gray-900">详细信息</h4>
@@ -220,7 +232,7 @@ export default function GasFeeSelector({
         </div>
       )}
 
-      {/* 温馨提示 */}
+      {/* Kind tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <div className="flex items-start space-x-2">
           <span className="text-blue-600 text-sm">💡</span>

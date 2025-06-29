@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useTranslation } from '@/hooks/useI18n';
 
-// 创建NFT申请卡片组件
+// Create nft application card component
+
 export const CreateNFTCard: React.FC<{ onShowForm: () => void }> = ({ onShowForm }) => {
   const { t } = useTranslation();
   const { isConnected } = useAccount();
@@ -43,7 +44,7 @@ export const CreateNFTCard: React.FC<{ onShowForm: () => void }> = ({ onShowForm
         {t('createCard.description')}
       </p>
       
-      {/* 创建流程说明 */}
+      {/* Creation process description */}
       <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
         <div className="text-center">
           <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 font-bold">

@@ -3,17 +3,20 @@
 import React, { useState } from 'react';
 import { NFTInfoSection } from './NFTInfoSection';
 
-// NFT查看按钮组件Props
+// Nft view button component props
+
 interface NFTViewButtonProps {
   nftTokenId: string;
   buttonText?: string;
   buttonStyle?: 'primary' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-  nftExists?: boolean; // 可选：NFT是否存在的预检查结果
+  nftExists?: boolean; // Optional: Pre-check results of whether nft exists
+
 }
 
-// NFT查看按钮组件
+// Nft View Button Component
+
 export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
   nftTokenId,
   buttonText = '查看NFT',
@@ -24,7 +27,8 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
 }) => {
   const [showNFTModal, setShowNFTModal] = useState(false);
 
-  // 获取弹窗主题色
+  // Get pop-up theme color
+
   const getModalTheme = () => {
     switch (buttonStyle) {
       case 'primary':
@@ -56,18 +60,21 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
 
   const modalTheme = getModalTheme();
 
-  // 获取按钮样式类名
+  // Get the button style class name
+
   const getButtonClasses = () => {
     const baseClasses = 'font-medium rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2';
     
-    // 尺寸样式
+    // Size style
+
     const sizeClasses = {
       sm: 'px-3 py-1.5 text-sm',
       md: 'px-4 py-2 text-sm',
       lg: 'px-6 py-3 text-base'
     };
 
-    // 样式主题
+    // Style Theme
+
     const styleClasses = {
       primary: 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg',
       secondary: 'bg-purple-600 text-white hover:bg-purple-700 shadow-md hover:shadow-lg',
@@ -79,7 +86,7 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
 
   return (
     <>
-      {/* NFT查看按钮 */}
+      {/* Nft View Button */}
       <button
         onClick={() => setShowNFTModal(true)}
         className={getButtonClasses()}
@@ -88,11 +95,11 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
         <span>{buttonText}</span>
       </button>
 
-      {/* NFT信息专用弹窗 */}
+      {/* Nft information special pop-up window */}
       {showNFTModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/20 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            {/* 弹窗头部 */}
+            {/* Pop-up window head */}
             <div className="sticky top-0 bg-white/95 backdrop-blur-lg border-b border-gray-200/30 p-6 rounded-t-xl">
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-3">
@@ -112,7 +119,7 @@ export const NFTViewButton: React.FC<NFTViewButtonProps> = ({
               </div>
             </div>
             
-            {/* 弹窗内容 */}
+            {/* Pop-up content */}
             <div className="p-6">
               <NFTInfoSection 
                 nftTokenId={nftTokenId}

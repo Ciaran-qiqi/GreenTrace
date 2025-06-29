@@ -6,7 +6,8 @@ import { ExchangeAuditRequest } from '@/hooks/useExchangeAuditData';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { formatTimestamp } from '@/utils/timeUtils';
 
-// 兑换审计表单Props
+// Redemption audit form props
+
 interface ExchangeAuditFormProps {
   request: ExchangeAuditRequest;
   isOpen: boolean;
@@ -14,7 +15,8 @@ interface ExchangeAuditFormProps {
   onComplete: () => void;
 }
 
-// 兑换审计表单组件
+// Redemption audit form component
+
 export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
   request,
   isOpen,
@@ -26,10 +28,12 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
   const [isApproved, setIsApproved] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // 使用兑换审计Hook
+  // Use redemption audit hook
+
   const { submitExchangeAudit, isPending, isConfirming, isConfirmed, error } = useSubmitExchangeAudit();
 
-  // 重置表单
+  // Reset the form
+
   const resetForm = () => {
     setCarbonValue('');
     setAuditComment('');
@@ -37,14 +41,16 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
     setShowConfirm(false);
   };
 
-  // 关闭弹窗
+  // Close pop-up window
+
   const handleClose = () => {
     if (isPending || isConfirming) return;
     resetForm();
     onClose();
   };
 
-  // 提交审计
+  // Submit audit
+
   const handleSubmit = () => {
     if (!isApproved && !auditComment.trim()) {
       alert('拒绝申请时必须提供拒绝原因');
@@ -59,14 +65,16 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
     setShowConfirm(true);
   };
 
-  // 确认提交
+  // Confirm Submission
+
   const confirmSubmit = () => {
     try {
       const cashId = BigInt(request.cashId);
       const value = isApproved ? carbonValue : '0';
       const comment = auditComment.trim() || (isApproved ? '审计通过' : '');
       
-      // 转换为Wei格式（假设18位小数）
+      // Convert to wei format (assuming 18 decimal places)
+
       const valueInWei = isApproved ? BigInt(Number(value) * 10**18) : BigInt(0);
       
       submitExchangeAudit(cashId, valueInWei, comment);
@@ -77,7 +85,8 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
     }
   };
 
-  // 处理审计完成
+  // Processing audit completed
+
   useEffect(() => {
     if (isConfirmed) {
       alert('兑换审计提交成功！');
@@ -86,7 +95,8 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
     }
   }, [isConfirmed, onComplete]);
 
-  // 处理错误
+  // Handling errors
+
   useEffect(() => {
     if (error) {
       console.error('兑换审计错误:', error);
@@ -99,12 +109,12 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        {/* 标题栏 */}
+        {/* Title bar */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 relative">
           <h2 className="text-2xl font-bold">兑换审计 - #{request.cashId}</h2>
           <p className="text-purple-100 mt-1">审核NFT兑换申请，确定最终兑换价值</p>
           
-          {/* 关闭按钮 */}
+          {/* Close button */}
           <button
             onClick={handleClose}
             disabled={isPending || isConfirming}
@@ -114,10 +124,10 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
           </button>
         </div>
 
-        {/* 滚动内容区域 */}
+        {/* Scroll content area */}
         <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
           <div className="p-6 space-y-6 bg-gradient-to-br from-white/90 via-gray-50/50 to-white/80">
-            {/* 兑换申请详情 */}
+            {/* Redemption application details */}
             <div className="bg-gradient-to-br from-white/80 to-gray-50/60 rounded-xl p-6 border border-gray-200/50 shadow-sm backdrop-blur-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-lg flex items-center justify-center mr-2">
@@ -175,7 +185,7 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
               </div>
             </div>
 
-            {/* 费用计算说明 */}
+            {/* Expense calculation instructions */}
             <div className="bg-gradient-to-br from-blue-50/80 to-blue-100/60 rounded-xl p-6 border border-blue-200/50">
               <h4 className="text-blue-800 font-semibold mb-3 flex items-center">
                 <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mr-2">
@@ -193,11 +203,11 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
               </div>
             </div>
 
-            {/* 审计决定 */}
+            {/* Audit decision */}
             <div className="bg-gradient-to-br from-white/80 to-gray-50/60 rounded-xl p-6 border border-gray-200/50 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">审计决定</h3>
               
-              {/* 审计结果选择 */}
+              {/* Selection of audit results */}
               <div className="space-y-4 mb-6">
                 <div className="flex space-x-4">
                   <label className="flex items-center cursor-pointer">
@@ -223,7 +233,7 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
                 </div>
               </div>
 
-              {/* 兑换价值设置（仅通过时显示） */}
+              {/* Redemption value setting (displayed only when passed) */}
               {isApproved && (
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -247,7 +257,7 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
                 </div>
               )}
 
-              {/* 审计意见 */}
+              {/* Audit opinion */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   审计意见 {!isApproved && <span className="text-red-500">*</span>}
@@ -268,7 +278,7 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
               </div>
             </div>
 
-            {/* 审计结果预览 */}
+            {/* Audit results preview */}
             {isApproved && carbonValue && Number(carbonValue) > 0 && (
               <div className="bg-gradient-to-br from-green-50/80 to-green-100/60 rounded-xl p-6 border border-green-200/50">
                 <h4 className="text-green-800 font-semibold mb-3">审计结果预览</h4>
@@ -295,7 +305,7 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
               </div>
             )}
 
-            {/* 提交按钮 */}
+            {/* Submit Button */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <button
                 onClick={handleClose}
@@ -320,7 +330,7 @@ export const ExchangeAuditForm: React.FC<ExchangeAuditFormProps> = ({
         </div>
       </div>
 
-      {/* 确认提交弹窗 */}
+      {/* Confirm submission pop-up window */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
           <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">

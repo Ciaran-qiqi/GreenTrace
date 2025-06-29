@@ -18,12 +18,12 @@ interface CancelListingModalProps {
 }
 
 /**
- * 取消挂单确认模态框组件
- * @description 提供取消NFT挂单的确认界面和操作
- * @param isOpen 是否显示模态框
- * @param onClose 关闭回调
- * @param onSuccess 取消成功回调
- * @param listing NFT挂单信息
+ * Cancel pending order confirmation modal box component
+ * @description Provides confirmation interface and operations to cancel NFT orders
+ * @param isOpen Whether to display the modal box
+ * @param onClose Close callback
+ * @param onSuccess Cancel the successful callback
+ * @param listing NFT order information
  */
 export const CancelListingModal: React.FC<CancelListingModalProps> = ({
   isOpen,
@@ -31,7 +31,8 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
   onSuccess,
   listing
 }) => {
-  // 使用取消挂单Hook
+  // Use the Cancel Order Hook
+
   const {
     isLoading,
     isSuccess,
@@ -46,18 +47,21 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
     }
   });
 
-  // 关闭模态框
+  // Close the modal box
+
   const handleClose = () => {
     reset();
     onClose();
   };
 
-  // 确认取消挂单
+  // Confirm to cancel the order
+
   const handleConfirm = async () => {
     await cancelListing(listing.tokenId);
   };
 
-  // 键盘事件处理
+  // Keyboard event handling
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleConfirm();
@@ -71,10 +75,10 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-md w-full relative overflow-hidden">
-        {/* 装饰性顶部渐变 */}
+        {/* Decorative top gradient */}
         <div className="h-1 bg-gradient-to-r from-red-400 via-orange-500 to-yellow-500"></div>
         
-        {/* 头部 */}
+        {/* head */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-800">
@@ -89,9 +93,9 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
           </div>
         </div>
 
-        {/* 内容 */}
+        {/* content */}
         <div className="p-6">
-          {/* 警告提示 */}
+          {/* Warning prompt */}
           <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="flex items-start">
               <div className="text-orange-500 text-2xl mr-3">⚠️</div>
@@ -106,7 +110,7 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
             </div>
           </div>
 
-          {/* NFT信息 */}
+          {/* Nft information */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium text-gray-800 mb-2">{listing.title}</h4>
             <div className="text-sm text-gray-600 space-y-2">
@@ -127,7 +131,7 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
             </div>
           </div>
 
-          {/* 说明信息 */}
+          {/* Description Information */}
           <div className="mb-6 space-y-3">
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="text-blue-800 text-sm">
@@ -142,7 +146,7 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
             </div>
           </div>
 
-          {/* 错误提示 */}
+          {/* Error message */}
           {errorMessage && (
             <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
               <div className="text-red-600 text-sm">
@@ -151,7 +155,7 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
             </div>
           )}
 
-          {/* 操作按钮 */}
+          {/* Operation button */}
           <div className="flex gap-3">
             <button
               onClick={handleClose}
@@ -177,7 +181,7 @@ export const CancelListingModal: React.FC<CancelListingModalProps> = ({
             </button>
           </div>
 
-          {/* 提示信息 */}
+          {/* Prompt information */}
           <div className="mt-4 text-xs text-gray-500 text-center">
             <p>💡 取消挂单将产生Gas费用</p>
             <p>此操作不可撤销，请谨慎操作</p>

@@ -4,7 +4,7 @@ import React from 'react';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { type MintRecord } from '@/contracts/hooks/useNFTMintRecords';
 
-// 状态标签组件
+// Status Tag Component
 const StatusBadge: React.FC<{ status: MintRecord['status'] }> = ({ status }) => {
   const statusConfig = {
     pending: {
@@ -39,7 +39,7 @@ const StatusBadge: React.FC<{ status: MintRecord['status'] }> = ({ status }) => 
   );
 };
 
-// NFT详情弹窗组件
+// Nft details pop-up component
 interface NFTDetailModalProps {
   record: MintRecord | null;
   isOpen: boolean;
@@ -55,13 +55,13 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
 }) => {
   if (!isOpen || !record) return null;
 
-  // 格式化时间
+  // Format time
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleString('zh-CN');
   };
 
-  // 处理铸造
+  // Handle casting
   const handleContinueMint = () => {
     if (onContinueMint && record) {
       console.log('从详情弹窗开始铸造NFT:', record.tokenId);
@@ -73,10 +73,10 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/50 to-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ top: 0, left: 0, right: 0, bottom: 0, position: 'fixed' }}>
       <div className="bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl shadow-2xl border border-gray-200/50 max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        {/* 装饰性顶部渐变条 */}
+        {/* Decorative top gradient bar */}
         <div className="h-1 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600"></div>
         
-        {/* 弹窗头部 */}
+        {/* Pop-up window head */}
         <div className="flex justify-between items-center p-6 bg-gradient-to-r from-gray-50/80 to-white/80 border-b border-gray-200/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
@@ -97,10 +97,10 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
           </button>
         </div>
 
-        {/* 弹窗内容 - 添加滚动区域 */}
+        {/* Pop-up window content -Add scrolling area */}
         <div className="overflow-y-auto max-h-[calc(90vh-200px)]">
           <div className="p-6 space-y-6 bg-gradient-to-br from-white/90 via-gray-50/50 to-white/90">
-            {/* 基本信息 */}
+            {/* Basic information */}
             <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl p-5 border border-gray-200/50 shadow-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center mr-2">
@@ -128,7 +128,7 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
               </div>
             </div>
 
-            {/* NFT信息 */}
+            {/* Nft information */}
             <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-xl p-5 border border-blue-200/50 shadow-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center mr-2">
@@ -158,7 +158,7 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
               </div>
             </div>
 
-            {/* 审计信息 */}
+            {/* Audit information */}
             {record.auditor && (
               <div className="bg-gradient-to-br from-white to-green-50/30 rounded-xl p-5 border border-green-200/50 shadow-sm">
                 <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
@@ -219,7 +219,7 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
               </div>
             )}
 
-            {/* 审计意见 */}
+            {/* Audit opinion */}
             {record.reason && (
               <div className="bg-gradient-to-br from-white to-red-50/30 rounded-xl p-5 border border-red-200/50 shadow-sm">
                 <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
@@ -239,7 +239,7 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
               </div>
             )}
 
-            {/* 状态说明 */}
+            {/* Status Description */}
             <div className="bg-gradient-to-br from-white to-indigo-50/30 rounded-xl p-5 border border-indigo-200/50 shadow-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-lg flex items-center justify-center mr-2">
@@ -304,7 +304,7 @@ export const NFTDetailModal: React.FC<NFTDetailModalProps> = ({
           </div>
         </div>
 
-        {/* 弹窗底部 */}
+        {/* Bottom of pop-up window */}
         <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
           <button
             onClick={onClose}

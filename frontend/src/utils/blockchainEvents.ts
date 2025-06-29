@@ -1,7 +1,7 @@
 import { Address } from 'viem';
 import { formatEther } from 'viem';
 
-// 事件日志接口
+// Event log interface
 export interface EventLog {
   tokenId: number;
   requester: Address;
@@ -14,7 +14,7 @@ export interface EventLog {
   timestamp: number;
 }
 
-// 审计信息接口
+// Audit info interface
 export interface AuditInfo {
   tokenId: number;
   auditor: Address;
@@ -24,28 +24,28 @@ export interface AuditInfo {
   reason?: string;
 }
 
-// 获取事件日志的模拟函数
+// Simulated function to fetch event logs
 export const fetchMintRequestedEvents = async (
   contractAddress: Address,
   userAddress: Address,
   fromBlock: number = 0
 ): Promise<EventLog[]> => {
-  // TODO: 实现真实的事件查询
-  // 这里应该使用 wagmi 的 useContractEvent 或者直接调用 RPC
+  // TODO: Implement real event query
+  // Should use wagmi's useContractEvent or call RPC directly
   
-  console.log('查询MintRequested事件:', {
+  console.log('Query MintRequested events:', {
     contractAddress,
     userAddress,
     fromBlock
   });
 
-  // 模拟返回数据
+  // Simulated return data
   return [
     {
       tokenId: 1,
       requester: userAddress,
-      title: '绿色出行记录',
-      details: '今天选择乘坐公共交通工具出行，减少了私家车使用，预计减少碳排放约0.05tCO₂e。',
+      title: 'Green travel record',
+      details: 'Chose public transport today, reduced private car use, estimated carbon emission reduction about 0.05tCO₂e.',
       carbonReduction: '50000000000000000', // 0.05 CT in wei
       tokenURI: 'ipfs://QmExample1',
       totalFee: '1000000000000000000', // 1 CT in wei
@@ -55,8 +55,8 @@ export const fetchMintRequestedEvents = async (
     {
       tokenId: 2,
       requester: userAddress,
-      title: '垃圾分类行动',
-      details: '坚持垃圾分类，将可回收物、厨余垃圾、有害垃圾分别投放到对应垃圾桶。',
+      title: 'Garbage sorting action',
+      details: 'Persist in garbage sorting, put recyclables, kitchen waste, hazardous waste into corresponding bins.',
       carbonReduction: '20000000000000000', // 0.02 CT in wei
       tokenURI: 'ipfs://QmExample2',
       totalFee: '1000000000000000000', // 1 CT in wei
@@ -66,17 +66,17 @@ export const fetchMintRequestedEvents = async (
   ];
 };
 
-// 获取审计信息的模拟函数
+// Simulated function to fetch audit info
 export const fetchAuditInfo = async (
   contractAddress: Address,
   tokenId: number
 ): Promise<AuditInfo | null> => {
-  // TODO: 实现真实的审计信息查询
-  // 这里应该调用合约的 audits 函数
+  // TODO: Implement real audit info query
+  // Should call contract's audits function
   
-  console.log('查询审计信息:', { contractAddress, tokenId });
+  console.log('Query audit info:', { contractAddress, tokenId });
 
-  // 模拟返回数据
+  // Simulated return data
   const mockAudits: Record<number, AuditInfo> = {
     1: {
       tokenId: 1,
@@ -97,22 +97,22 @@ export const fetchAuditInfo = async (
   return mockAudits[tokenId] || null;
 };
 
-// 检查NFT是否已铸造
+// Check if NFT is minted
 export const checkNFTMinted = async (
   nftContractAddress: Address,
   tokenId: number
 ): Promise<boolean> => {
-  // TODO: 实现真实的NFT铸造状态检查
-  // 这里应该调用NFT合约的 ownerOf 函数
+  // TODO: Implement real NFT mint status check
+  // Should call NFT contract's ownerOf function
   
-  console.log('检查NFT铸造状态:', { nftContractAddress, tokenId });
+  console.log('Check NFT mint status:', { nftContractAddress, tokenId });
 
-  // 模拟返回数据
-  const mintedTokens = [1]; // 假设tokenId 1已经铸造
+  // Simulated return data
+  const mintedTokens = [1]; // Assume tokenId 1 is minted
   return mintedTokens.includes(tokenId);
 };
 
-// 组合完整的NFT记录
+// Combine complete NFT record
 export const combineNFTRecord = (
   eventLog: EventLog,
   auditInfo: AuditInfo | null,

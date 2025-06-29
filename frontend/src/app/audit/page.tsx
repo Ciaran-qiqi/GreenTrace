@@ -1,11 +1,13 @@
 'use client';
 
-// 导入审计中心组件
+// Import Audit Center Components
+
 import { Navigation } from '@/components/Navigation';
 import { AuditCenter } from '@/components/AuditCenter';
 import { useTranslation } from '@/hooks/useI18n';
 
-// 审计中心页面 - 用于审计员审核NFT申请
+// Audit Center Page -Used for auditors to review NFT applications
+
 export default function AuditPage() {
   const { t } = useTranslation();
   

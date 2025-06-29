@@ -15,14 +15,14 @@ interface NFTGridProps {
 }
 
 /**
- * NFT网格展示组件
- * @description 以网格形式展示NFT列表，支持加载更多和错误处理
- * @param nfts NFT数组
- * @param isLoading 是否正在加载
- * @param error 错误信息
- * @param hasMore 是否还有更多数据
- * @param onLoadMore 加载更多回调
- * @param onBuySuccess 购买成功回调
+ * NFT grid display components
+ * @description Display NFT lists in grid form, supporting loading more and error handling
+ * @param nfts NFT array
+ * @param isLoading Is it loading?
+ * @param error error message
+ * @param hasMore Is there any more data
+ * @param onLoadMore Load more callbacks
+ * @param onBuySuccess Successful purchase callback
  */
 export const NFTGrid: React.FC<NFTGridProps> = ({
   nfts,
@@ -34,32 +34,33 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // 加载骨架屏组件
+  // Loading skeleton screen components
+
   const LoadingSkeleton = () => (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 animate-pulse">
-      {/* 头部骨架 */}
+      {/* Head skeleton */}
       <div className="h-48 bg-gray-200"></div>
       
-      {/* 内容骨架 */}
+      {/* Content skeleton */}
       <div className="p-6">
-        {/* 标题骨架 */}
+        {/* Title Skeleton */}
         <div className="h-6 bg-gray-200 rounded mb-3"></div>
         <div className="h-4 bg-gray-200 rounded mb-4 w-2/3"></div>
         
-        {/* 描述骨架 */}
+        {/* Description of the skeleton */}
         <div className="space-y-2 mb-4">
           <div className="h-3 bg-gray-200 rounded"></div>
           <div className="h-3 bg-gray-200 rounded w-4/5"></div>
           <div className="h-3 bg-gray-200 rounded w-3/5"></div>
         </div>
         
-        {/* 价格骨架 */}
+        {/* Price skeleton */}
         <div className="h-8 bg-gray-200 rounded mb-4"></div>
         
-        {/* 卖家信息骨架 */}
+        {/* Seller information skeleton */}
         <div className="h-16 bg-gray-100 rounded mb-4"></div>
         
-        {/* 按钮骨架 */}
+        {/* Button skeleton */}
         <div className="flex gap-2">
           <div className="flex-1 h-10 bg-gray-200 rounded"></div>
           <div className="flex-1 h-10 bg-gray-200 rounded"></div>
@@ -68,7 +69,8 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
     </div>
   );
 
-  // 空状态组件
+  // Empty state component
+
   const EmptyState = () => (
     <div className="col-span-full text-center py-16">
       <div className="text-6xl mb-4">🏪</div>
@@ -84,7 +86,8 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
     </div>
   );
 
-  // 错误状态组件
+  // Error Status Component
+
   const ErrorState = () => (
     <div className="col-span-full text-center py-16">
       <div className="text-6xl mb-4">❌</div>
@@ -105,15 +108,15 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
 
   return (
     <div className="w-full">
-      {/* NFT网格容器 */}
+      {/* Nft grid container */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* 显示错误状态 */}
+        {/* Display error status */}
         {error && !isLoading && nfts.length === 0 && <ErrorState />}
         
-        {/* 显示空状态 */}
+        {/* Show empty status */}
         {!error && !isLoading && nfts.length === 0 && <EmptyState />}
         
-        {/* 显示NFT卡片 */}
+        {/* Show nft card */}
         {nfts.map((nft) => (
           <NFTMarketCard
             key={`${nft.tokenId}-${nft.timestamp}`}
@@ -122,7 +125,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
           />
         ))}
         
-        {/* 显示加载骨架屏 */}
+        {/* Display loading skeleton screen */}
         {isLoading && (
           <>
             {Array.from({ length: nfts.length === 0 ? 8 : 4 }).map((_, index) => (
@@ -132,9 +135,9 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
         )}
       </div>
 
-      {/* 加载更多按钮区域 */}
+      {/* Load more button areas */}
       <div className="mt-12 text-center">
-        {/* 加载更多按钮 */}
+        {/* Load more buttons */}
         {hasMore && !isLoading && nfts.length > 0 && (
           <button
             onClick={onLoadMore}
@@ -144,7 +147,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
           </button>
         )}
         
-        {/* 正在加载更多的提示 */}
+        {/* More tips are being loaded */}
         {isLoading && nfts.length > 0 && (
           <div className="flex items-center justify-center text-gray-500">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 mr-2"></div>
@@ -152,7 +155,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
           </div>
         )}
         
-        {/* 没有更多数据的提示 */}
+        {/* No more data prompts */}
         {!hasMore && nfts.length > 0 && !error && (
           <div className="text-gray-500 py-4">
             <div className="text-sm">
@@ -165,7 +168,7 @@ export const NFTGrid: React.FC<NFTGridProps> = ({
         )}
       </div>
 
-      {/* 数据统计信息 */}
+      {/* Data statistics */}
       {nfts.length > 0 && !error && (
         <div className="mt-8 pt-6 border-t border-gray-200">
           <div className="text-center text-sm text-gray-500">

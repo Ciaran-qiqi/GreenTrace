@@ -3,9 +3,9 @@ import { formatTokenAmount, formatPercentage } from '@/utils/formatters'
 import { useTranslation } from '@/hooks/useI18n'
 
 /**
- * 我的流动性统计卡片组件
- * 展示用户在池子的LP、份额、碳币、USDT数量
- * 需传入userLiquidityInfo和userPoolTokens
+ * My Liquidity Statistics Card Component
+ * Display the number of LP, share, carbon coins, and USDT in the pool
+ * UserLiquidityInfo and userPoolTokens need to be passed in
  */
 export default function LiquidityUserStatsPanel({ userLiquidityInfo, userPoolTokens, isConnected }) {
   const { t } = useTranslation();
@@ -19,7 +19,7 @@ export default function LiquidityUserStatsPanel({ userLiquidityInfo, userPoolTok
           💡 {t('liquidity.userStats.subtitle', 'LP代币对应的实际资产')}
         </div>
       </div>
-      {/* 四个数据并排显示 */}
+      {/* Four data are displayed side by side */}
       <div className="grid grid-cols-4 gap-6">
         <div className="text-center p-6 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl border border-blue-300 shadow-lg">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">

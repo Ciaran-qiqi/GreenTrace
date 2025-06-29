@@ -1,22 +1,20 @@
 'use client';
 
 import React from 'react';
-import { useReadContract, useChainId } from 'wagmi';
+import { useChainId } from 'wagmi';
 import { useI18n } from '@/hooks/useI18n';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
-import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
-import CarbonTokenABI from '@/contracts/abi/CarbonToken.json';
-import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 
 /**
- * 系统设置组件
- * @description 显示系统配置信息、费率设置、合约状态等
+ * System Settings Components
+ * @description Display system configuration information, rate settings, contract status, etc.
  */
 export const SystemSettings: React.FC = () => {
   const { t } = useI18n();
   const chainId = useChainId();
 
-  // 获取合约地址
+  // Get the contract address
+
   const getContractAddresses = (chainId: number) => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet;
@@ -28,7 +26,8 @@ export const SystemSettings: React.FC = () => {
 
   const contracts = getContractAddresses(chainId);
 
-  // 网络信息
+  // Network information
+
   const getNetworkInfo = (chainId: number) => {
     switch (chainId) {
       case 1: return { name: 'Ethereum Mainnet', color: 'bg-blue-100 text-blue-800' };
@@ -42,13 +41,13 @@ export const SystemSettings: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* 页面标题 */}
+      {/* Page title */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.systemSettings.title')}</h2>
         <p className="text-gray-600">{t('admin.systemSettings.subtitle')}</p>
       </div>
 
-      {/* 网络和环境信息 */}
+      {/* Network and environment information */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -120,7 +119,7 @@ export const SystemSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* 合约地址信息 */}
+      {/* Contract address information */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
         <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
           <span className="text-xl">📋</span>
@@ -148,7 +147,7 @@ export const SystemSettings: React.FC = () => {
           <div className="space-y-3">
             <div className="font-medium text-gray-800">{t('admin.systemSettings.greenTalesNFTContract')}</div>
             <div className="font-mono text-sm text-gray-600 bg-gray-50 p-2 rounded">
-              {contracts.GreenTalesNFT}
+              {contracts.NFT}
             </div>
             <div className="text-xs text-gray-500">
               {t('admin.systemSettings.greenTalesNFTContractDesc')}
@@ -157,7 +156,7 @@ export const SystemSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* 代币和NFT信息 */}
+      {/* Tokens and NFT information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
@@ -210,7 +209,7 @@ export const SystemSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* 系统配置说明 */}
+      {/* System configuration instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
           <span className="text-xl">ℹ️</span>

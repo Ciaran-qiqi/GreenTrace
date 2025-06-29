@@ -8,8 +8,8 @@ interface OrderBookPanelProps {
 }
 
 /**
- * 订单簿面板组件
- * 显示买卖单列表和用户订单管理
+ * Order Book Panel Components
+ * Show buy and sell order list and user order management
  */
 export default function OrderBookPanel({ onFillOrder }: OrderBookPanelProps) {
   const { address: userAddress } = useAccount()
@@ -27,30 +27,36 @@ export default function OrderBookPanel({ onFillOrder }: OrderBookPanelProps) {
     isConfirming,
   } = useCarbonUSDTMarket()
 
-  // 模拟获取订单数据 (实际项目中应该从合约事件或后端API获取)
-  // 暂时注释掉，因为getOrder还没有实现
+  // Simulate to get order data (in actual project, it should be obtained from contract events or backend API)
+  // Comment out temporarily, because getOrder has not been implemented yet
   // useEffect(() => {
   //   const fetchOrders = async () => {
   //     if (!marketStats?.nextOrderId) return
 
+
   //     const orderPromises = []
+
       
-  //     // 获取最近的订单
-  //     const startId = Math.max(0, Number(marketStats.nextOrderId) - 20)
+  //     //Get the most recent order
+  //     const startId = Math.max(0, Number(marketStats.nextOrderId) -20)
+
       
   //     for (let i = startId; i < Number(marketStats.nextOrderId); i++) {
   //       orderPromises.push(getOrder(i.toString()))
   //     }
+
 
   //     try {
   //       const orderResults = await Promise.all(orderPromises)
   //       const validOrders = orderResults.filter((order): order is Order => 
   //         order !== null && order.status === 'Active'
   //       )
+
         
-  //       setOrders(validOrders)
+  //       Set orders(valid orders)
+
         
-  //       // 筛选用户订单
+  //       //Filter user orders
   //       if (userAddress) {
   //         const userValidOrders = validOrders.filter(order => 
   //           order.user.toLowerCase() === userAddress.toLowerCase()
@@ -62,8 +68,10 @@ export default function OrderBookPanel({ onFillOrder }: OrderBookPanelProps) {
   //     }
   //   }
 
+
   //   fetchOrders()
   // }, [marketStats?.nextOrderId, getOrder, userAddress])
+
 
   const handleFillOrder = async (orderId: string) => {
     try {
@@ -137,13 +145,14 @@ export default function OrderBookPanel({ onFillOrder }: OrderBookPanelProps) {
     </tr>
   )
 
-  // 分离买单和卖单
+  // Separate buy orders and sell orders
+
   const buyOrders = orders.filter(order => order.orderType === 'Buy').slice(0, 10)
   const sellOrders = orders.filter(order => order.orderType === 'Sell').slice(0, 10)
 
   return (
     <div className="bg-white/90 rounded-2xl shadow-xl border border-white/20">
-      {/* 标签切换 */}
+      {/* Tag switching */}
       <div className="flex border-b border-gray-200">
         <button
           onClick={() => setActiveTab('market')}
@@ -170,7 +179,7 @@ export default function OrderBookPanel({ onFillOrder }: OrderBookPanelProps) {
       <div className="p-6">
         {activeTab === 'market' && (
           <div className="space-y-6">
-            {/* 买单列表 */}
+            {/* Payment list */}
             <div>
               <h3 className="text-lg font-semibold text-green-700 mb-3 flex items-center gap-2">
                 🟢 买单列表
@@ -209,7 +218,7 @@ export default function OrderBookPanel({ onFillOrder }: OrderBookPanelProps) {
               )}
             </div>
 
-            {/* 卖单列表 */}
+            {/* Sell ​​order list */}
             <div>
               <h3 className="text-lg font-semibold text-red-700 mb-3 flex items-center gap-2">
                 🔴 卖单列表

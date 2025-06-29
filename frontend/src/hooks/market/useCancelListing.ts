@@ -11,29 +11,32 @@ interface UseCancelListingParams {
 }
 
 interface UseCancelListingReturn {
-  // 状态
+  // state
+
   isLoading: boolean;
   isSuccess: boolean;
   isError: boolean;
   errorMessage: string;
   
-  // 操作函数
+  // Operation functions
+
   cancelListing: (tokenId: string) => Promise<void>;
   reset: () => void;
 }
 
 /**
- * 取消挂单 Hook
- * @description 提供取消NFT挂单的功能，包括合约调用和状态管理
- * @param onSuccess 取消成功回调
- * @returns 取消挂单相关的状态和操作函数
+ * Cancel the order Hook
+ * @description Provides the function of canceling NFT pending orders, including contract calls and state management
+ * @param onSuccess Cancel the successful callback
+ * @returns Cancel the status and operation functions related to pending orders
  */
 export const useCancelListing = ({ onSuccess }: UseCancelListingParams = {}): UseCancelListingReturn => {
   const { address } = useAccount();
   const chainId = useChainId();
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // 获取市场合约地址
+  // Get the market contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -45,15 +48,18 @@ export const useCancelListing = ({ onSuccess }: UseCancelListingParams = {}): Us
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 取消挂单合约调用
+  // Cancel the pending contract call
+
   const { writeContract, data: hash, isPending } = useWriteContract();
 
-  // 监听交易状态
+  // Listen to transaction status
+
   const { isSuccess, isError, error } = useWaitForTransactionReceipt({
     hash,
   });
 
-  // 取消挂单操作
+  // Cancel the pending order operation
+
   const cancelListing = async (tokenId: string): Promise<void> => {
     if (!address) {
       toast.error('请先连接钱包');
@@ -77,12 +83,14 @@ export const useCancelListing = ({ onSuccess }: UseCancelListingParams = {}): Us
     }
   };
 
-  // 重置状态
+  // Reset status
+
   const reset = (): void => {
     setErrorMessage('');
   };
 
-  // 监听交易完成
+  // Listen to transaction completion
+
   useEffect(() => {
     if (isSuccess) {
       toast.success('🎉 挂单取消成功！');
@@ -90,7 +98,8 @@ export const useCancelListing = ({ onSuccess }: UseCancelListingParams = {}): Us
     }
   }, [isSuccess, onSuccess]);
 
-  // 监听交易错误
+  // Listening to transaction errors
+
   useEffect(() => {
     if (isError && error) {
       console.error('取消挂单交易失败:', error);
@@ -112,13 +121,15 @@ export const useCancelListing = ({ onSuccess }: UseCancelListingParams = {}): Us
   }, [isError, error]);
 
   return {
-    // 状态
+    // state
+
     isLoading: isPending,
     isSuccess,
     isError,
     errorMessage,
     
-    // 操作函数
+    // Operation functions
+
     cancelListing,
     reset,
   };

@@ -9,9 +9,9 @@ interface SalesHistoryProps {
 }
 
 /**
- * 销售历史组件
- * @description 显示当前用户的NFT销售历史记录
- * @param className 样式类名
+ * Sales History Components
+ * @description Display the current user's NFT sales history
+ * @param className Style class name
  */
 export const SalesHistory: React.FC<SalesHistoryProps> = ({
   className = ''
@@ -30,7 +30,7 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
 
   return (
     <div className={className}>
-      {/* 头部说明 */}
+      {/* Head instructions */}
       <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-start">
           <div className="text-green-500 text-2xl mr-3">💰</div>
@@ -45,7 +45,7 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
         </div>
       </div>
 
-      {/* 销售统计卡片 */}
+      {/* Sales Statistics Card */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center justify-between">
@@ -78,7 +78,7 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({
         </div>
       </div>
 
-      {/* 使用TradeHistoryTable组件，筛选当前用户作为卖家的记录 */}
+      {/* Use the trade history table component to filter the records of the current user as the seller */}
       <TradeHistoryTable
         userAddress={address}
         limit={100}

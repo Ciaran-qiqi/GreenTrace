@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useI18n } from '@/hooks/useI18n';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
@@ -8,65 +8,88 @@ import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
 import { toast } from 'react-hot-toast';
 
 /**
- * 业务合约管理组件
- * @description 管理授权的业务合约，添加或移除业务合约权限
+ * Business Contract Management Components
+ * @description Manage authorized business contracts, add or remove business contract permissions
  */
 export const BusinessContractManagement: React.FC = () => {
   const { t } = useI18n();
   const [newContractAddress, setNewContractAddress] = useState('');
   const [removeContractAddress, setRemoveContractAddress] = useState('');
   const [contractList, setContractList] = useState<string[]>([
-    // 模拟已存在的业务合约
+    // Simulate existing business contracts
+
     '0x1234567890123456789012345678901234567890',
     '0x2345678901234567890123456789012345678901',
   ]);
 
-  // 添加业务合约
+  // Add a business contract
+
   const { 
     writeContract: addContract, 
     data: addTxHash, 
     isPending: isAddPending 
   } = useWriteContract();
 
-  // 移除业务合约
+  // Remove business contract
+
   const { 
     writeContract: removeContract, 
     data: removeTxHash, 
     isPending: isRemovePending 
   } = useWriteContract();
 
-  // 等待添加交易确认
-  const { isLoading: isAddConfirming } = useWaitForTransactionReceipt({
+  // Wait for the addition of transaction confirmation
+
+  const { isLoading: isAddConfirming, isSuccess: isAddSuccess, error: addError } = useWaitForTransactionReceipt({
     hash: addTxHash,
-    onSuccess: () => {
+  });
+
+  // Wait for the removal of transaction confirmation
+
+  const { isLoading: isRemoveConfirming, isSuccess: isRemoveSuccess, error: removeError } = useWaitForTransactionReceipt({
+    hash: removeTxHash,
+  });
+
+  // Handle add contract success
+  useEffect(() => {
+    if (isAddSuccess) {
       toast.success(t('admin.businessContractManagement.contractAddedSuccess'));
       setContractList(prev => [...prev, newContractAddress]);
       setNewContractAddress('');
-    },
-    onError: (error) => {
-      toast.error(`${t('admin.businessContractManagement.addFailed')} ${error.message}`);
     }
-  });
+  }, [isAddSuccess, newContractAddress, t]);
 
-  // 等待移除交易确认
-  const { isLoading: isRemoveConfirming } = useWaitForTransactionReceipt({
-    hash: removeTxHash,
-    onSuccess: () => {
+  // Handle add contract error
+  useEffect(() => {
+    if (addError) {
+      toast.error(`${t('admin.businessContractManagement.addFailed')} ${addError.message}`);
+    }
+  }, [addError, t]);
+
+  // Handle remove contract success
+  useEffect(() => {
+    if (isRemoveSuccess) {
       toast.success(t('admin.businessContractManagement.contractRemovedSuccess'));
       setContractList(prev => prev.filter(addr => addr !== removeContractAddress));
       setRemoveContractAddress('');
-    },
-    onError: (error) => {
-      toast.error(`${t('admin.businessContractManagement.removeFailed')} ${error.message}`);
     }
-  });
+  }, [isRemoveSuccess, removeContractAddress, t]);
 
-  // 验证地址格式
+  // Handle remove contract error
+  useEffect(() => {
+    if (removeError) {
+      toast.error(`${t('admin.businessContractManagement.removeFailed')} ${removeError.message}`);
+    }
+  }, [removeError, t]);
+
+  // Verify address format
+
   const isValidAddress = (addr: string): boolean => {
     return /^0x[a-fA-F0-9]{40}$/.test(addr);
   };
 
-  // 处理添加业务合约
+  // Processing Adding Business Contracts
+
   const handleAddContract = () => {
     if (!isValidAddress(newContractAddress)) {
       toast.error(t('admin.businessContractManagement.enterValidContractAddress'));
@@ -86,7 +109,8 @@ export const BusinessContractManagement: React.FC = () => {
     });
   };
 
-  // 处理移除业务合约
+  // Processing and removing business contracts
+
   const handleRemoveContract = () => {
     if (!isValidAddress(removeContractAddress)) {
       toast.error(t('admin.businessContractManagement.enterValidContractAddress'));
@@ -101,20 +125,21 @@ export const BusinessContractManagement: React.FC = () => {
     });
   };
 
-  // 快速移除合约
+  // Quickly remove contracts
+
   const quickRemoveContract = (address: string) => {
     setRemoveContractAddress(address);
   };
 
   return (
     <div className="p-6">
-      {/* 页面标题 */}
+      {/* Page title */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.businessContractManagement.title')}</h2>
         <p className="text-gray-600">{t('admin.businessContractManagement.subtitle')}</p>
       </div>
 
-      {/* 权限提醒 */}
+      {/* Permission reminder */}
       <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-center gap-3">
           <span className="text-xl">⚠️</span>
@@ -128,7 +153,7 @@ export const BusinessContractManagement: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* 添加业务合约 */}
+        {/* Add a business contract */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
             <span className="text-xl">➕</span>
@@ -180,7 +205,7 @@ export const BusinessContractManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* 移除业务合约 */}
+        {/* Remove business contract */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
             <span className="text-xl">➖</span>
@@ -222,7 +247,7 @@ export const BusinessContractManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 已授权合约列表 */}
+      {/* List of authorized contracts */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.businessContractManagement.authorizedContracts')}</h3>
         

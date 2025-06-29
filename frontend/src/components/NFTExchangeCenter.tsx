@@ -13,7 +13,8 @@ import { getGreenTalesNFTAddress } from '@/contracts/addresses';
 import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 import { useTranslation } from '@/hooks/useI18n';
 
-// 检查NFT是否存在的Hook
+// Check if nft exists hook
+
 const useCheckNFTExists = (tokenId: string) => {
   const chainId = useChainId();
   const nftContractAddress = getGreenTalesNFTAddress(chainId);
@@ -25,30 +26,36 @@ const useCheckNFTExists = (tokenId: string) => {
     args: [BigInt(tokenId)],
     query: {
       enabled: !!tokenId,
-      retry: false, // 不重试，因为NFT不存在会抛出错误
+      retry: false, // Don't try again, because nft does not exist will throw an error
+
     }
   });
 };
 
-// NFT兑换中心组件
+// Nft redemption center component
+
 export const NFTExchangeCenter: React.FC = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
 
-  // 获取兑换审计数据
+  // Obtain redemption audit data
+
   const { exchangeAuditRequests, loading, forceRefresh } = useExchangeAuditData();
 
-  // 请求兑换NFT的Hook
+  // Request to redeemed nft hook
+
   const { isConfirmed, error } = useRequestExchangeNFT();
 
-  // 只在客户端渲染
+  // Render only on the client side
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // 处理兑换申请完成
+  // Processing the redemption application completed
+
   useEffect(() => {
     if (isConfirmed) {
       alert(t('exchange.success.applicationSubmitted', '兑换申请提交成功！请等待审计员审核。'));
@@ -56,7 +63,8 @@ export const NFTExchangeCenter: React.FC = () => {
     }
   }, [isConfirmed, forceRefresh, t]);
 
-  // 处理错误
+  // Handling errors
+
   useEffect(() => {
     if (error) {
       console.error('兑换申请错误:', error);
@@ -64,7 +72,8 @@ export const NFTExchangeCenter: React.FC = () => {
     }
   }, [error, t]);
 
-  // 筛选用户的兑换申请
+  // Filter user redemption application
+
   const userExchangeRequests = React.useMemo(() => {
     if (!address) return [];
     return exchangeAuditRequests.filter((record: any) => 
@@ -72,7 +81,8 @@ export const NFTExchangeCenter: React.FC = () => {
     );
   }, [exchangeAuditRequests, address]);
 
-  // 按状态分组
+  // Group by status
+
   const requestsByStatus = React.useMemo(() => {
     return {
       pending: userExchangeRequests.filter((req: any) => req.auditStatus === 'pending'),
@@ -81,7 +91,8 @@ export const NFTExchangeCenter: React.FC = () => {
     };
   }, [userExchangeRequests]);
 
-  // 状态徽章组件
+  // Status Badge Component
+
   const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const getStatusConfig = (status: string) => {
       switch (status) {
@@ -104,7 +115,8 @@ export const NFTExchangeCenter: React.FC = () => {
     );
   };
 
-  // 带NFT存在性检查的兑换申请卡片组件
+  // Redemption application card component with nft existence check
+
   const ExchangeRequestCard = ({ request }: { request: any }) => {
     const { data: nftOwner, error: nftError } = useCheckNFTExists(request.nftTokenId);
     const nftExists = !nftError && nftOwner;
@@ -120,7 +132,7 @@ export const NFTExchangeCenter: React.FC = () => {
                 🔄 {t('exchange.request.title', '兑换申请')} #{request.cashId}
               </h3>
               <StatusBadge status={request.auditStatus} />
-              {/* 显示NFT状态 */}
+              {/* Show nft status */}
               {!nftExists && (
                 <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
                   🔥 {t('exchange.request.exchanged', '已兑换')}
@@ -139,7 +151,7 @@ export const NFTExchangeCenter: React.FC = () => {
           </div>
         </div>
 
-        {/* 申请详情 */}
+        {/* Application details */}
         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
           <div>
             <span className="text-gray-500">{t('exchange.request.currentPrice', 'NFT当前价格:')}</span>
@@ -163,7 +175,7 @@ export const NFTExchangeCenter: React.FC = () => {
           )}
         </div>
 
-        {/* 审计意见 */}
+        {/* Audit opinion */}
         {request.auditComment && (
           <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div className="text-sm text-blue-800">
@@ -173,9 +185,9 @@ export const NFTExchangeCenter: React.FC = () => {
           </div>
         )}
 
-        {/* 操作按钮 */}
+        {/* Operation button */}
         <div className="flex gap-3">
-          {/* 根据NFT存在状态显示不同的查看按钮 */}
+          {/* Display different view buttons according to the existence status of nft */}
           {nftExists ? (
             <NFTViewButton 
               nftTokenId={request.nftTokenId}
@@ -189,7 +201,7 @@ export const NFTExchangeCenter: React.FC = () => {
             </div>
           )}
           
-          {/* 根据状态和NFT存在性显示不同的按钮 */}
+          {/* Display different buttons according to status and nft existence */}
           {nftExists && request.auditStatus === 'approved' && request.auditedCarbonValue && (
             <FinalExchangeButton
               exchangeRequest={{
@@ -200,12 +212,15 @@ export const NFTExchangeCenter: React.FC = () => {
                 auditComment: request.auditComment
               }}
               onExchangeSuccess={() => {
-                // 立即刷新多个数据源以同步状态
+                // Refresh multiple data sources immediately to synchronize
+
                 forceRefresh();
                 
-                // 通知其他页面也刷新数据
+                // Notify other pages to refresh data
+
                 if (typeof window !== 'undefined') {
-                  // 发送全局事件通知其他组件刷新
+                  // Send global event notifications for other components to refresh
+
                   window.dispatchEvent(new CustomEvent('nft-exchanged', {
                     detail: { nftTokenId: request.nftTokenId, cashId: request.cashId }
                   }));
@@ -240,7 +255,8 @@ export const NFTExchangeCenter: React.FC = () => {
     );
   };
 
-  // 等待客户端渲染
+  // Waiting for client rendering
+
   if (!isClient) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -270,7 +286,7 @@ export const NFTExchangeCenter: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* 标签切换 */}
+      {/* Tag switching */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex">
@@ -297,7 +313,7 @@ export const NFTExchangeCenter: React.FC = () => {
           </nav>
         </div>
 
-        {/* 标签内容 */}
+        {/* Tag content */}
         <div className="p-8">
           {activeTab === 'info' && (
             <div>
@@ -306,7 +322,7 @@ export const NFTExchangeCenter: React.FC = () => {
                 <p className="text-lg text-gray-600">{t('exchange.info.subtitle', '了解如何将您的绿色NFT兑换为CARB代币')}</p>
               </div>
 
-              {/* 兑换流程说明 */}
+              {/* Redemption process description */}
               <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-6 mb-8 border border-blue-200">
                 <h3 className="text-xl font-semibold text-blue-800 mb-4">{t('exchange.info.process.title', '兑换流程')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -333,7 +349,7 @@ export const NFTExchangeCenter: React.FC = () => {
                 </div>
               </div>
 
-              {/* 费用说明 */}
+              {/* Fee description */}
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-xl p-6 border border-yellow-200">
                 <h3 className="text-xl font-semibold text-yellow-800 mb-4">{t('exchange.info.fees.title', '费用说明')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -383,7 +399,7 @@ export const NFTExchangeCenter: React.FC = () => {
                 </div>
               </div>
 
-              {/* 统计信息 */}
+              {/* Statistical information */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="text-yellow-600 text-sm">{t('exchange.history.stats.pending', '待审核')}</div>

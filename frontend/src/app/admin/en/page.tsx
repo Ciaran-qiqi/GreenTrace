@@ -1,6 +1,7 @@
 import AdminPage from '../page';
 
-// 管理中心页面英文版
+// Management Center page English version
+
 export default function ENAdminPage() {
   return <AdminPage />;
 }

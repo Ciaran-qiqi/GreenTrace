@@ -1,16 +1,16 @@
 /**
- * NFT元数据工具函数
- * @description 处理NFT元数据的获取、解析和图片提取
+ * NFT Metadata Utility Functions
+ * @description Handle NFT metadata fetching, parsing, and image extraction
  */
 
-// IPFS网关配置
+// IPFS gateway configuration
 const IPFS_GATEWAYS = [
   'https://ipfs.io/ipfs/',
   'https://gateway.pinata.cloud/ipfs/',
   'https://cloudflare-ipfs.com/ipfs/',
 ];
 
-// NFT元数据接口
+// NFT metadata interface
 export interface NFTMetadata {
   name?: string;
   description?: string;
@@ -24,94 +24,94 @@ export interface NFTMetadata {
 }
 
 /**
- * 将IPFS URL转换为HTTP URL
- * @param ipfsUrl IPFS URL (ipfs://... 或 Qm...)
- * @returns HTTP可访问的URL
+ * Convert IPFS URL to HTTP URL
+ * @param ipfsUrl IPFS URL (ipfs://... or Qm...)
+ * @returns HTTP accessible URL
  */
 export function convertIpfsToHttp(ipfsUrl: string): string {
   if (!ipfsUrl) return '';
 
-  // 如果已经是HTTP URL，直接返回
+  // If already HTTP URL, return directly
   if (ipfsUrl.startsWith('http://') || ipfsUrl.startsWith('https://')) {
     return ipfsUrl;
   }
 
-  // 提取IPFS哈希
+  // Extract IPFS hash
   let hash = '';
   if (ipfsUrl.startsWith('ipfs://')) {
     hash = ipfsUrl.replace('ipfs://', '');
   } else if (ipfsUrl.startsWith('Qm') || ipfsUrl.startsWith('bafy')) {
     hash = ipfsUrl;
   } else {
-    return ipfsUrl; // 无法识别的格式，直接返回
+    return ipfsUrl; // Unrecognized format, return as is
   }
 
-  // 使用第一个IPFS网关
+  // Use the first IPFS gateway
   return `${IPFS_GATEWAYS[0]}${hash}`;
 }
 
 /**
- * 获取NFT元数据
+ * Fetch NFT metadata
  * @param tokenURI Token URI
- * @returns NFT元数据对象
+ * @returns NFT metadata object
  */
 export async function fetchNFTMetadata(tokenURI: string): Promise<NFTMetadata | null> {
   if (!tokenURI) {
-    console.warn('Token URI为空');
+    console.warn('Token URI is empty');
     return null;
   }
 
   try {
-    // 转换IPFS URL为HTTP URL
+    // Convert IPFS URL to HTTP URL
     const httpUrl = convertIpfsToHttp(tokenURI);
-    console.log(`🎨 获取NFT元数据: ${httpUrl}`);
+    console.log(`🎨 Fetching NFT metadata: ${httpUrl}`);
 
-    // 尝试获取元数据
+    // Try to fetch metadata
     const response = await fetch(httpUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
-      // 设置超时时间
-      signal: AbortSignal.timeout(10000), // 10秒超时
+      // Set timeout
+      signal: AbortSignal.timeout(10000), // 10 seconds timeout
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+      throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
     }
 
     const metadata: NFTMetadata = await response.json();
-    console.log('✅ NFT元数据获取成功:', metadata);
+    console.log('✅ NFT metadata fetched:', metadata);
 
-    // 转换图片URL为可访问的HTTP URL
+    // Convert image URL to HTTP URL
     if (metadata.image) {
       metadata.image = convertIpfsToHttp(metadata.image);
     }
 
     return metadata;
   } catch (error) {
-    console.error('❌ 获取NFT元数据失败:', error);
+    console.error('❌ Failed to fetch NFT metadata:', error);
     return null;
   }
 }
 
 /**
- * 批量获取NFT元数据
- * @param tokenURIs Token URI数组
- * @returns 元数据对象数组
+ * Batch fetch NFT metadata
+ * @param tokenURIs Array of Token URIs
+ * @returns Array of metadata objects
  */
 export async function fetchBatchNFTMetadata(tokenURIs: string[]): Promise<(NFTMetadata | null)[]> {
-  console.log(`🎨 开始批量获取 ${tokenURIs.length} 个NFT元数据`);
+  console.log(`🎨 Start batch fetching ${tokenURIs.length} NFT metadata`);
 
   const promises = tokenURIs.map(async (tokenURI, index) => {
     try {
-      // 添加延迟避免请求过于频繁
+      // Add delay to avoid too frequent requests
       if (index > 0) {
         await new Promise(resolve => setTimeout(resolve, 100 * index));
       }
       return await fetchNFTMetadata(tokenURI);
     } catch (error) {
-      console.error(`获取第${index}个NFT元数据失败:`, error);
+      console.error(`Failed to fetch NFT metadata at index ${index}:`, error);
       return null;
     }
   });
@@ -121,14 +121,14 @@ export async function fetchBatchNFTMetadata(tokenURIs: string[]): Promise<(NFTMe
     result.status === 'fulfilled' ? result.value : null
   );
 
-  console.log(`✅ 批量获取完成，成功: ${metadata.filter(m => m !== null).length}/${tokenURIs.length}`);
+  console.log(`✅ Batch fetch complete, success: ${metadata.filter(m => m !== null).length}/${tokenURIs.length}`);
   return metadata;
 }
 
 /**
- * 从元数据中提取图片URL
- * @param metadata NFT元数据
- * @returns 图片URL或null
+ * Extract image URL from metadata
+ * @param metadata NFT metadata
+ * @returns Image URL or null
  */
 export function extractImageUrl(metadata: NFTMetadata | null): string | null {
   if (!metadata) return null;
@@ -136,13 +136,13 @@ export function extractImageUrl(metadata: NFTMetadata | null): string | null {
 }
 
 /**
- * 生成默认NFT图片
+ * Generate default NFT image
  * @param tokenId Token ID
- * @returns 默认图片URL或数据URL
+ * @returns Default image URL or data URL
  */
 export function generateDefaultNFTImage(tokenId: string): string {
-  // 可以返回一个生成的SVG或默认图片
-  // 这里返回一个简单的数据URL，实际项目中可以使用更复杂的生成逻辑
+  // Can return a generated SVG or default image
+  // Here returns a simple data URL, you can use more complex logic in real projects
   const emoji = getRandomGreenEmoji();
   
   const svg = `
@@ -164,7 +164,7 @@ export function generateDefaultNFTImage(tokenId: string): string {
 }
 
 /**
- * 获取随机绿色主题表情符号
+ * Get a random green-themed emoji
  */
 function getRandomGreenEmoji(): string {
   const emojis = ['🌱', '🌿', '🍃', '🌳', '🌲', '🌴', '🌾', '🌵', '💚', '♻️'];
@@ -172,9 +172,9 @@ function getRandomGreenEmoji(): string {
 }
 
 /**
- * 检查图片URL是否可访问
- * @param imageUrl 图片URL
- * @returns 是否可访问
+ * Check if image URL is accessible
+ * @param imageUrl Image URL
+ * @returns Whether the image is accessible
  */
 export async function isImageAccessible(imageUrl: string): Promise<boolean> {
   if (!imageUrl) return false;
@@ -182,7 +182,8 @@ export async function isImageAccessible(imageUrl: string): Promise<boolean> {
   try {
     const response = await fetch(imageUrl, { 
       method: 'HEAD',
-      signal: AbortSignal.timeout(5000) // 5秒超时
+      signal: AbortSignal.timeout(5000) // 5 seconds timeout
+
     });
     return response.ok;
   } catch {

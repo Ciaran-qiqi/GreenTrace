@@ -9,14 +9,14 @@ import GreenTalesLiquidityPoolABI from '@/contracts/abi/GreenTalesLiquidityPool.
 import { formatUnits } from 'viem'
 
 /**
- * 做市收益区块组件（优化版）
- * 展示用户可领取手续费、平台累计手续费、LP累计手续费，并提供一键提取按钮
- * 增加收益机制说明、分成比例可视化、FAQ等内容
+ * Market-making income block component (optimized version)
+ * Displays that users can collect processing fees, platform cumulative processing fees, and LP cumulative processing fees, and provide one-click withdrawal button
+ * Instructions for increasing revenue mechanisms, visualization of share ratios, FAQ and other contents
  */
 export default function LiquidityEarningsPanel() {
   const { t } = useTranslation();
   
-  // 获取流动性池hook
+  // Get liquidity pool hook
   const {
     getUserEarnings,
     claimFees,
@@ -26,23 +26,23 @@ export default function LiquidityEarningsPanel() {
   } = useGreenTalesLiquidityPool()
   const { address } = useAccount()
 
-  // 用户收益
+  // User income
   const [userEarnings, setUserEarnings] = useState({ carbonFees: '0', usdtFees: '0' })
-  // 平台和LP累计手续费
+  // Platform and lp cumulative handling fees
   const [feeStats, setFeeStats] = useState({
     platformCarbonFees: '0',
     platformUsdtFees: '0',
     totalLpCarbonFees: '0',
     totalLpUsdtFees: '0',
   })
-  // 累计已领取收益（链上真实数据）
+  // Cumulative revenue received (real data on the chain)
   const [claimed, setClaimed] = useState({ carbon: '0', usdt: '0' })
 
-  // 分成比例（可从合约读取，这里写死70/30）
+  // Share ratio (can be read from the contract, write it to 70/30 here)
   const platformShare = 70
   const lpShare = 30
 
-  // 加载收益信息
+  // Loading revenue information
   const fetchClaimed = async () => {
     if (!address || !liquidityPoolAddress) return
     try {
@@ -59,10 +59,10 @@ export default function LiquidityEarningsPanel() {
         args: [address],
       })
       setClaimed({
-        carbon: Number(formatUnits(claimedCarbon ?? 0n, 18)).toFixed(6),
-        usdt: Number(formatUnits(claimedUsdt ?? 0n, 18)).toFixed(6),
+        carbon: Number(formatUnits(claimedCarbon as bigint || BigInt(0), 18)).toFixed(6),
+        usdt: Number(formatUnits(claimedUsdt as bigint || BigInt(0), 18)).toFixed(6),
       })
-    } catch (e) {
+    } catch {
       setClaimed({ carbon: '0', usdt: '0' })
     }
   }
@@ -75,7 +75,7 @@ export default function LiquidityEarningsPanel() {
     fetchClaimed()
   }, [getUserEarnings, getFeeStats, address, liquidityPoolAddress])
 
-  // 处理领取收益
+  // Processing and receiving income
   const handleClaim = async () => {
     await claimFees()
     setUserEarnings(getUserEarnings())
@@ -87,7 +87,7 @@ export default function LiquidityEarningsPanel() {
 
   return (
     <div className="bg-gradient-to-br from-yellow-50 to-blue-50 rounded-2xl shadow-xl p-6 border border-white/20 mb-8">
-      {/* 收益机制说明区块 */}
+      {/* Revenue mechanism description block */}
       <div className="mb-6 p-4 bg-gradient-to-r from-yellow-100 to-blue-100 rounded-xl border border-yellow-200 flex items-center gap-4">
         <div className="text-3xl">💡</div>
         <div>
@@ -98,7 +98,7 @@ export default function LiquidityEarningsPanel() {
         </div>
       </div>
 
-      {/* 分成比例可视化 */}
+      {/* Visualization of proportions */}
       <div className="mb-6">
         <div className="flex items-center mb-2">
           <span className="text-sm text-gray-600 mr-2">{t('earnings.feeShare.title', '手续费分成比例')}</span>
@@ -111,7 +111,7 @@ export default function LiquidityEarningsPanel() {
         </div>
       </div>
 
-      {/* 当前可领取收益与累计已领取收益 */}
+      {/* Currently available and accumulated earned */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         <div className="p-4 bg-green-50 rounded-xl border border-green-200">
           <div className="flex items-center gap-2 mb-2">
@@ -150,7 +150,7 @@ export default function LiquidityEarningsPanel() {
         </div>
       </div>
 
-      {/* 平台和LP累计手续费 */}
+      {/* Platform and lp cumulative handling fees */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
           <div className="text-xs text-gray-500 mb-1">{t('earnings.stats.platformTotal', '平台累计手续费')}</div>
@@ -176,7 +176,7 @@ export default function LiquidityEarningsPanel() {
         </div>
       </div>
 
-      {/* FAQ/说明区块 */}
+      {/* Faq/Description Block */}
       <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
         <div className="font-semibold text-gray-700 mb-2">{t('earnings.faq.title', '常见问题 FAQ')}</div>
         <ul className="text-sm text-gray-600 space-y-1">

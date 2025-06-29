@@ -7,19 +7,22 @@ import { formatContractTimestamp } from '@/utils/formatUtils';
 import { useTranslation } from '@/hooks/useI18n';
 
 interface TradeHistoryTableProps {
-  tokenId?: string; // 可选：特定NFT的交易历史
-  userAddress?: string; // 可选：特定用户的交易历史
-  limit?: number; // 限制返回数量
+  tokenId?: string; // Optional: Transaction history for specific nfts
+
+  userAddress?: string; // Optional: Transaction history for specific users
+
+  limit?: number; // Limit the number of return
+
   className?: string;
 }
 
 /**
- * 交易历史表格组件
- * @description 展示NFT的交易历史记录，支持按NFT或用户筛选
- * @param tokenId 可选：特定NFT的ID
- * @param userAddress 可选：特定用户地址
- * @param limit 返回记录数量限制
- * @param className 样式类名
+ * Transaction History Table Component
+ * @description Shows the transaction history of NFT, supports filtering by NFT or user
+ * @param tokenId Optional: ID of a specific NFT
+ * @param userAddress Optional: Specific user address
+ * @param limit Returns the limit on record count
+ * @param className Style class name
  */
 export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
   tokenId,
@@ -31,7 +34,8 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
   const [sortBy, setSortBy] = useState<'timestamp' | 'price'>('timestamp');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // 使用交易历史Hook
+  // Use transaction history hook
+
   const {
     trades,
     isLoading,
@@ -43,7 +47,8 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
     limit
   });
 
-  // 排序交易记录
+  // Sort transaction history
+
   const sortedTrades = React.useMemo(() => {
     return [...trades].sort((a, b) => {
       let aValue: number;
@@ -62,7 +67,8 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
     });
   }, [trades, sortBy, sortOrder]);
 
-  // 处理排序
+  // Process sorting
+
   const handleSort = (field: 'timestamp' | 'price') => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -72,12 +78,14 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
     }
   };
 
-  // 截短地址显示
+  // Truncated address display
+
   const shortAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // 获取排序图标
+  // Get sort icon
+
   const getSortIcon = (field: 'timestamp' | 'price') => {
     if (sortBy !== field) return '↕️';
     return sortOrder === 'asc' ? '↑' : '↓';
@@ -103,7 +111,7 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
 
   return (
     <div className={className}>
-      {/* 头部 */}
+      {/* head */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-xl font-bold text-gray-800">
@@ -130,7 +138,7 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
         )}
       </div>
 
-      {/* 加载状态 */}
+      {/* Loading status */}
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -145,7 +153,7 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
           </div>
         </div>
       ) : (
-        /* 交易历史表格 */
+        /* Transaction History Form */
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -236,7 +244,7 @@ export const TradeHistoryTable: React.FC<TradeHistoryTableProps> = ({
             </table>
           </div>
 
-          {/* 分页信息 */}
+          {/* Pagination information */}
           {sortedTrades.length >= limit && (
             <div className="bg-gray-50 px-6 py-3 text-center">
               <div className="text-sm text-gray-500">

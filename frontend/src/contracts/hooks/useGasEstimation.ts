@@ -6,14 +6,16 @@ import { Address, formatGwei, parseGwei } from 'viem';
 import { CONTRACT_ADDRESSES } from '../addresses';
 import GreenTraceABI from '../abi/GreenTrace.json';
 
-// Gas估算配置类型
+// Gas estimation configuration type
+
 interface GasEstimationConfig {
   method: 'requestMintNFT' | 'payAndMintNFT' | 'requestExchangeNFT' | 'exchangeNFT';
   args: unknown[];
   value?: bigint;
 }
 
-// Gas估算结果类型
+// Gas estimation result type
+
 interface GasEstimationResult {
   gasLimit: bigint;
   maxFeePerGas: bigint;
@@ -24,7 +26,8 @@ interface GasEstimationResult {
   error: string | null;
 }
 
-// Gas价格档位
+// Gas price range
+
 interface GasPriceTiers {
   slow: {
     maxFeePerGas: bigint;
@@ -40,7 +43,8 @@ interface GasPriceTiers {
   };
 }
 
-// 获取合约地址
+// Get the contract address
+
 const getContractAddress = (chainId: number): Address => {
   switch (chainId) {
     case 1:
@@ -54,12 +58,14 @@ const getContractAddress = (chainId: number): Address => {
   }
 };
 
-// 获取正确的ABI
+// Get the correct abi
+
 const getGreenTraceABI = () => {
   return (GreenTraceABI.abi || GreenTraceABI) as readonly unknown[];
 };
 
-// 主要的Gas估算钩子
+// Main gas estimation hook
+
 export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationResult => {
   const chainId = useChainId();
   const publicClient = usePublicClient();
@@ -76,7 +82,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 估算Gas使用量
+  // Estimate gas usage
+
   const estimateGas = useCallback(async () => {
     if (!config || !publicClient) return;
 
@@ -84,7 +91,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
     setError(null);
 
     try {
-      // 1. 估算Gas限制
+      // 1. Estimate Gas Limits
+
       const gasLimitEstimate = await publicClient.estimateContractGas({
         address: contractAddress,
         abi: getGreenTraceABI(),
@@ -92,7 +100,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
         args: config.args,
       });
 
-      // 添加20%的安全边际
+      // Add 20% safety margin
+
       const safeGasLimit = (gasLimitEstimate * BigInt(120)) / BigInt(100);
       setGasLimit(safeGasLimit);
 
@@ -106,7 +115,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
       console.error('Gas估算失败:', err);
       setError(`Gas估算失败: ${err.message}`);
       
-      // 设置默认Gas限制
+      // Set default gas limits
+
       const defaultGasLimits = {
         requestMintNFT: BigInt(180000),
         payAndMintNFT: BigInt(200000),
@@ -117,27 +127,33 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
     }
   }, [config, publicClient, contractAddress]);
 
-  // 获取Gas价格
+  // Get gas price
+
   const fetchGasPrices = useCallback(async () => {
     if (!publicClient) return;
 
     try {
-      // 获取当前Gas价格
+      // Get the current gas price
+
       const gasPrice = await publicClient.getGasPrice();
       
-      // 尝试获取EIP-1559费用数据
+      // Try to get eip 1559 fee data
+
 
       try {
         const feeData = await publicClient.estimateFeesPerGas();
         if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-          // 使用EIP-1559费用
+          // Use EIP 1559 fee
+
           const currentMaxFee = feeData.maxFeePerGas;
           const currentPriorityFee = feeData.maxPriorityFeePerGas;
           
-          // 计算不同速度的Gas价格
+          // Calculate gas prices at different speeds
+
           setGasPrices({
             slow: {
               maxFeePerGas: (currentMaxFee * BigInt(80)) / BigInt(100), // 80%
+
               maxPriorityFeePerGas: (currentPriorityFee * BigInt(80)) / BigInt(100),
             },
             standard: {
@@ -146,6 +162,7 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
             },
             fast: {
               maxFeePerGas: (currentMaxFee * BigInt(130)) / BigInt(100), // 130%
+
               maxPriorityFeePerGas: (currentPriorityFee * BigInt(150)) / BigInt(100),
             },
           });
@@ -153,7 +170,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
           throw new Error('EIP-1559 not supported');
         }
       } catch {
-        // 回退到传统Gas价格
+        // Reverse to traditional gas prices
+
         setGasPrices({
           slow: {
             maxFeePerGas: (gasPrice * BigInt(80)) / BigInt(100),
@@ -180,8 +198,10 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
       console.error('获取Gas价格失败:', err);
       setError(`获取Gas价格失败: ${err.message}`);
       
-      // 设置默认Gas价格（适合测试网）
-      const defaultGasPrice = parseGwei('10'); // 10 Gwei
+      // Set the default gas price (suitable for test network)
+
+      const defaultGasPrice = parseGwei('10'); // 10 G for
+
       setGasPrices({
         slow: {
           maxFeePerGas: parseGwei('8'),
@@ -199,7 +219,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
     }
   }, [publicClient]);
 
-  // 计算预估费用
+  // Calculate estimated costs
+
   useEffect(() => {
     if (gasLimit > BigInt(0) && gasPrices.standard.maxFeePerGas > BigInt(0)) {
       const currentGasPrice = gasPrices[gasPriceLevel];
@@ -208,23 +229,27 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
     }
   }, [gasLimit, gasPrices, gasPriceLevel]);
 
-  // 执行估算
+  // Perform estimation
+
   useEffect(() => {
     if (config) {
       estimateGas();
     }
   }, [estimateGas]);
 
-  // 定期更新Gas价格
+  // Regularly update gas prices
+
   useEffect(() => {
     fetchGasPrices();
     
-    // 每30秒更新一次Gas价格
+    // Update gas price every 30 seconds
+
     const interval = setInterval(fetchGasPrices, 30000);
     return () => clearInterval(interval);
   }, [fetchGasPrices]);
 
-  // 完成加载状态
+  // Complete loading status
+
   useEffect(() => {
     if (gasLimit > BigInt(0) && gasPrices.standard.maxFeePerGas > BigInt(0)) {
       setIsLoading(false);
@@ -242,7 +267,8 @@ export const useGasEstimation = (config?: GasEstimationConfig): GasEstimationRes
   };
 };
 
-// Gas价格选择器钩子
+// Gas price selector hook
+
 export const useGasPriceSelector = () => {
   const publicClient = usePublicClient();
   
@@ -255,7 +281,8 @@ export const useGasPriceSelector = () => {
   const [selectedLevel, setSelectedLevel] = useState<'slow' | 'standard' | 'fast'>('standard');
   const [isLoading, setIsLoading] = useState(true);
 
-  // 获取Gas价格
+  // Get gas price
+
   const fetchGasPrices = useCallback(async () => {
     if (!publicClient) return;
 
@@ -286,7 +313,8 @@ export const useGasPriceSelector = () => {
     } catch (error) {
       console.error('获取Gas价格失败:', error);
       
-      // 设置默认值
+      // Set default values
+
       const defaultGasPrice = parseGwei('10');
       setGasPrices({
         slow: {
@@ -310,7 +338,8 @@ export const useGasPriceSelector = () => {
   useEffect(() => {
     fetchGasPrices();
     
-    // 每30秒更新一次
+    // Updated every 30 seconds
+
     const interval = setInterval(fetchGasPrices, 30000);
     return () => clearInterval(interval);
   }, [fetchGasPrices]);
@@ -324,31 +353,38 @@ export const useGasPriceSelector = () => {
   };
 };
 
-// 智能Gas调整钩子
+// Smart gas adjustment hook
+
 export const useSmartGasAdjustment = (baseGasLimit: bigint, txType: string) => {
   const [adjustedGasLimit, setAdjustedGasLimit] = useState(baseGasLimit);
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
 
   useEffect(() => {
-    let multiplier = BigInt(120); // 默认20%安全边际
+    let multiplier = BigInt(120); // Default 20% safety margin
+
     let reason = '标准安全边际(+20%)';
 
-    // 根据交易类型智能调整
+    // Intelligent adjustment according to transaction type
+
     switch (txType) {
       case 'requestMintNFT':
-        multiplier = BigInt(115); // 15%边际，相对简单的操作
+        multiplier = BigInt(115); // 15% margin, relatively simple operation
+
         reason = 'NFT申请操作(+15%安全边际)';
         break;
       case 'payAndMintNFT':
-        multiplier = BigInt(125); // 25%边际，复杂操作包含多个步骤
+        multiplier = BigInt(125); // 25% margin, complex operations include multiple steps
+
         reason = 'NFT支付铸造操作(+25%安全边际)';
         break;
       case 'requestExchangeNFT':
-        multiplier = BigInt(115); // 15%边际
+        multiplier = BigInt(115); // 15% margin
+
         reason = 'NFT兑换申请(+15%安全边际)';
         break;
       case 'exchangeNFT':
-        multiplier = BigInt(130); // 30%边际，包含NFT销毁和代币铸造
+        multiplier = BigInt(130); // 30% margin, including nft destruction and token minting
+
         reason = 'NFT兑换执行(+30%安全边际)';
         break;
       default:

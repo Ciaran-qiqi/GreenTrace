@@ -1,28 +1,28 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// 支持的语言
+// Supported languages
 const SUPPORTED_LANGUAGES = ['zh', 'en'];
 const DEFAULT_LANGUAGE = 'zh';
 
-// 从路径中提取语言代码
+// Extract language code from path
 function getLanguageFromPath(pathname: string): string | null {
   const parts = pathname.split('/');
   const lastPart = parts[parts.length - 1];
   return SUPPORTED_LANGUAGES.includes(lastPart) ? lastPart : null;
 }
 
-// 移除语言后缀
+// Remove language suffix
 function removeLanguageSuffix(pathname: string): string {
   const language = getLanguageFromPath(pathname);
   if (language) {
-    const newPath = pathname.slice(0, -3); // 移除 /{language}
+    const newPath = pathname.slice(0, -3); // Remove /{language}
     return newPath || '/';
   }
   return pathname;
 }
 
-// 添加语言后缀
+// Add language suffix
 function addLanguageSuffix(pathname: string, language: string): string {
   const cleanPath = removeLanguageSuffix(pathname);
   if (cleanPath === '/') {
@@ -34,7 +34,7 @@ function addLanguageSuffix(pathname: string, language: string): string {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // 跳过API路由、静态文件和Next.js内部路径
+  // Skip API routes, static files, and Next.js internal paths
   if (
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
@@ -46,28 +46,28 @@ export function middleware(request: NextRequest) {
 
   const currentLanguage = getLanguageFromPath(pathname);
   
-  // 如果路径没有语言后缀，重定向到默认语言
+  // If the path does not have a language suffix, redirect to default language
   if (!currentLanguage) {
     const newUrl = new URL(addLanguageSuffix(pathname, DEFAULT_LANGUAGE), request.url);
-    console.log(`🌐 重定向: ${pathname} → ${newUrl.pathname}`);
+    console.log(`🌐 Redirect: ${pathname} → ${newUrl.pathname}`);
     return NextResponse.redirect(newUrl);
   }
 
-  // 如果有语言后缀，继续处理
-  console.log(`🌍 语言路由处理: ${pathname} (语言: ${currentLanguage})`);
+  // If there is a language suffix, continue processing
+  console.log(`🌍 Language route handling: ${pathname} (language: ${currentLanguage})`);
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     /*
-     * 匹配所有路径除了:
+     * Match all paths except:
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - 包含点的路径 (文件)
+     * - paths containing a dot (files)
      */
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.).*)',
   ],
-}; 
+};

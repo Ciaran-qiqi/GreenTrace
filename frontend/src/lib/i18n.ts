@@ -1,12 +1,12 @@
 /**
- * GreenTrace i18n 国际化核心配置
- * @description 提供完整的多语言支持，包括语言切换、翻译加载、本地存储等功能
+ * GreenTrace i18n core configuration
+ * @description Provides complete multilingual support, including language switching, translation loading, local storage, etc.
  */
 
-// 支持的语言类型
+// Supported language types
 export type Language = 'zh' | 'en';
 
-// 翻译数据结构类型（基于messages文件结构）
+// Translation data structure type (based on messages file structure)
 export interface TranslationData {
   common: Record<string, string>;
   navigation: Record<string, string | Record<string, string>>;
@@ -25,7 +25,7 @@ export interface TranslationData {
   [key: string]: any;
 }
 
-// i18n配置
+// i18n configuration
 export const I18N_CONFIG = {
   defaultLanguage: 'zh' as Language,
   supportedLanguages: ['zh', 'en'] as Language[],
@@ -33,7 +33,7 @@ export const I18N_CONFIG = {
   fallbackLanguage: 'zh' as Language,
 } as const;
 
-// 语言显示配置
+// Language display configuration
 export const LANGUAGE_CONFIG = {
   zh: {
     name: '中文',
@@ -47,11 +47,11 @@ export const LANGUAGE_CONFIG = {
   },
 } as const;
 
-// 翻译数据缓存
+// Translation data cache
 const translationCache = new Map<Language, TranslationData>();
 
 /**
- * 从本地存储获取用户语言偏好
+ * Get user language preference from local storage
  */
 export const getStoredLanguage = (): Language => {
   if (typeof window === 'undefined') return I18N_CONFIG.defaultLanguage;
@@ -62,14 +62,14 @@ export const getStoredLanguage = (): Language => {
       return stored as Language;
     }
   } catch (error) {
-    console.warn('获取存储的语言设置失败:', error);
+    console.warn('Failed to get stored language setting:', error);
   }
   
   return I18N_CONFIG.defaultLanguage;
 };
 
 /**
- * 保存用户语言偏好到本地存储
+ * Save user language preference to local storage
  */
 export const setStoredLanguage = (language: Language): void => {
   if (typeof window === 'undefined') return;
@@ -77,24 +77,24 @@ export const setStoredLanguage = (language: Language): void => {
   try {
     localStorage.setItem(I18N_CONFIG.storageKey, language);
   } catch (error) {
-    console.warn('保存语言设置失败:', error);
+    console.warn('Failed to save language setting:', error);
   }
 };
 
 /**
- * 检测浏览器首选语言
+ * Detect browser preferred language
  */
 export const detectBrowserLanguage = (): Language => {
   if (typeof window === 'undefined') return I18N_CONFIG.defaultLanguage;
   
   const browserLang = navigator.language.toLowerCase();
   
-  // 中文检测（包括简体、繁体、台湾、香港等）
+  // Chinese detection (including Simplified, Traditional, Taiwan, Hong Kong, etc.)
   if (browserLang.includes('zh')) {
     return 'zh';
   }
   
-  // 英文检测
+  // English detection
   if (browserLang.includes('en')) {
     return 'en';
   }
@@ -103,54 +103,54 @@ export const detectBrowserLanguage = (): Language => {
 };
 
 /**
- * 动态加载翻译文件
+ * Dynamically load translation files
  */
 export const loadTranslations = async (language: Language): Promise<TranslationData> => {
-  // 先检查缓存
+  // Check cache first
   if (translationCache.has(language)) {
     return translationCache.get(language)!;
   }
   
   try {
-    // 动态导入翻译文件
+    // Dynamically import translation file
     const translations = await import(`../../messages/${language}.json`);
     const data = translations.default as TranslationData;
     
-    // 缓存翻译数据
+    // Cache translation data
     translationCache.set(language, data);
     
-    console.log(`✅ 翻译文件加载成功: ${language}`);
+    console.log(`✅ Translation file loaded: ${language}`);
     return data;
   } catch (error) {
-    console.error(`❌ 翻译文件加载失败: ${language}`, error);
+    console.error(`❌ Failed to load translation file: ${language}`, error);
     
-    // 加载失败时使用备用语言
+    // Use fallback language if loading fails
     if (language !== I18N_CONFIG.fallbackLanguage) {
-      console.log(`🔄 使用备用语言: ${I18N_CONFIG.fallbackLanguage}`);
+      console.log(`🔄 Using fallback language: ${I18N_CONFIG.fallbackLanguage}`);
       return loadTranslations(I18N_CONFIG.fallbackLanguage);
     }
     
-    // 如果备用语言也加载失败，返回空的翻译对象
+    // If fallback language also fails, return empty translation object
     return {} as TranslationData;
   }
 };
 
 /**
- * 预加载所有支持的语言文件
+ * Preload all supported language files
  */
 export const preloadAllTranslations = async (): Promise<void> => {
   try {
     await Promise.all(
       I18N_CONFIG.supportedLanguages.map(lang => loadTranslations(lang))
     );
-    console.log('✅ 所有翻译文件预加载完成');
+    console.log('✅ All translation files preloaded');
   } catch (error) {
-    console.warn('⚠️ 翻译文件预加载失败:', error);
+    console.warn('⚠️ Failed to preload translation files:', error);
   }
 };
 
 /**
- * 获取嵌套对象的值（支持 a.b.c 这样的键路径）
+ * Get value from nested object (supports key paths like a.b.c)
  */
 export const getNestedValue = (obj: any, path: string): any => {
   return path.split('.').reduce((current, key) => {
@@ -159,11 +159,11 @@ export const getNestedValue = (obj: any, path: string): any => {
 };
 
 /**
- * 翻译函数 - 支持嵌套键和回退值
- * @param translations 翻译数据对象
- * @param key 翻译键（支持嵌套，如 'navigation.home'）
- * @param fallback 回退文本（可选）
- * @param params 参数替换对象（可选）
+ * Translation function - supports nested keys and fallback values
+ * @param translations Translation data object
+ * @param key Translation key (supports nesting, e.g. 'navigation.home')
+ * @param fallback Fallback text (optional)
+ * @param params Parameter replacement object (optional)
  */
 export const translate = (
   translations: TranslationData | null,
@@ -175,20 +175,20 @@ export const translate = (
     return fallback || key;
   }
   
-  // 获取翻译文本
+  // Get translation text
   let text = getNestedValue(translations, key);
   
-  // 如果找不到翻译，使用回退值
+  // Use fallback value if translation not found
   if (text === undefined || text === null) {
     text = fallback || key;
   }
   
-  // 如果不是字符串，转换为字符串
+  // Convert to string if not a string
   if (typeof text !== 'string') {
     text = String(text);
   }
   
-  // 参数替换
+  // Parameter replacement
   if (params && Object.keys(params).length > 0) {
     Object.entries(params).forEach(([paramKey, value]) => {
       const regex = new RegExp(`{{${paramKey}}}`, 'g');
@@ -200,15 +200,15 @@ export const translate = (
 };
 
 /**
- * 清除翻译缓存
+ * Clear translation cache
  */
 export const clearTranslationCache = (): void => {
   translationCache.clear();
-  console.log('🗑️ 翻译缓存已清除');
+  console.log('🗑️ Translation cache cleared');
 };
 
 /**
- * 获取当前缓存状态
+ * Get current cache status
  */
 export const getCacheInfo = () => {
   return {
@@ -216,4 +216,4 @@ export const getCacheInfo = () => {
     cachedLanguages: Array.from(translationCache.keys()),
     supportedLanguages: I18N_CONFIG.supportedLanguages,
   };
-}; 
+};

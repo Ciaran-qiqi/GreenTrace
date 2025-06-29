@@ -11,43 +11,54 @@ import { Address } from 'viem';
 import { CONTRACT_ADDRESSES } from '../addresses';
 import CarbonTokenABI from '../abi/CarbonToken.json';
 
-// 定义ABI类型
+// Define abi type
+
 type ContractABI = readonly unknown[];
 
-// 获取正确的ABI
+// Get the correct abi
+
 export const getCarbonTokenABI = (): ContractABI => {
   return (CarbonTokenABI.abi || CarbonTokenABI) as ContractABI;
 };
 
-// 根据链ID获取CarbonToken合约地址
+// Obtain the carbon token contract address according to the chain id
+
 const getContractAddress = (chainId: number): Address => {
   switch (chainId) {
-    case 1: // 以太坊主网
+    case 1: // Ethereum Main Network
+
       return CONTRACT_ADDRESSES.mainnet.CarbonToken as Address;
-    case 11155111: // Sepolia测试网
+    case 11155111: // Sepolia Test Network
+
       return CONTRACT_ADDRESSES.sepolia.CarbonToken as Address;
-    case 31337: // 本地Foundry测试网
+    case 31337: // Local foundry test network
+
       return CONTRACT_ADDRESSES.foundry.CarbonToken as Address;
     default:
       return CONTRACT_ADDRESSES.sepolia.CarbonToken as Address;
   }
 };
 
-// 获取GreenTrace合约地址
+// Get the green trace contract address
+
 const getGreenTraceAddress = (chainId: number): Address => {
   switch (chainId) {
-    case 1: // 以太坊主网
+    case 1: // Ethereum Main Network
+
       return CONTRACT_ADDRESSES.mainnet.GreenTrace as Address;
-    case 11155111: // Sepolia测试网
+    case 11155111: // Sepolia Test Network
+
       return CONTRACT_ADDRESSES.sepolia.GreenTrace as Address;
-    case 31337: // 本地Foundry测试网
+    case 31337: // Local foundry test network
+
       return CONTRACT_ADDRESSES.foundry.GreenTrace as Address;
     default:
       return CONTRACT_ADDRESSES.sepolia.GreenTrace as Address;
   }
 };
 
-// 查询用户CARB代币余额
+// Query the user's carb token balance
+
 export const useCarbonTokenBalance = (userAddress: Address | undefined) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -63,7 +74,8 @@ export const useCarbonTokenBalance = (userAddress: Address | undefined) => {
   });
 };
 
-// 查询用户对GreenTrace合约的授权额度
+// Query the user's authorization amount to the green trace contract
+
 export const useCarbonTokenAllowance = (userAddress: Address | undefined) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -80,7 +92,8 @@ export const useCarbonTokenAllowance = (userAddress: Address | undefined) => {
   });
 };
 
-// 获取碳代币基本信息
+// Get basic information about carbon tokens
+
 export const useCarbonTokenInfo = () => {
   const chainId = useChainId();
   const tokenAddress = getContractAddress(chainId);
@@ -117,7 +130,8 @@ export const useCarbonTokenInfo = () => {
   };
 };
 
-// 授权碳代币
+// Authorized carbon tokens
+
 export const useApproveCarbonToken = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -145,7 +159,8 @@ export const useApproveCarbonToken = () => {
   };
 };
 
-// 授权GreenTrace合约使用碳代币
+// Authorize green trace contracts to use carbon tokens
+
 export const useApproveGreenTrace = () => {
   const chainId = useChainId();
   const greenTraceAddress = getGreenTraceAddress(chainId);
@@ -162,7 +177,8 @@ export const useApproveGreenTrace = () => {
   };
 };
 
-// 转账碳代币
+// Transfer of carbon tokens
+
 export const useTransferCarbonToken = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -190,19 +206,23 @@ export const useTransferCarbonToken = () => {
   };
 };
 
-// GreenTrace授权管理钩子
+// Green trace authorization management hook
+
 export const useGreenTraceAllowance = () => {
   const { address } = useAccount();
   const chainId = useChainId();
   const greenTraceAddress = getGreenTraceAddress(chainId);
 
-  // 查询授权额度
+  // Query the authorization amount
+
   const allowanceQuery = useCarbonTokenAllowance(address);
   
-  // 查询用户余额
+  // Query user balance
+
   const balanceQuery = useCarbonTokenBalance(address);
   
-  // 授权操作
+  // Authorize operations
+
   const { 
     approveGreenTrace, 
     isPending: approvePending, 
@@ -212,26 +232,30 @@ export const useGreenTraceAllowance = () => {
     hash: approveHash 
   } = useApproveGreenTrace();
 
-  // 检查是否有足够授权
+  // Check if there is sufficient authorization
+
   const hasEnoughAllowance = (requiredAmount: bigint) => {
     const allowance = allowanceQuery.data as bigint | undefined;
     if (!allowance) return false;
     return allowance >= requiredAmount;
   };
 
-  // 检查是否有足够余额
+  // Check if there is sufficient balance
+
   const hasEnoughBalance = (requiredAmount: bigint) => {
     const balance = balanceQuery.data as bigint | undefined;
     if (!balance) return false;
     return balance >= requiredAmount;
   };
 
-  // 授权最大额度
+  // Maximum authorization amount
+
   const approveMax = () => {
     approveGreenTrace(BigInt(2) ** BigInt(256) - BigInt(1));
   };
 
-  // 授权指定额度
+  // Authorization specified amount
+
   const approveAmount = (amount: bigint) => {
     approveGreenTrace(amount);
   };
@@ -254,7 +278,8 @@ export const useGreenTraceAllowance = () => {
   };
 };
 
-// 检查铸造前置条件的综合hook
+// Comprehensive hooks to check casting preconditions
+
 export const useMintPrerequisites = (userAddress: Address | undefined, requiredAmount: bigint | undefined) => {
   const { data: balance, isLoading: balanceLoading } = useCarbonTokenBalance(userAddress);
   const { data: allowance, isLoading: allowanceLoading } = useCarbonTokenAllowance(userAddress);

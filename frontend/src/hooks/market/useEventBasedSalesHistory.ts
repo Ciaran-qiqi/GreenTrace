@@ -6,24 +6,27 @@ import { parseAbiItem } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import { MyListing } from './useMyListings';
 
-// 缓存数据接口
+// Cache data interface
+
 interface CachedSalesHistory {
   version: string;
   userAddress: string;
   chainId: number;
   lastUpdated: number;
-  lastBlockNumber: bigint | string; // 支持字符串格式（从JSON解析）
+  lastBlockNumber: bigint | string; // Support string format (parsed from json)
+
   records: MyListing[];
 }
 
-// 缓存键名
+// Cache key name
+
 const CACHE_KEY_PREFIX = 'sales_history_';
 const CACHE_VERSION = '1.0.0';
 
 /**
- * 基于事件的销售历史 Hook（支持本地缓存）
- * @description 通过监听区块链事件来获取用户的真实NFT销售历史，支持本地缓存和增量更新
- * @returns 用户销售历史数据
+ * Event-based sales history Hook (local caching is supported)
+ * @description By listening to blockchain events, obtaining the user's real NFT sales history, supporting local cache and incremental updates
+ * @returns User sales history data
  */
 export const useEventBasedSalesHistory = () => {
   const { address } = useAccount();
@@ -33,7 +36,8 @@ export const useEventBasedSalesHistory = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -45,12 +49,14 @@ export const useEventBasedSalesHistory = () => {
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 获取缓存键
+  // Get the cache key
+
   const getCacheKey = useCallback((userAddress: string, chainId: number): string => {
     return `${CACHE_KEY_PREFIX}${userAddress.toLowerCase()}_${chainId}`;
   }, []);
 
-  // 从本地存储加载缓存数据
+  // Load cached data from local storage
+
   const loadCachedData = useCallback((userAddress: string, chainId: number): CachedSalesHistory | null => {
     try {
       const cacheKey = getCacheKey(userAddress, chainId);
@@ -60,7 +66,8 @@ export const useEventBasedSalesHistory = () => {
       
       const parsed = JSON.parse(cachedData) as CachedSalesHistory;
       
-      // 验证缓存数据
+      // Verify cached data
+
       if (
         parsed.version !== CACHE_VERSION ||
         parsed.userAddress.toLowerCase() !== userAddress.toLowerCase() ||
@@ -71,7 +78,8 @@ export const useEventBasedSalesHistory = () => {
         return null;
       }
 
-             // 将字符串格式的lastBlockNumber转换为BigInt
+             // Convert last block number in string format to big int
+
        if (typeof parsed.lastBlockNumber === 'string') {
          parsed.lastBlockNumber = BigInt(parsed.lastBlockNumber);
        }
@@ -84,7 +92,8 @@ export const useEventBasedSalesHistory = () => {
     }
   }, [getCacheKey]);
 
-  // 保存数据到本地存储
+  // Save data to local storage
+
   const saveCachedData = useCallback((
     userAddress: string, 
     chainId: number, 
@@ -99,10 +108,12 @@ export const useEventBasedSalesHistory = () => {
         chainId,
         lastUpdated: Date.now(),
         lastBlockNumber,
-        records: records.sort((a, b) => parseInt(b.listedAt) - parseInt(a.listedAt)), // 按时间排序
+        records: records.sort((a, b) => parseInt(b.listedAt) - parseInt(a.listedAt)), // Sort by time
+
       };
 
-      // 解决BigInt序列化问题
+      // Solve the big int serialization problem
+
       const jsonString = JSON.stringify(cacheData, (key, value) => {
         if (typeof value === 'bigint') {
           return value.toString();
@@ -117,17 +128,20 @@ export const useEventBasedSalesHistory = () => {
     }
   }, [getCacheKey]);
 
-  // 合并新旧记录，去重
+  // Merge old and new records and remove the repetition
+
   const mergeRecords = useCallback((existingRecords: MyListing[], newRecords: MyListing[]): MyListing[] => {
     const recordMap = new Map<string, MyListing>();
     
-    // 添加现有记录
+    // Add an existing record
+
     existingRecords.forEach(record => {
       const key = `${record.tokenId}-${record.listedAt}-${record.status}`;
       recordMap.set(key, record);
     });
 
-    // 添加新记录（如果已存在则跳过）
+    // Add a new record (skip if it already exists)
+
     let newCount = 0;
     newRecords.forEach(record => {
       const key = `${record.tokenId}-${record.listedAt}-${record.status}`;
@@ -139,11 +153,13 @@ export const useEventBasedSalesHistory = () => {
 
     console.log(`🔄 合并记录: 现有 ${existingRecords.length} 条，新增 ${newCount} 条，总计 ${recordMap.size} 条`);
     
-    // 转换为数组并按时间排序
+    // Convert to array and sort by time
+
     return Array.from(recordMap.values()).sort((a, b) => parseInt(b.listedAt) - parseInt(a.listedAt));
   }, []);
 
-  // 获取销售历史（支持增量更新）
+  // Get sales history (support incremental updates)
+
   const fetchSalesHistory = useCallback(async (forceRefresh: boolean = false) => {
     if (!address || !publicClient || !marketAddress) {
       setSalesHistory([]);
@@ -156,7 +172,8 @@ export const useEventBasedSalesHistory = () => {
     try {
       console.log('🔍 开始获取基于事件的销售历史...');
 
-      // 1. 加载缓存数据
+      // 1. Load cached data
+
       let cachedData: CachedSalesHistory | null = null;
       let existingRecords: MyListing[] = [];
       let fromBlock: bigint;
@@ -165,22 +182,26 @@ export const useEventBasedSalesHistory = () => {
         cachedData = loadCachedData(address, chainId);
         if (cachedData) {
           existingRecords = cachedData.records;
-          fromBlock = cachedData.lastBlockNumber; // 从上次查询的区块开始
+          fromBlock = cachedData.lastBlockNumber; // Start with the block you searched last time
+
           console.log(`📅 增量查询从区块 ${fromBlock} 开始`);
         }
       }
 
-      // 2. 确定查询范围
+      // 2. Determine the query scope
+
       const latestBlock = await publicClient.getBlockNumber();
       if (!cachedData || forceRefresh) {
-        // 首次查询或强制刷新，查询最近100,000个区块
+        // First query or forced refresh, query the last 100,000 blocks
+
         fromBlock = latestBlock - BigInt(100000);
         console.log(`📅 全量查询区块范围: ${fromBlock} - ${latestBlock}`);
       } else {
         console.log(`📅 增量查询区块范围: ${fromBlock} - ${latestBlock}`);
       }
 
-      // 3. 如果没有新区块，直接返回缓存数据
+      // 3. If there is no new block, return cached data directly
+
       if (cachedData && fromBlock >= latestBlock) {
         console.log('✅ 没有新区块，使用缓存数据');
         setSalesHistory(existingRecords);
@@ -188,22 +209,26 @@ export const useEventBasedSalesHistory = () => {
         return;
       }
 
-      // 4. NFTSold 事件的 ABI
+      // 4. ABI of NFTSold Event
+
       const nftSoldEvent = parseAbiItem(
         'event NFTSold(uint256 indexed tokenId, address indexed seller, address indexed buyer, uint256 price, uint256 platformFee, uint256 sellerAmount, uint256 timestamp)'
       );
 
-      // NFTListed 事件的 ABI（用于获取原始挂单价格）
+      // ABI of NFTListed Event (used to get the original pending order price)
+
       const nftListedEvent = parseAbiItem(
         'event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price, uint256 timestamp)'
       );
 
-      // 5. 查询 NFTSold 事件（用户作为卖家）
+      // 5. Query the NFTSold event (user as seller)
+
       const soldLogs = await publicClient.getLogs({
         address: marketAddress as `0x${string}`,
         event: nftSoldEvent,
         args: {
-          seller: address, // 用户作为卖家
+          seller: address, // Users as sellers
+
         },
         fromBlock: fromBlock,
         toBlock: 'latest',
@@ -211,7 +236,8 @@ export const useEventBasedSalesHistory = () => {
 
       console.log(`💰 找到 ${soldLogs.length} 条新销售记录`);
 
-      // 6. 构建新的销售历史记录
+      // 6. Build a new sales history
+
       const newSalesRecords: MyListing[] = [];
 
       for (const log of soldLogs) {
@@ -223,8 +249,10 @@ export const useEventBasedSalesHistory = () => {
             continue;
           }
 
-          // 尝试获取原始挂单价格（通过查询该NFT的最后一次挂单事件）
-          let originalPrice = price; // 默认使用成交价
+          // Try to get the original pending order price (by querying the last pending order event of that nft)
+
+          let originalPrice = price; // Default transaction price
+
           
           try {
             const listingLogs = await publicClient.getLogs({
@@ -234,11 +262,14 @@ export const useEventBasedSalesHistory = () => {
                 tokenId: tokenId,
                 seller: seller,
               },
-              fromBlock: latestBlock - BigInt(100000), // 查询更大的范围找到挂单记录
-              toBlock: log.blockNumber, // 只查询到售出之前
+              fromBlock: latestBlock - BigInt(100000), // Query a larger range to find pending order records
+
+              toBlock: log.blockNumber, // Only check before sale
+
             });
 
-            // 获取最新的挂单价格
+            // Get the latest pending order price
+
             if (listingLogs.length > 0) {
               const latestListingLog = listingLogs[listingLogs.length - 1];
               originalPrice = latestListingLog.args.price || price;
@@ -247,13 +278,15 @@ export const useEventBasedSalesHistory = () => {
             console.warn(`⚠️ 获取NFT #${tokenId} 挂单价格失败:`, listingError);
           }
 
-          // 获取NFT元数据（标题等信息）
+          // Get nft metadata (title, etc.)
+
           let title = `绿色NFT #${tokenId}`;
           let carbonReduction = '0';
           
           try {
-            // 这里可以通过合约调用获取NFT的详细信息
-            // 暂时使用默认值，实际项目中可以调用NFT合约的tokenURI或metadata相关方法
+            // Here you can get the details of NFT through contract calls
+            // Use the default value temporarily. You can call the tokenURI or metadata related methods of the NFT contract in the actual project.
+
           } catch (metaError) {
             console.warn(`⚠️ 获取NFT #${tokenId} 元数据失败:`, metaError);
           }
@@ -268,8 +301,10 @@ export const useEventBasedSalesHistory = () => {
             listedAt: timestamp.toString(),
             status: 'sold',
             seller: seller,
-            views: 0, // 事件中没有浏览数据
-            offers: 0, // 事件中没有报价数据
+            views: 0, // No browsing data in the event
+
+            offers: 0, // No quotation data in the event
+
           });
 
         } catch (recordError) {
@@ -277,13 +312,16 @@ export const useEventBasedSalesHistory = () => {
         }
       }
 
-      // 7. 合并新旧记录
+      // 7. Merge old and new records
+
       const mergedRecords = mergeRecords(existingRecords, newSalesRecords);
 
-      // 8. 保存到缓存
+      // 8. Save to cache
+
       saveCachedData(address, chainId, mergedRecords, latestBlock);
 
-      // 9. 更新状态
+      // 9. Update status
+
       setSalesHistory(mergedRecords);
       console.log(`✅ 销售历史更新完成: 总计 ${mergedRecords.length} 条记录`);
 
@@ -291,7 +329,8 @@ export const useEventBasedSalesHistory = () => {
       console.error('❌ 获取事件销售历史失败:', error);
       setError(error instanceof Error ? error.message : '获取销售历史失败');
       
-      // 出错时，如果有缓存数据，仍然显示缓存数据
+      // If there is cached data, the cached data will still be displayed.
+
       if (address) {
         const cachedData = loadCachedData(address, chainId);
         if (cachedData) {
@@ -306,7 +345,8 @@ export const useEventBasedSalesHistory = () => {
     }
   }, [address, publicClient, marketAddress, chainId, loadCachedData, saveCachedData, mergeRecords]);
 
-  // 清理特定用户的缓存
+  // Clean up caches for specific users
+
   const clearCache = useCallback(() => {
     if (address) {
       const cacheKey = getCacheKey(address, chainId);
@@ -315,29 +355,34 @@ export const useEventBasedSalesHistory = () => {
     }
   }, [address, chainId, getCacheKey]);
 
-  // 强制刷新（忽略缓存）
+  // Force refresh (ignoring cache)
+
   const forceRefresh = useCallback(() => {
     fetchSalesHistory(true);
   }, [fetchSalesHistory]);
 
-  // 监听依赖变化
+  // Listening dependency changes
+
   useEffect(() => {
     if (address && publicClient && marketAddress) {
-      // 首先尝试加载缓存数据
+      // First try to load cached data
+
       const cachedData = loadCachedData(address, chainId);
       if (cachedData) {
         setSalesHistory(cachedData.records);
         console.log(`📦 立即显示缓存数据: ${cachedData.records.length} 条记录`);
       }
       
-      // 然后进行增量更新
+      // Then perform incremental update
+
       fetchSalesHistory(false);
     } else {
       setSalesHistory([]);
     }
   }, [address, publicClient, marketAddress, chainId, fetchSalesHistory, loadCachedData]);
 
-  // 手动刷新（增量更新）
+  // Manual refresh (incremental update)
+
   const refetch = useCallback(() => {
     fetchSalesHistory(false);
   }, [fetchSalesHistory]);
@@ -346,8 +391,11 @@ export const useEventBasedSalesHistory = () => {
     salesHistory,
     isLoading,
     error,
-    refetch,        // 增量刷新
-    forceRefresh,   // 强制全量刷新
-    clearCache,     // 清理缓存
+    refetch,        // Incremental refresh
+
+    forceRefresh,   // Force full refresh
+
+    clearCache,     // Clean up the cache
+
   };
 }; 

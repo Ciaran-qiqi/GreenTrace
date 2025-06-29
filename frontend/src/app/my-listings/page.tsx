@@ -5,8 +5,8 @@ import { MyListings } from '@/components/market/MyListings';
 import { useTranslation } from '@/hooks/useI18n';
 
 /**
- * 我的挂单页面
- * @description 用户管理自己的NFT挂单的页面
+ * My order page
+ * @description Users manage their own NFT order page
  */
 export default function MyListingsPage() {
   const { t } = useTranslation();

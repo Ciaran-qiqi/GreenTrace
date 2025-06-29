@@ -1,9 +1,9 @@
 /**
- * 格式化工具函数
- * 用于数字、价格、百分比等的显示格式化
+ * Formatting utility functions
+ * Used for display formatting of numbers, prices, percentages, etc.
  */
 
-// 格式化数字，支持K/M/B单位
+// Format numbers, support K/M/B units
 export const formatNumber = (value: string | number, decimals = 2): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '0'
@@ -15,7 +15,7 @@ export const formatNumber = (value: string | number, decimals = 2): string => {
   return num.toFixed(decimals)
 }
 
-// 格式化价格（美元）
+// Format price (USD)
 export const formatPrice = (value: string | number, decimals = 2): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '$0.00'
@@ -28,7 +28,7 @@ export const formatPrice = (value: string | number, decimals = 2): string => {
   }).format(num)
 }
 
-// 格式化百分比
+// Format percentage
 export const formatPercentage = (value: string | number, decimals = 2): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '0%'
@@ -36,7 +36,7 @@ export const formatPercentage = (value: string | number, decimals = 2): string =
   return (num * 100).toFixed(decimals) + '%'
 }
 
-// 格式化代币数量（通用版本，大数值使用K/M/B格式）
+// Format token amount (general version, large values use K/M/B format)
 export const formatTokenAmount = (value: string | number, decimals = 6): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '0'
@@ -45,7 +45,7 @@ export const formatTokenAmount = (value: string | number, decimals = 6): string 
   return num.toFixed(decimals)
 }
 
-// 格式化余额显示（保持完整数值+千分位分隔符）
+// Format balance display (keep full value + thousands separator)
 export const formatBalance = (value: string | number, decimals = 2): string => {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '0.00'
@@ -56,20 +56,20 @@ export const formatBalance = (value: string | number, decimals = 2): string => {
   })
 }
 
-// 简化地址显示
+// Shorten address display
 export const shortenAddress = (address: string, startLength = 6, endLength = 4): string => {
   if (!address || address.length < startLength + endLength) return address
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`
 }
 
-// 验证数字输入
+// Validate number input
 export const validateNumberInput = (value: string): boolean => {
   if (!value || value.trim() === '') return false
   const num = parseFloat(value)
   return !isNaN(num) && num > 0
 }
 
-// 计算滑点
+// Calculate slippage
 export const calculateSlippage = (inputAmount: string, outputAmount: string, slippageTolerance = 0.005): string => {
   const input = parseFloat(inputAmount)
   const output = parseFloat(outputAmount)
@@ -80,7 +80,7 @@ export const calculateSlippage = (inputAmount: string, outputAmount: string, sli
   return formatPercentage(slippage)
 }
 
-// 防抖函数
+// Debounce function
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   wait: number

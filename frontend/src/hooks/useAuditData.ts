@@ -7,27 +7,27 @@ import { getGreenTraceABI } from '@/contracts/hooks/useGreenTrace';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import { formatTokenAmount } from '@/utils/tokenUtils';
 
-// 审计申请数据结构
+// Audit application data structure
 export interface AuditRequest {
-  requestId: string; // 申请ID（合约中的真实ID）
-  tokenId: string; // 用于显示的ID（保持兼容性）
+  requestId: string; // Apply for id (real id in the contract)
+  tokenId: string; // id for display (maintain compatibility)
   requester: string;
   title: string;
   details: string;
-  carbonReduction: string; // 用户原始申请的碳减排量
-  auditedCarbonValue?: string; // 审计员确认的碳减排量（只有approved状态才有）
+  carbonReduction: string; // The original carbon emission reduction requested by the user
+  auditedCarbonValue?: string; // The carbon emission reduction confirmed by the auditor (only available in the approved state)
   tokenURI: string;
   totalFee: string;
   blockTimestamp: string;
   transactionHash: string;
   auditStatus: 'pending' | 'approved' | 'rejected';
-  auditor?: string; // 审计员地址
-  auditComment?: string; // 审计意见
-  nftTokenId?: string; // 真实的NFT ID（铸造成功后才有）
-  source?: 'event' | 'contract'; // 数据来源标识
+  auditor?: string; // Auditor's address
+  auditComment?: string; // Audit opinion
+  nftTokenId?: string; // Real NFT ID (only available after successful casting)
+  source?: 'event' | 'contract'; // Data source identification
 }
 
-// 审计统计数据
+// Audit statistics
 export interface AuditStats {
   pendingCount: number;
   approvedCount: number;
@@ -35,11 +35,11 @@ export interface AuditStats {
   totalCount: number;
 }
 
-// 缓存相关常量
-const CACHE_DURATION = 30 * 60 * 1000; // 30分钟
+// Cache related constants
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 const AUDIT_CACHE_PREFIX = 'audit_center_';
 
-// 读取本地缓存
+// Read local cache
 function getLocalCache(): AuditRequest[] | null {
   try {
     const key = `${AUDIT_CACHE_PREFIX}all`;
@@ -56,7 +56,7 @@ function getLocalCache(): AuditRequest[] | null {
   return null;
 }
 
-// 保存到本地缓存
+// Save to local cache
 function saveLocalCache(data: AuditRequest[]) {
   try {
     const key = `${AUDIT_CACHE_PREFIX}all`;
@@ -70,7 +70,7 @@ function saveLocalCache(data: AuditRequest[]) {
   }
 }
 
-// 清除本地缓存
+// Clear local cache
 function clearLocalCache() {
   try {
     const key = `${AUDIT_CACHE_PREFIX}all`;
@@ -80,33 +80,33 @@ function clearLocalCache() {
   }
 }
 
-// 混合数据源hook：事件监听（实时性）+ 合约查询（准确性）+ 缓存（性能）
+// Hybrid data source hook: event listening (real time) + contract query (accuracy) + cache (performance)
 export const useAuditData = () => {
   const { isConnected } = useAccount();
   const [auditRequests, setAuditRequests] = useState<AuditRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const [eventRecords, setEventRecords] = useState<AuditRequest[]>([]); // 事件监听获得的记录
-  const [contractRecords, setContractRecords] = useState<AuditRequest[]>([]); // 合约查询获得的记录
+  const [eventRecords, setEventRecords] = useState<AuditRequest[]>([]); // Records obtained by event listening
+  const [contractRecords, setContractRecords] = useState<AuditRequest[]>([]); // Records obtained by contract query
 
-  // 合并数据源：事件记录 + 合约记录，去重并优先使用合约数据
+  // Merge data source: Event record + contract record, deduplication and priority use of contract data
   const mergeRecords = useCallback(() => {
     const merged = new Map<string, AuditRequest>();
     
-    // 先添加事件记录（临时、实时数据）
+    // Add event records first (temporary, real-time data)
     eventRecords.forEach(record => {
       const key = record.requestId || record.transactionHash;
       merged.set(key, { ...record, source: 'event' });
     });
     
-    // 再添加合约记录（权威、准确数据），会覆盖同key的事件记录
+    // Adding the contract record (authoritative and accurate data) will overwrite the event record of the same key
     contractRecords.forEach(record => {
       const key = record.requestId || record.transactionHash;
       merged.set(key, { ...record, source: 'contract' });
     });
     
-    // 按时间戳降序排序
+    // Sort by descending timestamp
     const finalRecords = Array.from(merged.values()).sort((a, b) => 
       parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp)
     );
@@ -120,15 +120,15 @@ export const useAuditData = () => {
     setAuditRequests(finalRecords);
   }, [eventRecords, contractRecords]);
 
-  // 当任一数据源更新时，重新合并
+  // When either data source is updated, re-merge
   useEffect(() => {
     mergeRecords();
   }, [mergeRecords]);
 
-  // 格式化数据 - 使用统一的代币格式化工具
-  // 移除本地formatTokenAmount函数，使用utils/tokenUtils.ts中的统一实现
+  // Format data -Use a unified token formatting tool
+  // Remove the local formatTokenAmount function and use the unified implementation in utils/tokenUtils.ts
 
-  // 事件监听：立即获取新申请，提供实时性
+  // Event listening: Get new applications now and provide real-time
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
@@ -136,7 +136,7 @@ export const useAuditData = () => {
     onLogs: (logs) => {
       console.log('审计中心检测到MintRequested事件:', logs);
       
-      // 简化事件处理，只添加基本信息
+      // Simplify event processing and add only basic information
       const newEventRecords: AuditRequest[] = [];
       if (logs.length > 0) {
         const record: AuditRequest = {
@@ -160,7 +160,7 @@ export const useAuditData = () => {
         console.log('审计中心从事件获得新记录:', newEventRecords.length, '条');
         setEventRecords(prev => [...newEventRecords, ...prev]);
         
-        // 3秒后触发合约查询，获取准确数据
+        // The contract query is triggered after 3 seconds to obtain accurate data
         setTimeout(() => {
           refreshAuditData(true);
         }, 3000);
@@ -169,7 +169,7 @@ export const useAuditData = () => {
     enabled: isConnected,
   });
 
-  // 审计事件监听：更新现有记录的状态
+  // Audit event listening: Update the status of existing records
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
@@ -196,7 +196,7 @@ export const useAuditData = () => {
     enabled: isConnected,
   });
 
-  // NFT兑换事件监听：当NFT被兑换时更新状态
+  // Nft redemption event monitoring: Update status when nft is redeemed
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
@@ -218,13 +218,13 @@ export const useAuditData = () => {
       console.log('🎨 审计中心检测到NFTMintedAfterAudit事件:', logs);
       console.log('🔄 NFT铸造完成，需要刷新审计状态...');
       
-      // 立即刷新数据，确保状态同步
+      // Refresh data immediately to ensure state synchronous
       setTimeout(() => {
         console.log('执行第一次审计数据刷新...');
         refreshAuditData(true);
       }, 1000);
       
-      // 再次延迟刷新，确保状态完全同步
+      // Refresh again to ensure the state is fully synchronized
       setTimeout(() => {
         console.log('执行第二次审计数据刷新，确保完全同步...');
         refreshAuditData(true);
@@ -233,7 +233,7 @@ export const useAuditData = () => {
     enabled: isConnected,
   });
 
-  // 合约查询：获取待审计申请 + 已审计申请
+  // Contract Inquiry: Obtain an application to be audited + Audited application
   const fetchAuditRecordsFromContract = useCallback(async () => {
     if (!isConnected) {
       setContractRecords([]);
@@ -245,7 +245,7 @@ export const useAuditData = () => {
     setError(null);
 
     try {
-      // 使用wagmi的readContracts批量查询
+      // Batch query using wagmi's read contracts
       const { readContracts } = await import('wagmi/actions');
       const { config } = await import('@/lib/wagmi');
       
@@ -254,7 +254,7 @@ export const useAuditData = () => {
         abi: getGreenTraceABI() as any,
       };
 
-      // 1. 获取待审计申请ID列表
+      // 1. Obtain the list of application IDs to be audited
       const pendingResult = await readContracts(config, { 
         contracts: [{
           ...contractConfig,
@@ -263,7 +263,7 @@ export const useAuditData = () => {
         }]
       });
 
-      // 2. 获取已审计申请ID列表
+      // 2. Obtain the list of audited application IDs
       const auditedResult = await readContracts(config, { 
         contracts: [{
           ...contractConfig,
@@ -274,7 +274,7 @@ export const useAuditData = () => {
 
       console.log('查询结果:', { pendingResult, auditedResult });
 
-      // 合并所有申请ID
+      // Combined all application ids
       const allRequestIds: bigint[] = [];
       
       if (pendingResult[0]?.status === 'success' && pendingResult[0].result) {
@@ -299,7 +299,7 @@ export const useAuditData = () => {
 
       console.log(`找到 ${allRequestIds.length} 个申请ID，开始批量查询详情...`);
 
-      // 3. 批量查询每个申请的详情
+      // 3. Bulk query of each application details
       const detailContracts = allRequestIds.map((id: bigint) => ({
         ...contractConfig,
         functionName: 'getRequestById',
@@ -310,7 +310,7 @@ export const useAuditData = () => {
       
       console.log('详情查询结果:', detailResults);
 
-      // 4. 转换为AuditRequest格式
+      // 4. Convert to AuditRequest format
       const auditRecords: AuditRequest[] = [];
       
       detailResults.forEach((result, index) => {
@@ -318,7 +318,7 @@ export const useAuditData = () => {
           const item = result.result as Record<string, unknown>;
           const requestId = allRequestIds[index];
           
-          // 解析状态：0=pending, 1=approved, 2=rejected
+          // Analysis status: 0=pending, 1=approved, 2=rejected
           let auditStatus: AuditRequest['auditStatus'] = 'pending';
           if (item.status === 1) {
             auditStatus = 'approved';
@@ -326,15 +326,15 @@ export const useAuditData = () => {
             auditStatus = 'rejected';
           }
           
-          // 🔍 详细检查NFT铸造状态，用于审计中心显示  
-          // ⚠️ 简化判断逻辑：只有申请#2的nftTokenId为0时才认为已铸造
+          // 🔍 Detailed check of NFT casting status, used for the audit center display  
+          // ⚠️ Simplified judgment logic: Only when the nftTokenId of application #2 is considered to have been cast
           const nftTokenId = item.nftTokenId;
           const requestIdStr = requestId.toString();
           
-          // 特殊情况：申请#2对应NFT Token ID 0（已确认铸造）
+          // Special circumstances: Application #2 corresponds to NFT Token ID 0 (confirmed casting)
           const isSpecialCase = requestIdStr === '2' && Number(nftTokenId) === 0;
           
-          // 一般情况：nftTokenId必须大于0才认为已铸造
+          // General: nft token id must be greater than 0 before it is considered to have been cast
           const isGeneralMinted = nftTokenId !== undefined && nftTokenId !== null && Number(nftTokenId) > 0;
           
           const hasNftId = isSpecialCase || isGeneralMinted;
@@ -352,7 +352,7 @@ export const useAuditData = () => {
           
           const record: AuditRequest = {
             requestId: requestId.toString(),
-            tokenId: requestId.toString(), // 使用申请ID作为显示ID
+            tokenId: requestId.toString(), // Use the request id as display id
             requester: item.requester as string || 'Unknown',
             title: (item.requestData as any)?.title || '未知标题',
             details: (item.requestData as any)?.storyDetails || '无详情',
@@ -376,7 +376,7 @@ export const useAuditData = () => {
         }
       });
 
-      // 按时间戳降序排序（最新的在前）
+      // Sort by descending timestamp (latest first)
       auditRecords.sort((a, b) => parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp));
       
       console.log(`成功获取 ${auditRecords.length} 条审计记录:`, auditRecords);
@@ -393,17 +393,17 @@ export const useAuditData = () => {
     }
   }, [isConnected, formatTokenAmount]);
 
-  // 刷新审计数据
+  // Refresh audit data
   const refreshAuditData = useCallback(async (force = false) => {
     console.log('refreshAuditData被调用', { force });
     if (force) {
       clearLocalCache();
-      setEventRecords([]); // 清除事件记录，重新开始
+      setEventRecords([]); // Clear event logs and start over
     }
     await fetchAuditRecordsFromContract();
   }, [fetchAuditRecordsFromContract]);
 
-  // 首次加载：优先用缓存
+  // First loading: priority cache
   useEffect(() => {
     if (!isConnected) {
       setAuditRequests([]);
@@ -422,7 +422,7 @@ export const useAuditData = () => {
       console.log('使用缓存数据:', cache.length, '条记录');
       setContractRecords(cache);
       setLoading(false);
-      // 在后台刷新数据
+      // Refresh data in the background
       fetchAuditRecordsFromContract();
     } else {
       console.log('无缓存，从合约获取数据');
@@ -430,10 +430,10 @@ export const useAuditData = () => {
     }
   }, [isConnected, fetchAuditRecordsFromContract]);
 
-  // 只在客户端渲染
+  // Render only on the client side
   useEffect(() => { setIsClient(true); }, []);
 
-  // 审计统计数据
+  // Audit statistics
   const getAuditStats = (): AuditStats => {
     const pendingCount = auditRequests.filter(req => req.auditStatus === 'pending').length;
     const approvedCount = auditRequests.filter(req => req.auditStatus === 'approved').length;
@@ -447,12 +447,12 @@ export const useAuditData = () => {
     };
   };
 
-  // 获取待审核申请
+  // Obtain a pending application
   const getPendingRequests = (): AuditRequest[] => {
     return auditRequests.filter(req => req.auditStatus === 'pending');
   };
 
-  // 获取已完成审计的申请
+  // Obtain an application for completed audit
   const getCompletedRequests = (): AuditRequest[] => {
     return auditRequests.filter(req => req.auditStatus === 'approved' || req.auditStatus === 'rejected');
   };
@@ -460,18 +460,18 @@ export const useAuditData = () => {
 
 
   return {
-    auditRequests, // 合并后的最终记录
+    auditRequests, // The final record after the merge
     loading,
     error,
     isClient,
-    // 重构后的刷新函数
-    refresh: () => refreshAuditData(false), // 普通刷新：优先使用缓存
-    forceRefresh: () => refreshAuditData(true), // 强制刷新：清缓存重新获取
-    // 统计和筛选函数
+    // Refactored refresh function
+    refresh: () => refreshAuditData(false), // Normal refresh: priority for cache use
+    forceRefresh: () => refreshAuditData(true), // Force refresh: clear cache and re-get
+    // Statistics and filtering functions
     getAuditStats,
     getPendingRequests,
     getCompletedRequests,
-    // 额外提供的信息，用于调试和状态展示
+    // Additional information provided for debugging and status display
     eventCount: eventRecords.length,
     contractCount: contractRecords.length,
     getCacheStatus: () => {

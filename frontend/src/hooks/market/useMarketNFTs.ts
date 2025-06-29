@@ -9,35 +9,41 @@ import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
 import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 import { fetchBatchNFTMetadata, NFTMetadata } from '@/utils/nftMetadata';
 
-// 市场NFT信息接口
+// Market nft information interface
+
 export interface MarketNFT {
   tokenId: string;
   seller: string;
   price: string;
   timestamp: string;
   isActive: boolean;
-  // NFT基础元数据
+  // Nft basic metadata
+
   storyTitle: string;
   storyDetail: string;
   carbonReduction: string;
   createTime: string;
   initialPrice: string;
   lastPrice: string;
-  // 交易统计
+  // Transaction statistics
+
   tradeCount: number;
-  // NFT元数据信息
+  // Nft metadata information
+
   tokenURI?: string;
   metadata?: NFTMetadata | null;
   imageUrl?: string | null;
 }
 
-// 分页参数接口
+// Pagination Parameter Interface
+
 export interface PaginationParams {
   offset: number;
   limit: number;
 }
 
-// Hook返回类型接口
+// Hook return type interface
+
 export interface UseMarketNFTsReturn {
   nfts: MarketNFT[];
   isLoading: boolean;
@@ -49,10 +55,10 @@ export interface UseMarketNFTsReturn {
 }
 
 /**
- * 获取市场NFT列表的Hook
- * @description 支持分页加载，获取市场中所有挂单的NFT及其详细信息
- * @param initialLimit 初始加载数量，默认12个
- * @returns 市场NFT数据和操作方法
+ * Get the Hook for Market NFT List
+ * @description Support pagination loading to obtain NFTs and their detailed information for all pending orders in the market
+ * @param initialLimit The number of initial loads, default 12
+ * @returns Market NFT data and operation methods
  */
 export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn => {
   const chainId = useChainId();
@@ -64,7 +70,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1:
@@ -94,7 +101,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
   const marketAddress = getMarketAddress(chainId);
   const nftAddress = getNFTAddress(chainId);
 
-  // 获取市场统计信息
+  // Get market statistics
+
   const { data: marketStats, refetch: refetchStats } = useReadContract({
     address: marketAddress as `0x${string}`,
     abi: GreenTalesMarketABI.abi,
@@ -104,12 +112,14 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
     }
   });
 
-  // 获取市场NFT数据
+  // Get market nft data
+
   const fetchMarketNFTs = async (currentOffset: number = 0, shouldAppend: boolean = false) => {
     try {
       console.log(`🔍 开始获取市场NFT数据，偏移量: ${currentOffset}, 限制: ${limit}`);
       
-      // 1. 获取分页的挂单信息
+      // 1. Get paging information
+
       const paginationResult = await readContracts(config, {
         contracts: [{
           address: marketAddress as `0x${string}`,
@@ -134,7 +144,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
         return;
       }
 
-      // 2. 批量获取NFT完整信息
+      // 2. Get complete NFT information in batches
+
       const nftInfoContracts = tokenIds.map(tokenId => ({
         address: marketAddress as `0x${string}`,
         abi: GreenTalesMarketABI.abi as any,
@@ -145,7 +156,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
       console.log('🎨 批量查询NFT完整信息...');
       const nftInfoResults = await readContracts(config, { contracts: nftInfoContracts });
 
-      // 3. 批量获取tokenURI
+      // 3. Bulk tokenURI
+
       const tokenURIContracts = tokenIds.map(tokenId => ({
         address: nftAddress as `0x${string}`,
         abi: GreenTalesNFTABI.abi as any,
@@ -156,7 +168,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
       console.log('🔗 批量查询TokenURI...');
       const tokenURIResults = await readContracts(config, { contracts: tokenURIContracts });
 
-      // 4. 组装基础NFT数据
+      // 4. Assemble basic NFT data
+
       const newNFTs: MarketNFT[] = [];
       const tokenURIs: string[] = [];
       
@@ -167,7 +180,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
           const tokenURIResult = tokenURIResults[index];
           const tokenURI = tokenURIResult.status === 'success' ? tokenURIResult.result as string : '';
 
-          // 确保挂单是活跃的
+          // Make sure the order is active
+
           if (listing.isActive) {
             newNFTs.push({
               tokenId: tokenId.toString(),
@@ -175,19 +189,24 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
               price: listing.price.toString(),
               timestamp: listing.timestamp.toString(),
               isActive: listing.isActive,
-              // NFT基础元数据
+              // Nft basic metadata
+
               storyTitle: storyMeta.storyTitle || `绿色NFT #${tokenId}`,
               storyDetail: storyMeta.storyDetail || '',
               carbonReduction: storyMeta.carbonReduction.toString(),
               createTime: storyMeta.createTime.toString(),
               initialPrice: storyMeta.initialPrice.toString(),
               lastPrice: storyMeta.lastPrice.toString(),
-              // 交易统计
+              // Transaction statistics
+
               tradeCount: Number(tradeCount),
-              // NFT元数据信息
+              // Nft metadata information
+
               tokenURI: tokenURI,
-              metadata: null, // 稍后获取
-              imageUrl: null, // 稍后设置
+              metadata: null, // Get it later
+
+              imageUrl: null, // Set it later
+
             });
             tokenURIs.push(tokenURI);
           }
@@ -196,12 +215,14 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
 
       console.log(`✅ 成功组装 ${newNFTs.length} 个基础NFT数据`);
 
-      // 5. 批量获取NFT元数据
+      // 5. Bulk acquisition of NFT metadata
+
       if (newNFTs.length > 0 && tokenURIs.length > 0) {
         console.log('🎨 开始获取NFT元数据...');
         const metadataResults = await fetchBatchNFTMetadata(tokenURIs);
         
-        // 将元数据关联到NFT
+        // Associate metadata to nft
+
         newNFTs.forEach((nft, index) => {
           const metadata = metadataResults[index];
           nft.metadata = metadata;
@@ -211,14 +232,16 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
         console.log(`✅ 元数据获取完成，成功: ${metadataResults.filter(m => m !== null).length}/${newNFTs.length}`);
       }
 
-      // 6. 更新状态
+      // 6. Update status
+
       if (shouldAppend) {
         setNfts(prev => [...prev, ...newNFTs]);
       } else {
         setNfts(newNFTs);
       }
 
-      // 7. 检查是否还有更多数据
+      // 7. Check if there is more data
+
       if (newNFTs.length < limit) {
         setHasMore(false);
       }
@@ -231,7 +254,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
     }
   };
 
-  // 加载更多数据
+  // Load more data
+
   const loadMore = () => {
     if (!isLoading && hasMore) {
       const newOffset = offset + limit;
@@ -241,7 +265,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
     }
   };
 
-  // 重新获取数据
+  // Re-get data
+
   const refetch = () => {
     setOffset(0);
     setHasMore(true);
@@ -251,7 +276,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
     refetchStats();
   };
 
-  // 初始化和监听市场统计变化
+  // Initialize and monitor market statistics changes
+
   useEffect(() => {
     if (marketStats) {
       const [totalListings] = marketStats as [bigint, bigint];
@@ -260,7 +286,8 @@ export const useMarketNFTs = (initialLimit: number = 12): UseMarketNFTsReturn =>
     }
   }, [marketStats]);
 
-  // 初始加载
+  // Initial loading
+
   useEffect(() => {
     if (marketAddress && nftAddress) {
       console.log('🚀 初始化市场NFT数据获取...');

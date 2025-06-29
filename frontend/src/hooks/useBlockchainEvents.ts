@@ -6,7 +6,8 @@ import { useGreenTrace } from '@/contracts/hooks/useGreenTrace';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 
-// 事件数据结构
+// Event data structure
+
 export interface MintRequestedEvent {
   tokenId: bigint;
   requester: Address;
@@ -19,7 +20,8 @@ export interface MintRequestedEvent {
   timestamp: number;
 }
 
-// 合约ABI类型定义
+// Contract ABI type definition
+
 interface ContractABI {
   type: string;
   name: string;
@@ -35,14 +37,16 @@ interface ContractABI {
   stateMutability?: string;
 }
 
-// 使用真实区块链事件的Hook
+// Hook using real blockchain events
+
 export const useBlockchainEvents = () => {
   const { address, isConnected } = useAccount();
   const { address: contractAddress } = useGreenTrace();
   const [events, setEvents] = useState<MintRequestedEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 获取历史事件（模拟实现）
+  // Get historical events (simulated implementation)
+
   const fetchHistoricalEvents = async () => {
     if (!isConnected || !address || !contractAddress) {
       setEvents([]);
@@ -52,11 +56,13 @@ export const useBlockchainEvents = () => {
     setLoading(true);
     
     try {
-      // TODO: 实现历史事件查询
-      // 这里应该调用 RPC 的 getLogs 方法
+      // TODO: Implement historical event query
+      // Here you should call the getLogs method of RPC
+
       console.log('获取历史事件...');
       
-      // 模拟数据
+      // Simulate data
+
       const mockEvents: MintRequestedEvent[] = [
         {
           tokenId: BigInt(1),
@@ -64,8 +70,10 @@ export const useBlockchainEvents = () => {
           title: '绿色出行记录',
           details: '今天选择乘坐公共交通工具出行',
           carbonReduction: BigInt('50000000000000000'), // 0.05 CT
+
           tokenURI: 'ipfs://QmExample1',
           totalFee: BigInt('1000000000000000000'), // 1 CT
+
           blockNumber: 123456,
           timestamp: Date.now() - 86400000
         }
@@ -79,7 +87,8 @@ export const useBlockchainEvents = () => {
     }
   };
 
-  // 当钱包连接时获取历史事件
+  // Get historical events when wallet connects
+
   useEffect(() => {
     if (isConnected && address) {
       fetchHistoricalEvents();
@@ -95,7 +104,8 @@ export const useBlockchainEvents = () => {
   };
 };
 
-// 获取审计信息的Hook
+// Get audit information hook
+
 export const useAuditInfo = (tokenId: bigint | null) => {
   const { address: contractAddress } = useGreenTrace();
 
@@ -127,9 +137,11 @@ export const useAuditInfo = (tokenId: bigint | null) => {
   return auditData;
 };
 
-// 检查NFT是否已铸造的Hook
+// Check if nft has cast hook
+
 export const useNFTMintStatus = (tokenId: bigint | null) => {
-  const { address: nftContractAddress } = useGreenTrace(); // 需要获取NFT合约地址
+  const { address: nftContractAddress } = useGreenTrace(); // Need to get the nft contract address
+
 
   const { data: owner } = useReadContract({
     address: nftContractAddress,

@@ -11,8 +11,8 @@ interface MarketSearchProps {
 }
 
 /**
- * 市场搜索组件
- * @description 支持搜索历史和自动完成的NFT搜索组件
+ * Market Search Components
+ * @description Supports search history and autocomplete NFT search components
  */
 export const MarketSearch: React.FC<MarketSearchProps> = ({
   value,
@@ -27,7 +27,8 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 从本地存储加载搜索历史
+  // Load search history from local storage
+
   useEffect(() => {
     try {
       const history = localStorage.getItem('nft_search_history');
@@ -39,14 +40,16 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
     }
   }, []);
 
-  // 保存搜索历史
+  // Save search history
+
   const saveSearchHistory = (searchTerm: string) => {
     if (!searchTerm.trim()) return;
 
     const newHistory = [
       searchTerm.trim(),
       ...searchHistory.filter(item => item !== searchTerm.trim())
-    ].slice(0, 10); // 只保留最近10个搜索
+    ].slice(0, 10); // Only the last 10 searches are retained
+
 
     setSearchHistory(newHistory);
     try {
@@ -56,13 +59,15 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
     }
   };
 
-  // 处理输入变化
+  // Process input changes
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
   };
 
-  // 处理键盘事件
+  // Handle keyboard events
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && value.trim()) {
       saveSearchHistory(value);
@@ -74,27 +79,31 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
     }
   };
 
-  // 选择搜索建议
+  // Select search suggestions
+
   const selectSuggestion = (suggestion: string) => {
     onChange(suggestion);
     setShowSuggestions(false);
     inputRef.current?.blur();
   };
 
-  // 清除搜索
+  // Clear search
+
   const clearSearch = () => {
     onChange('');
     inputRef.current?.focus();
   };
 
-  // 清除搜索历史
+  // Clear search history
+
   const clearHistory = () => {
     setSearchHistory([]);
     localStorage.removeItem('nft_search_history');
     setShowSuggestions(false);
   };
 
-  // 筛选搜索建议
+  // Filter search suggestions
+
   const filteredSuggestions = value.trim() 
     ? searchHistory.filter(item => 
         item.toLowerCase().includes(value.toLowerCase()) && 
@@ -104,7 +113,7 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      {/* 搜索输入框 */}
+      {/* Search input box */}
       <div className="relative">
         <input
           ref={inputRef}
@@ -118,14 +127,15 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
           }}
           onBlur={() => {
             setIsFocused(false);
-            // 延迟隐藏建议，让用户能点击建议项
+            // Delay hiding suggestions so that users can click on suggestions
+
             setTimeout(() => setShowSuggestions(false), 150);
           }}
           placeholder={placeholder}
           className="w-full px-4 py-3 pl-12 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-gray-700 placeholder-gray-400"
         />
         
-        {/* 搜索图标 */}
+        {/* Search icon */}
         <div className="absolute left-4 top-3.5 text-gray-400">
           {isFocused || value ? (
             <span className="text-green-500">🔍</span>
@@ -134,7 +144,7 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
           )}
         </div>
 
-        {/* 清除按钮 */}
+        {/* Clear button */}
         {value && (
           <button
             onClick={clearSearch}
@@ -145,10 +155,10 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
         )}
       </div>
 
-      {/* 搜索建议下拉 */}
+      {/* Search suggestions pull down */}
       {showSuggestions && (filteredSuggestions.length > 0 || (!value && searchHistory.length > 0)) && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
-          {/* 搜索历史标题 */}
+          {/* Search for historical titles */}
           {searchHistory.length > 0 && (
             <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
               <span className="text-sm text-gray-600 font-medium">
@@ -163,7 +173,7 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
             </div>
           )}
 
-          {/* 建议列表 */}
+          {/* Suggestion list */}
           <div className="py-1">
             {(value ? filteredSuggestions : searchHistory.slice(0, 5)).map((suggestion, index) => (
               <button
@@ -179,7 +189,7 @@ export const MarketSearch: React.FC<MarketSearchProps> = ({
             ))}
           </div>
 
-          {/* 热门搜索提示 */}
+          {/* Hot search tips */}
           {!value && searchHistory.length === 0 && (
             <div className="px-4 py-3 text-center text-gray-500 text-sm">
               <div className="mb-2">💡 搜索建议</div>

@@ -4,7 +4,8 @@ import { useReadContract, useAccount, useChainId } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import GreenTraceABI from '@/contracts/abi/GreenTrace.json';
 
-// 系统统计数据接口
+// System statistics interface
+
 export interface SystemStats {
   totalMintRequests: number;
   totalCashRequests: number;
@@ -14,7 +15,8 @@ export interface SystemStats {
   approvedCashRequests: number;
 }
 
-// 审计记录接口
+// Audit record interface
+
 export interface AuditRecord {
   requester: string;
   auditor: string;
@@ -22,7 +24,9 @@ export interface AuditRecord {
   nftTokenId: string;
   carbonValue: string;
   status: number; // 0: Pending, 1: Approved, 2: Rejected
+
   auditType: number; // 0: Mint, 1: Exchange
+
   requestTimestamp: string;
   auditTimestamp: string;
   auditComment: string;
@@ -36,14 +40,15 @@ export interface AuditRecord {
 }
 
 /**
- * 管理中心数据Hook
- * @description 获取管理中心所需的所有数据，包括系统统计、审计记录等
+ * Management Center Data Hook
+ * @description Obtain all data required by the management center, including system statistics, audit records, etc.
  */
 export const useAdminData = () => {
   const { address } = useAccount();
   const chainId = useChainId();
 
-  // 获取合约地址
+  // Get the contract address
+
   const getGreenTraceAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.GreenTrace;
@@ -55,7 +60,8 @@ export const useAdminData = () => {
 
   const greenTraceAddress = getGreenTraceAddress(chainId);
 
-  // 获取系统统计信息
+  // Obtain system statistics information
+
   const { 
     data: systemStats, 
     isLoading: statsLoading, 
@@ -67,11 +73,13 @@ export const useAdminData = () => {
     functionName: 'getSystemStats',
     query: {
       enabled: !!greenTraceAddress,
-      refetchInterval: 30000, // 每30秒刷新
+      refetchInterval: 30000, // Refresh every 30 seconds
+
     }
   });
 
-  // 获取待审核的铸造申请
+  // Obtain a casting application to be reviewed
+
   const { 
     data: pendingMintAudits, 
     isLoading: pendingMintLoading,
@@ -82,11 +90,13 @@ export const useAdminData = () => {
     functionName: 'getPendingMintAudits',
     query: {
       enabled: !!greenTraceAddress,
-      refetchInterval: 10000, // 每10秒刷新
+      refetchInterval: 10000, // Refresh every 10 seconds
+
     }
   });
 
-  // 获取待审核的兑换申请
+  // Obtain redemption application to be reviewed
+
   const { 
     data: pendingCashAudits, 
     isLoading: pendingCashLoading,
@@ -97,11 +107,13 @@ export const useAdminData = () => {
     functionName: 'getPendingCashAudits',
     query: {
       enabled: !!greenTraceAddress,
-      refetchInterval: 10000, // 每10秒刷新
+      refetchInterval: 10000, // Refresh every 10 seconds
+
     }
   });
 
-  // 获取所有已审计的铸造申请
+  // Obtain all audited casting applications
+
   const { 
     data: allAuditedMintRequests,
     isLoading: auditedMintLoading,
@@ -115,7 +127,8 @@ export const useAdminData = () => {
     }
   });
 
-  // 获取所有已审计的兑换申请
+  // Obtain all audited redemption applications
+
   const { 
     data: allAuditedCashRequests,
     isLoading: auditedCashLoading,
@@ -129,7 +142,8 @@ export const useAdminData = () => {
     }
   });
 
-  // 检查当前用户是否为审计员
+  // Check whether the current user is an auditor
+
   const { data: isAuditor } = useReadContract({
     address: greenTraceAddress as `0x${string}`,
     abi: GreenTraceABI.abi,
@@ -140,7 +154,8 @@ export const useAdminData = () => {
     }
   });
 
-  // 检查当前用户是否为合约所有者
+  // Check whether the current user is the contract owner
+
   const { data: contractOwner } = useReadContract({
     address: greenTraceAddress as `0x${string}`,
     abi: GreenTraceABI.abi,
@@ -150,11 +165,13 @@ export const useAdminData = () => {
     }
   });
 
-  // 判断用户权限
+  // Determine user permissions
+
   const isOwner = Boolean(address && contractOwner && 
     address.toLowerCase() === (contractOwner as string).toLowerCase());
 
-  // 处理系统统计数据
+  // Processing system statistics
+
   const processedStats: SystemStats | null = systemStats ? {
     totalMintRequests: Number((systemStats as any)[0]),
     totalCashRequests: Number((systemStats as any)[1]),
@@ -164,7 +181,8 @@ export const useAdminData = () => {
     approvedCashRequests: Number((systemStats as any)[5]),
   } : null;
 
-  // 刷新所有数据
+  // Refresh all data
+
   const refetchAll = () => {
     refetchStats();
     refetchPendingMint();
@@ -174,28 +192,33 @@ export const useAdminData = () => {
   };
 
   return {
-    // 系统统计
+    // System statistics
+
     systemStats: processedStats,
     statsLoading,
     statsError,
 
-    // 待审核申请
+    // Application to be reviewed
+
     pendingMintAudits: (pendingMintAudits as bigint[]) || [],
     pendingCashAudits: (pendingCashAudits as bigint[]) || [],
     pendingMintLoading,
     pendingCashLoading,
 
-    // 已审计申请
+    // Audited application
+
     allAuditedMintRequests: (allAuditedMintRequests as bigint[]) || [],
     allAuditedCashRequests: (allAuditedCashRequests as bigint[]) || [],
     auditedMintLoading,
     auditedCashLoading,
 
-    // 用户权限
+    // User permissions
+
     isAuditor: !!isAuditor,
     isOwner,
 
-    // 刷新方法
+    // Refresh method
+
     refetchAll,
     refetchStats,
     refetchPendingMint,

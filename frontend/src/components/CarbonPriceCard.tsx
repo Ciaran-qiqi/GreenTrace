@@ -20,29 +20,34 @@ interface ExchangeRate {
   };
 }
 
-// 缓存键名
+// Cache key name
+
 const CACHE_KEYS = {
   PRICE_DATA: 'carbon_price_data',
   EXCHANGE_RATE: 'exchange_rate',
   LAST_FETCH: 'last_fetch_time'
 };
 
-// 缓存有效期（5小时）
+// Cache validity period (5 hours)
+
 const CACHE_DURATION = 300 * 60 * 1000;
 
-// 计算距离下一个更新时间点的毫秒数
+// Calculate the number of milliseconds from the next update point
+
 const getTimeUntilNextUpdate = () => {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
   
-  // 设置目标时间点（00:05 和 12:05）
+  // Set the target time points (00:05 and 12:05)
+
   const targetTimes = [
     { hour: 0, minute: 5 },
     { hour: 12, minute: 5 }
   ];
   
-  // 找到下一个更新时间点
+  // Find the next update time point
+
   const nextUpdate = new Date(now);
   let found = false;
   
@@ -54,7 +59,8 @@ const getTimeUntilNextUpdate = () => {
     }
   }
   
-  // 如果没有找到今天的时间点，就设置为明天的第一个时间点
+  // If today's time point is not found, set it to the first time point of tomorrow
+
   if (!found) {
     nextUpdate.setDate(nextUpdate.getDate() + 1);
     nextUpdate.setHours(targetTimes[0].hour, targetTimes[0].minute, 0, 0);
@@ -69,14 +75,17 @@ export const CarbonPriceCard = () => {
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false); // 添加客户端挂载状态
+  const [mounted, setMounted] = useState(false); // Add client mount status
 
-  // 确保组件只在客户端渲染
+
+  // Make sure components are rendered only on the client side
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 根据语言格式化时间显示
+  // Displayed according to language formatting time
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     const localeCode = language === 'zh' ? 'zh-CN' : 'en-US';
@@ -92,9 +101,11 @@ export const CarbonPriceCard = () => {
     });
   };
 
-  // 检查缓存是否有效 - 只在客户端执行
+  // Check if the cache is valid -only execute on the client side
+
   const isCacheValid = () => {
-    if (typeof window === 'undefined') return false; // 服务器端检查
+    if (typeof window === 'undefined') return false; // Server-side check
+
     
     const lastFetch = localStorage.getItem(CACHE_KEYS.LAST_FETCH);
     if (!lastFetch) return false;
@@ -104,9 +115,11 @@ export const CarbonPriceCard = () => {
     return now - lastFetchTime < CACHE_DURATION;
   };
 
-  // 从缓存获取数据 - 只在客户端执行
+  // Get data from cache -Execute only on the client
+
   const getCachedData = () => {
-    if (typeof window === 'undefined') return false; // 服务器端检查
+    if (typeof window === 'undefined') return false; // Server-side check
+
     
     try {
       const cachedPriceData = localStorage.getItem(CACHE_KEYS.PRICE_DATA);
@@ -123,9 +136,11 @@ export const CarbonPriceCard = () => {
     return false;
   };
 
-  // 保存数据到缓存 - 只在客户端执行
+  // Save data to cache -Execute only on the client
+
   const saveToCache = (priceData: CarbonPriceData, exchangeRate: ExchangeRate) => {
-    if (typeof window === 'undefined') return; // 服务器端检查
+    if (typeof window === 'undefined') return; // Server-side check
+
     
     try {
       localStorage.setItem(CACHE_KEYS.PRICE_DATA, JSON.stringify(priceData));
@@ -137,18 +152,21 @@ export const CarbonPriceCard = () => {
   };
 
   useEffect(() => {
-    // 只在客户端挂载后执行
+    // Only after the client is mounted
+
     if (!mounted) return;
 
     const fetchPriceData = async () => {
       try {
-        // 如果缓存有效，直接使用缓存数据
+        // If the cache is valid, use the cache data directly
+
         if (isCacheValid() && getCachedData()) {
           setLoading(false);
           return;
         }
 
-        // 否则从API获取新数据
+        // Otherwise, get new data from the API
+
         const [priceResponse, rateResponse] = await Promise.all([
           axios.get('https://greentrace-api.onrender.com/api/carbon-price'),
           axios.get('https://open.er-api.com/v6/latest/EUR')
@@ -169,29 +187,37 @@ export const CarbonPriceCard = () => {
       }
     };
 
-    // 初始加载数据
+    // Initial loading of data
+
     fetchPriceData();
 
-    // 设置定时更新
+    // Set up timed updates
+
     const scheduleNextUpdate = () => {
       const timeUntilNext = getTimeUntilNextUpdate();
       const timer = setTimeout(() => {
         fetchPriceData();
-        scheduleNextUpdate(); // 递归设置下一次更新
+        scheduleNextUpdate(); // Recursively set the next update
+
       }, timeUntilNext);
       
-      // 返回清理函数
+      // Return to the cleanup function
+
       return () => clearTimeout(timer);
     };
 
-    // 启动定时更新
+    // Start timed update
+
     const cleanup = scheduleNextUpdate();
 
-    // 清理函数
-    return cleanup;
-  }, [mounted, t]); // 添加mounted和t作为依赖
+    // Cleaning functions
 
-  // 在服务器端渲染时显示加载状态
+    return cleanup;
+  }, [mounted, t]); // Add mounted and t as dependencies
+
+
+  // Display loading status when rendering on server side
+
   if (!mounted) {
     return (
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 animate-pulse border border-white/20">
@@ -250,7 +276,7 @@ export const CarbonPriceCard = () => {
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20 relative hover:shadow-2xl transition-all duration-300">
-      {/* 数据源链接按钮 - 右上角 */}
+      {/* Data source link button -upper right corner */}
       <div className="absolute top-4 right-4">
         <a 
           href="https://www.eex.com/en/market-data/market-data-hub/environmentals/indices"
@@ -277,7 +303,7 @@ export const CarbonPriceCard = () => {
         </p>
       </div>
       
-      {/* 价格显示区域 */}
+      {/* Price display area */}
       <div className="grid grid-cols-3 gap-6 mb-6">
         <div className="text-center bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl">
           <p className="text-xs text-gray-500 mb-2 font-medium">
@@ -305,7 +331,7 @@ export const CarbonPriceCard = () => {
         </div>
       </div>
 
-      {/* 涨跌幅显示区域 */}
+      {/* Area of ​​increase or decrease */}
       <div className="grid grid-cols-3 gap-6 mb-8">
         <div className="text-center bg-gray-50 p-4 rounded-xl">
           <p className="text-xs text-gray-500 mb-2 font-medium">
@@ -333,7 +359,7 @@ export const CarbonPriceCard = () => {
         </div>
       </div>
 
-      {/* 更新时间 */}
+      {/* Update time */}
       <div className="text-center">
         <p className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-full inline-block">
           {t('carbon.lastUpdated', '最后更新')}: {formatDateTime(priceData.lastUpdated)}

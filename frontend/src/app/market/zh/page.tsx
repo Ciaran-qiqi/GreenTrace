@@ -1,6 +1,7 @@
 import MarketPage from '../page';
 
-// NFT市场页面中文版
+// Nft Market Page Chinese Version
+
 export default function ZHMarketPage() {
   return <MarketPage />;
 }

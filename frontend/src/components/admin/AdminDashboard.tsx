@@ -5,8 +5,8 @@ import { useAdminData } from '@/hooks/useAdminData';
 import { useI18n } from '@/hooks/useI18n';
 
 /**
- * 管理仪表板组件
- * @description 展示系统概览统计、趋势分析和快速操作
+ * Management Dashboard Components
+ * @description Showcase system overview statistics, trend analysis and quick operation
  */
 export const AdminDashboard: React.FC = () => {
   const { t } = useI18n();
@@ -17,16 +17,17 @@ export const AdminDashboard: React.FC = () => {
     pendingCashAudits,
     pendingMintLoading,
     pendingCashLoading,
-    isAuditor,
   } = useAdminData();
 
-  // 计算审计通过率
+  // Calculate audit pass rate
+
   const calculateApprovalRate = (approved: number, total: number): number => {
     if (total === 0) return 0;
     return Math.round((approved / total) * 100);
   };
 
-  // 加载状态
+  // Loading status
+
   if (statsLoading) {
     return (
       <div className="p-6">
@@ -67,15 +68,15 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* 页面标题 */}
+      {/* Page title */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.dashboard.title')}</h2>
         <p className="text-gray-600">{t('admin.dashboard.subtitle')}</p>
       </div>
 
-      {/* 核心指标卡片 */}
+      {/* Core indicator card */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* 总申请数 */}
+        {/* Total number of applications */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -91,7 +92,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 待审核申请 */}
+        {/* Application to be reviewed */}
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -107,7 +108,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 已批准申请 */}
+        {/* Approved application */}
         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -123,7 +124,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 总体通过率 */}
+        {/* Overall pass rate */}
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -144,12 +145,12 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* 申请类型分析 */}
+        {/* Application Type Analysis */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.dashboard.applicationTypeAnalysis')}</h3>
           
           <div className="space-y-6">
-            {/* 铸造申请 */}
+            {/* Casting application */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">{t('admin.dashboard.mintApplications')}</span>
@@ -175,7 +176,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* 兑换申请 */}
+            {/* Redeem Application */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">{t('admin.dashboard.exchangeApplications')}</span>
@@ -203,12 +204,12 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 快速操作 */}
+        {/* Quick operation */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6">{t('admin.dashboard.quickActions')}</h3>
           
           <div className="grid grid-cols-2 gap-4">
-            {/* 待审核铸造申请 */}
+            {/* Casting application to be reviewed */}
             <div className="bg-blue-50 rounded-lg p-4 text-center">
               <div className="text-2xl mb-2">🔄</div>
               <div className="font-medium text-blue-800 mb-1">
@@ -217,7 +218,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-sm text-blue-600">{t('admin.dashboard.pendingMintReview')}</div>
             </div>
 
-            {/* 待审核兑换申请 */}
+            {/* Redeem to be reviewed */}
             <div className="bg-green-50 rounded-lg p-4 text-center">
               <div className="text-2xl mb-2">💱</div>
               <div className="font-medium text-green-800 mb-1">
@@ -226,7 +227,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-sm text-green-600">{t('admin.dashboard.pendingExchangeReview')}</div>
             </div>
 
-            {/* 系统统计 */}
+            {/* System statistics */}
             <div className="bg-purple-50 rounded-lg p-4 text-center">
               <div className="text-2xl mb-2">📊</div>
               <div className="font-medium text-purple-800 mb-1">
@@ -235,7 +236,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-sm text-purple-600">{t('admin.dashboard.totalApplicationsCount')}</div>
             </div>
 
-            {/* 通过率 */}
+            {/* Pass rate */}
             <div className="bg-orange-50 rounded-lg p-4 text-center">
               <div className="text-2xl mb-2">✅</div>
               <div className="font-medium text-orange-800 mb-1">
@@ -250,7 +251,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 近期活动 */}
+      {/* Recent Activities */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-6">近期活动</h3>
         
@@ -261,7 +262,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 待审核的铸造申请 */}
+            {/* Casting application to be reviewed */}
             {pendingMintAudits.length > 0 && (
               <div className="border-l-4 border-blue-500 pl-4">
                 <div className="font-medium text-gray-800">
@@ -274,7 +275,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* 待审核的兑换申请 */}
+            {/* Redeem for redemption to be reviewed */}
             {pendingCashAudits.length > 0 && (
               <div className="border-l-4 border-green-500 pl-4">
                 <div className="font-medium text-gray-800">
@@ -287,7 +288,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* 无待审核申请 */}
+            {/* No application pending review */}
             {pendingMintAudits.length === 0 && pendingCashAudits.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 <div className="text-4xl mb-2">✨</div>

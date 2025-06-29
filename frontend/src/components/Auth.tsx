@@ -4,12 +4,14 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 
-// 钱包连接组件 - 用于用户身份验证
+// Wallet Connection Component -for user authentication
+
 export const Auth: React.FC = () => {
   const { isConnected, address } = useAccount();
   const [mounted, setMounted] = useState(false);
 
-  // 确保组件只在客户端渲染
+  // Make sure components are rendered only on the client side
+
   useEffect(() => {
     setMounted(true);
   }, []);

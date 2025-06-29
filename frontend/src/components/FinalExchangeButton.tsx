@@ -8,7 +8,8 @@ import { formatFeeAmount, safeParseToBigInt } from '@/utils/tokenUtils';
 import { getGreenTalesNFTAddress, getContractAddress } from '@/contracts/addresses';
 import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 
-// 兑换申请信息接口
+// Redemption application information interface
+
 interface ExchangeRequest {
   cashId: string;
   nftTokenId: string;
@@ -17,7 +18,8 @@ interface ExchangeRequest {
   auditComment?: string;
 }
 
-// 最终兑换按钮组件属性
+// Final redemption button component properties
+
 interface FinalExchangeButtonProps {
   exchangeRequest: ExchangeRequest;
   onExchangeSuccess?: () => void;
@@ -25,7 +27,8 @@ interface FinalExchangeButtonProps {
   className?: string;
 }
 
-// 最终兑换按钮组件
+// Final redemption button component
+
 export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
   exchangeRequest,
   onExchangeSuccess,
@@ -38,19 +41,23 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
   const [needsApproval, setNeedsApproval] = useState(false);
   const [checkingApproval, setCheckingApproval] = useState(false);
   
-  // 获取合约地址
+  // Get the contract address
+
   const nftContractAddress = getGreenTalesNFTAddress(chainId);
   const greenTraceAddress = getContractAddress(chainId);
   
-  // 兑换NFT的Hook
+  // Redeem nft hook
+
   const { exchangeNFT, isPending, isConfirming, isConfirmed, error } = useExchangeNFT();
 
-  // NFT授权相关Hook
+  // Nft authorization related hooks
+
   const { writeContract: approveNFT, data: approvalHash, isPending: isApproving } = useWriteContract();
   const { isLoading: isApprovingConfirming, isSuccess: isApprovalConfirmed } = 
     useWaitForTransactionReceipt({ hash: approvalHash });
 
-  // 检查NFT是否已授权
+  // Check if nft is authorized
+
   const { data: approvedAddress, refetch: refetchApproval } = useReadContract({
     address: nftContractAddress as `0x${string}`,
     abi: GreenTalesNFTABI.abi,
@@ -61,11 +68,14 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     }
   });
 
-  // 计算费用分配
+  // Calculate fee allocation
+
   const calculateFeeBreakdown = (carbonValue: string) => {
     const value = safeParseToBigInt(carbonValue);
     const systemFee = value / BigInt(100); // 1%
+
     const auditFee = value * BigInt(4) / BigInt(100); // 4%
+
     const totalFees = systemFee + auditFee;
     const finalAmount = value - totalFees;
     
@@ -78,7 +88,8 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     };
   };
 
-  // 检查授权状态
+  // Check authorization status
+
   const checkApprovalStatus = React.useCallback(() => {
     if (!approvedAddress || !greenTraceAddress) return;
     
@@ -93,12 +104,14 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     });
   }, [approvedAddress, greenTraceAddress, exchangeRequest.nftTokenId]);
 
-  // 监听授权状态变化
+  // Listen to authorization status changes
+
   React.useEffect(() => {
     checkApprovalStatus();
   }, [checkApprovalStatus]);
 
-  // 处理授权完成
+  // Processing authorization is completed
+
   React.useEffect(() => {
     if (isApprovalConfirmed) {
       console.log('NFT授权成功，重新检查授权状态');
@@ -108,7 +121,8 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     }
   }, [isApprovalConfirmed, refetchApproval]);
 
-  // 处理NFT授权
+  // Handle nft authorization
+
   const handleApproveNFT = () => {
     try {
       approveNFT({
@@ -123,11 +137,13 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     }
   };
 
-  // 处理执行兑换
+  // Processing and performing redemption
+
   const handleExecuteExchange = async () => {
     setCheckingApproval(true);
     
-    // 重新检查授权状态
+    // Recheck authorization status
+
     await refetchApproval();
     
     setTimeout(() => {
@@ -137,9 +153,11 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     }, 500);
   };
 
-  // 确认执行兑换
+  // Confirm the redemption execution
+
   const confirmExecuteExchange = () => {
-    // 再次检查授权状态
+    // Check the authorization status again
+
     if (needsApproval) {
       alert('请先授权NFT后再执行兑换！');
       closeConfirmModal();
@@ -154,12 +172,14 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     }
   };
 
-  // 关闭确认弹窗
+  // Close the confirmation pop-up window
+
   const closeConfirmModal = () => {
     setShowConfirmModal(false);
   };
 
-  // 处理兑换完成
+  // Processing and redemption completed
+
   React.useEffect(() => {
     if (isConfirmed) {
       closeConfirmModal();
@@ -169,7 +189,8 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
     }
   }, [isConfirmed, onExchangeSuccess]);
 
-  // 处理错误
+  // Handling errors
+
   React.useEffect(() => {
     if (error) {
       console.error('兑换执行错误:', error);
@@ -179,17 +200,18 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
 
   const feeBreakdown = calculateFeeBreakdown(exchangeRequest.auditedCarbonValue);
 
-  // 按钮状态逻辑
+  // Button status logic
+
   const isLoading = isPending || isConfirming || isApproving || isApprovingConfirming || checkingApproval;
   const showApprovalButton = needsApproval && !isApprovalConfirmed;
 
   return (
     <>
-      {/* 授权或兑换按钮区域 */}
+      {/* Authorization or redemption button area */}
       <div className="flex flex-col items-center gap-3">
         {showApprovalButton ? (
           <>
-            {/* 授权提示 */}
+            {/* Authorization prompts */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center max-w-md">
               <p className="text-yellow-800 font-medium mb-2">⚠️ 需要授权NFT</p>
               <p className="text-yellow-700 text-sm">
@@ -197,7 +219,7 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
               </p>
             </div>
             
-            {/* 授权按钮 */}
+            {/* Authorization button */}
             <button
               onClick={handleApproveNFT}
               disabled={isApproving || isApprovingConfirming}
@@ -214,7 +236,7 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
             </button>
           </>
         ) : (
-          /* 执行兑换按钮 */
+          /* Execute the redemption button */
           <button
             onClick={handleExecuteExchange}
             disabled={isLoading}
@@ -232,13 +254,13 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
         )}
       </div>
 
-      {/* 最终兑换确认弹窗 */}
+      {/* Final redemption confirmation pop-up window */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 max-w-lg w-full mx-4">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">确认执行兑换</h3>
             
-            {/* 兑换信息 */}
+            {/* Redemption information */}
             <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl p-6 mb-6 border border-green-200">
               <h4 className="font-semibold text-green-800 mb-3">兑换信息</h4>
               <div className="space-y-2 text-sm">
@@ -263,7 +285,7 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
               </div>
             </div>
 
-            {/* 费用明细 */}
+            {/* Fee details */}
             <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-6 mb-6 border border-blue-200">
               <h4 className="font-semibold text-blue-800 mb-3">费用明细</h4>
               <div className="space-y-2 text-sm">
@@ -287,7 +309,7 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
               </div>
             </div>
 
-            {/* 审计意见 */}
+            {/* Audit opinion */}
             {exchangeRequest.auditComment && (
               <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 mb-6 border border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">审计意见</h4>
@@ -295,7 +317,7 @@ export const FinalExchangeButton: React.FC<FinalExchangeButtonProps> = ({
               </div>
             )}
 
-            {/* 重要提醒 */}
+            {/* Important reminder */}
             <div className="bg-gradient-to-br from-red-50 to-red-100/50 rounded-xl p-4 mb-6 border border-red-200">
               <div className="text-sm text-red-700">
                 <div className="font-semibold mb-2">⚠️ 重要提醒:</div>

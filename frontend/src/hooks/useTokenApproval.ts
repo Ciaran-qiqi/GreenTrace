@@ -6,28 +6,32 @@ import USDTABI from '@/contracts/abi/USDT.json'
 
 
 /**
- * 代币授权Hook
- * 处理ERC20代币的授权操作，支持CarbonToken和USDT
- * @param tokenAddress 代币合约地址
- * @param spenderAddress 被授权地址（通常是市场合约）
+ * Token Authorization Hook
+ * Handle authorization operations of ERC20 tokens, support CarbonToken and USDT
+ * @param tokenAddress Token contract address
+ * @param spenderAddress Authorized address (usually a market contract)
  */
 export const useTokenApproval = (tokenAddress: string, spenderAddress: string) => {
   const { address: userAddress } = useAccount()
   const { writeContract, data: hash, isPending: isWritePending, error: writeError } = useWriteContract()
   
-  // 等待交易确认
+  // Wait for transaction confirmation
+
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   })
 
-  // 根据代币地址选择ABI
+  // Select abi according to the token address
+
   const getTokenABI = useCallback(() => {
-    // 这里可以根据代币地址判断使用哪个ABI
-    // 暂时都使用USDT ABI，因为都是ERC20标准
+    // Here you can determine which ABI to use based on the token address
+    // USDT ABI is used for the time being, because they are all ERC20 standards
+
     return USDTABI.abi
   }, [])
 
-  // 读取用户代币余额
+  // Read user token balance
+
   const { data: balance, refetch: refetchBalance } = useReadContract({
     address: tokenAddress as Address,
     abi: getTokenABI(),
@@ -36,7 +40,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
     query: { enabled: !!userAddress }
   })
 
-  // 读取授权额度
+  // Read authorization amount
+
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenAddress as Address,
     abi: getTokenABI(),
@@ -46,34 +51,37 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
   })
 
   /**
-   * 检查是否需要授权
-   * @param amount 需要授权的数量（字符串格式）
-   * @param decimals 代币精度
-   * @returns 是否需要授权
+   * Check if authorization is required
+   * @param amount Number of authorizations required (string format)
+   * @param decimals Token accuracy
+   * @returns Is authorization required
    */
   const checkApprovalNeeded = useCallback((amount: string, decimals = 18): boolean => {
     if (!amount) return false
     
-    // 如果allowance为undefined或null，说明还没有授权，需要授权
+    // If allowance is undefined or null, it means that there is no authorization yet and authorization is required
+
     if (!allowance) return true
     
     const amountWei = parseUnits(amount, decimals)
     const currentAllowance = allowance as bigint
     
-    // 检查是否为无限授权
+    // Check if it is unlimited authorization
+
     const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
     if (currentAllowance >= maxUint256) {
-      return false // 无限授权，不需要再授权
+      return false // Unlimited authorization, no further authorization is required
+
     }
     
     return amountWei > currentAllowance
   }, [allowance])
 
   /**
-   * 获取授权详情
-   * @param amount 需要授权的数量（字符串格式）
-   * @param decimals 代币精度
-   * @returns 授权详情对象
+   * Get authorization details
+   * @param amount Number of authorizations required (string format)
+   * @param decimals Token accuracy
+   * @returns Authorization details object
    */
   const getApprovalDetails = useCallback((amount: string, decimals = 18) => {
     if (!amount) {
@@ -90,7 +98,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
     const currentAllowance = (allowance as bigint) || BigInt(0)
     const userBalance = (balance as bigint) || BigInt(0)
     
-    // 检查是否为无限授权
+    // Check if it is unlimited authorization
+
     const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
     const isInfiniteAllowance = currentAllowance >= maxUint256
     
@@ -104,9 +113,9 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
   }, [allowance, balance])
 
   /**
-   * 授权指定数量
-   * @param amount 授权数量（字符串格式）
-   * @param decimals 代币精度
+   * Authorized specified quantity
+   * @param amount Number of authorizations (string format)
+   * @param decimals Token accuracy
    */
   const approve = useCallback(async (amount: string, decimals = 18) => {
     if (!userAddress || !tokenAddress || !spenderAddress) {
@@ -132,7 +141,7 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
   }, [userAddress, tokenAddress, spenderAddress, writeContract, getTokenABI])
 
   /**
-   * 授权最大数量（通常用于简化用户操作）
+   * Maximum number of authorizations (usually used to simplify user operations)
    */
   const approveMax = useCallback(async () => {
     if (!userAddress || !tokenAddress || !spenderAddress) {
@@ -141,7 +150,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
     }
 
     try {
-      // 使用最大uint256值作为授权额度
+      // Use the maximum uint256 value as the authorization amount
+
       const maxAmount = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
       
       writeContract({
@@ -158,7 +168,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
     }
   }, [userAddress, tokenAddress, spenderAddress, writeContract, getTokenABI])
 
-  // 监听交易确认
+  // Listen to transaction confirmation
+
   const [isApprovalConfirmed, setIsApprovalConfirmed] = useState(false)
   
   useEffect(() => {
@@ -166,7 +177,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
       setIsApprovalConfirmed(true)
       toast.success('授权成功！')
       
-      // 刷新余额和授权额度
+      // Refresh balance and authorization amount
+
       setTimeout(() => {
         refetchBalance()
         refetchAllowance()
@@ -175,7 +187,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
     }
   }, [isConfirmed, refetchBalance, refetchAllowance])
 
-  // 监听交易错误
+  // Listening to transaction errors
+
   useEffect(() => {
     if (writeError) {
       console.error('Approval error:', writeError)
@@ -197,18 +210,21 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
   }, [writeError])
 
   return {
-    // 状态
+    // state
+
     isWritePending,
     isConfirming,
     isConfirmed: isApprovalConfirmed,
     writeError,
     
-    // 数据
+    // data
+
     balance: balance ? formatUnits(balance as bigint, 18) : '0',
     balanceRaw: (balance as bigint) || BigInt(0),
     allowance: allowance ? (() => {
       const allowanceBigInt = allowance as bigint;
-      // 检查是否为最大uint256值（无限授权）
+      // Check if it is the maximum uint256 value (unlimited authorization)
+
       const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
       if (allowanceBigInt >= maxUint256) {
         return '充足';
@@ -217,7 +233,8 @@ export const useTokenApproval = (tokenAddress: string, spenderAddress: string) =
     })() : '0',
     allowanceRaw: (allowance as bigint) || BigInt(0),
     
-    // 方法
+    // method
+
     checkApprovalNeeded,
     getApprovalDetails,
     approve,

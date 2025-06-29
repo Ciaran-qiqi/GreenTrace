@@ -23,10 +23,11 @@ import {
 import { useTranslation } from '@/hooks/useI18n';
 
 
-// 注意：使用any类型是因为ethereum对象的类型定义复杂且可能变化
+// Note: Use any type because the type definition of ethereum object is complex and may change.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// 创建表单数据接口 - Create form data interface
+// Create form data interface
+
 interface CreateFormData {
   title: string;
   storyDetails: string;
@@ -35,7 +36,8 @@ interface CreateFormData {
   imagePreview: string | null;
 }
 
-// 初始表单数据 - Initial form data
+// Initial form data -Initial form data
+
 const initialFormData: CreateFormData = {
   title: '',
   storyDetails: '',
@@ -44,8 +46,9 @@ const initialFormData: CreateFormData = {
   imagePreview: null,
 };
 
-// NFT创建组件 - 用于创建绿色NFT
-// NFT Creation Component - For creating green NFTs
+// NFT Creation Components -Used to create green NFTs
+// NFT Creation Component -For creating green NFTs
+
 export const CreateNFT: React.FC = () => {
   const router = useRouter();
   const { t, language } = useTranslation();
@@ -54,7 +57,8 @@ export const CreateNFT: React.FC = () => {
   const chainId = useChainId();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 表单状态管理
+  // Form Status Management
+
   const [formData, setFormData] = useState<CreateFormData>(initialFormData);
   const [carbonAmount, setCarbonAmount] = useState<bigint | null>(null);
   const [isFormValid, setIsFormValid] = useState(false);
@@ -70,7 +74,8 @@ export const CreateNFT: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 
-  // 合约交互钩子
+  // Contract interaction hook
+
   const {
     requestMint,
     isPending: mintPending,
@@ -79,7 +84,8 @@ export const CreateNFT: React.FC = () => {
     hash: mintHash
   } = useRequestMintNFT();
 
-  // 监听交易状态变化
+  // Listen to transaction status changes
+
   useEffect(() => {
     console.log('requestMint状态变化:', {
       isPending: mintPending,
@@ -106,7 +112,8 @@ export const CreateNFT: React.FC = () => {
   const { initialized } = useGreenTraceConstants();
   const { data: contractInitialized, isLoading: initCheckLoading } = useIsContractInitialized();
 
-  // 监听授权完成，自动执行创建NFT
+  // Listening authorization is completed, and automatically execute the creation of nft
+
   useEffect(() => {
     if (approveConfirmed && currentStep === 'approving' && pendingMintData) {
       console.log('授权完成，开始创建NFT...', {
@@ -117,7 +124,8 @@ export const CreateNFT: React.FC = () => {
       setCurrentStep('minting');
               setUploadProgress('正在提交NFT铸造申请...');
 
-              // 授权完成后自动提交申请
+              // Automatically submit an application after the authorization is completed
+
         requestMint(
         pendingMintData.title,
         pendingMintData.storyDetails,
@@ -127,7 +135,8 @@ export const CreateNFT: React.FC = () => {
     }
   }, [approveConfirmed, currentStep, pendingMintData, requestMint]);
 
-  // 监听申请完成，显示成功弹窗
+  // The monitoring application is completed and the successful pop-up window is displayed
+
   useEffect(() => {
     if (mintConfirmed && currentStep === 'minting' && mintHash) {
       console.log('NFT申请提交完成并确认', {
@@ -139,12 +148,14 @@ export const CreateNFT: React.FC = () => {
       setPendingMintData(null);
       setUploadProgress('');
       
-      // 显示成功弹窗
+      // Show successful pop-up window
+
       setShowSuccessModal(true);
     }
   }, [mintConfirmed, currentStep, mintHash]);
 
-  // 监听错误，重置状态
+  // Listen to errors, reset status
+
   useEffect(() => {
     if ((approveError || mintError) && currentStep !== 'idle') {
       console.error('交易出错，重置状态', {
@@ -153,7 +164,8 @@ export const CreateNFT: React.FC = () => {
         currentStep
       });
       
-      // 显示错误信息
+      // Display error message
+
       const errorMessage = approveError?.message || mintError?.message || '交易失败';
       alert(`交易失败: ${errorMessage}`);
       
@@ -163,7 +175,8 @@ export const CreateNFT: React.FC = () => {
     }
   }, [approveError, mintError, currentStep]);
 
-  // 表单验证
+  // Form Verification
+
   useEffect(() => {
     const { title, storyDetails, carbonReduction, imageFile } = formData;
     const isValid = title.trim() !== '' &&
@@ -174,10 +187,12 @@ export const CreateNFT: React.FC = () => {
     setIsFormValid(isValid);
   }, [formData]);
 
-  // 使用合约计算申请费用
+  // Use the contract to calculate the application fee
+
   const { data: requestFeeData } = useCalculateRequestFee(carbonAmount);
 
-  // 更新碳减排量并计算费用
+  // Update carbon emission reduction and calculate costs
+
   useEffect(() => {
     if (formData.carbonReduction && parseFloat(formData.carbonReduction) > 0) {
       try {
@@ -194,7 +209,8 @@ export const CreateNFT: React.FC = () => {
     }
   }, [formData.carbonReduction]);
 
-  // 更新费用显示
+  // Update fee display
+
   useEffect(() => {
     if (requestFeeData && typeof requestFeeData === 'bigint') {
       const feeInEther = parseFloat(formatEther(requestFeeData));
@@ -210,7 +226,8 @@ export const CreateNFT: React.FC = () => {
     }
   }, [requestFeeData, carbonAmount]);
 
-  // 处理表单输入
+  // Process form input
+
   const handleInputChange = (field: keyof Omit<CreateFormData, 'imageFile' | 'imagePreview'>, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -218,19 +235,22 @@ export const CreateNFT: React.FC = () => {
     }));
   };
 
-  // 处理图片上传
+  // Process image upload
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // 验证文件
+    // Verify files
+
     const validation = validateFile(file);
     if (!validation.valid) {
       alert(validation.error);
       return;
     }
 
-    // 创建预览URL
+    // Create a preview url
+
     const previewUrl = URL.createObjectURL(file);
     setFormData(prev => ({
       ...prev,
@@ -239,12 +259,14 @@ export const CreateNFT: React.FC = () => {
     }));
   };
 
-  // 触发文件选择
+  // Trigger file selection
+
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
   };
 
-  // 移除图片
+  // Remove pictures
+
   const removeImage = () => {
     if (formData.imagePreview) {
       URL.revokeObjectURL(formData.imagePreview);
@@ -256,7 +278,8 @@ export const CreateNFT: React.FC = () => {
     }));
   };
 
-  // 重置表单
+  // Reset the form
+
   const resetForm = () => {
     if (formData.imagePreview) {
       URL.revokeObjectURL(formData.imagePreview);
@@ -268,7 +291,8 @@ export const CreateNFT: React.FC = () => {
     setUploadProgress('');
   };
 
-  // 自动生成示例数据
+  // Automatically generate sample data
+
   const fillExampleData = () => {
     setFormData({
       title: '绿色出行记录',
@@ -279,7 +303,8 @@ export const CreateNFT: React.FC = () => {
     });
   };
 
-  // 检查是否需要授权
+  // Check if authorization is required
+
   const needsApproval = () => {
     if (!fee) {
       console.log('needsApproval: fee为0，返回false');
@@ -301,14 +326,16 @@ export const CreateNFT: React.FC = () => {
     return !hasAllowance;
   };
 
-  // 检查是否有足够余额
+  // Check if there is sufficient balance
+
   const hasInsufficientBalance = () => {
     if (!fee) return false;
     const feeAmount = parseEther(fee.toString());
     return !hasEnoughBalance(feeAmount);
   };
 
-  // 执行授权
+  // Execute authorization
+
   const executeApprove = (mintData: typeof pendingMintData) => {
     console.log('开始授权流程...');
     setCurrentStep('approving');
@@ -318,7 +345,8 @@ export const CreateNFT: React.FC = () => {
     approveAmount(approveAmountValue);
   };
 
-  // 处理表单提交
+  // Process form submission
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -332,7 +360,8 @@ export const CreateNFT: React.FC = () => {
       return;
     }
 
-    // 检查ETH余额是否足够支付Gas费
+    // Check if the eth balance is sufficient to pay the gas fee
+
     if (hasInsufficientETH()) {
       alert(`ETH余额不足！\n\n当前余额: ${balance?.formatted || '0'} ETH\n建议余额: 至少 0.002 ETH\n\n请充值ETH到您的钱包以支付交易的Gas费。`);
       return;
@@ -352,11 +381,13 @@ export const CreateNFT: React.FC = () => {
       setCurrentStep('uploading');
       setUploadProgress('正在上传图片到IPFS...');
 
-      // 1. 上传图片到IPFS
+      // 1. Upload the image to IPFS
+
       const imageUrl = await uploadFileToIPFS(formData.imageFile);
       setUploadProgress('正在生成元数据...');
 
-      // 2. 生成NFT元数据
+      // 2. Generate NFT metadata
+
       const metadata = generateNFTMetadata(
         formData.title,
         formData.storyDetails,
@@ -367,7 +398,8 @@ export const CreateNFT: React.FC = () => {
 
       setUploadProgress('正在上传元数据到IPFS...');
 
-      // 3. 上传元数据到IPFS
+      // 3. Upload metadata to IPFS
+
       const tokenURI = await uploadMetadataToIPFS(metadata);
       console.log('元数据上传完成，tokenURI:', tokenURI);
       setUploadProgress('上传完成，准备创建NFT...');
@@ -381,17 +413,20 @@ export const CreateNFT: React.FC = () => {
 
       console.log('准备提交NFT申请，mintData:', mintData);
 
-      // 4. 检查是否需要授权
+      // 4. Check whether authorization is required
+
       if (needsApproval()) {
         console.log('需要授权，开始授权流程...');
         executeApprove(mintData);
       } else {
         console.log('无需授权，直接提交申请...');
-        // 直接提交申请
+        // Submit the application directly
+
         setCurrentStep('minting');
         setUploadProgress('正在提交NFT铸造申请...');
         
-        // 添加详细的预检查
+        // Add detailed pre-check
+
         console.log('=== 交易预检查开始 ===');
         console.log('1. 网络状态检查:', {
           isConnected,
@@ -418,7 +453,8 @@ export const CreateNFT: React.FC = () => {
           feeRequired: fee
         });
         
-        // 检查钱包是否真正连接
+        // Check if the wallet is actually connected
+
         if (typeof window !== 'undefined' && (window as any).ethereum) {
           console.log('4. 钱包状态检查:', {
             isMetaMask: (window as any).ethereum.isMetaMask,
@@ -430,8 +466,9 @@ export const CreateNFT: React.FC = () => {
         
         console.log('=== 交易预检查结束 ===');
         
-        // 添加合约连接测试
-        // 简单的连接状态记录（不阻塞主流程）
+        // Add a contract connection test
+        // Simple connection status record (no blocking the main process)
+
         console.log('=== 开始NFT申请流程 ===');
         console.log('钱包连接状态:', isConnected ? '已连接' : '未连接');
         console.log('当前账户:', address || '未知');
@@ -445,11 +482,13 @@ export const CreateNFT: React.FC = () => {
         });
         
         try {
-          // 在调用requestMint之前，检查MetaMask是否有待确认的交易
+          // Before calling request mint, check if there is a transaction to be confirmed by meta mask
+
           if ((window as any).ethereum) {
             console.log('检查MetaMask是否有待确认的交易...');
             try {
-              // 尝试获取pending的交易数量
+              // Try to get the number of transactions pending
+
               const pendingTxCount = await (window as any).ethereum.request({
                 method: 'eth_getTransactionCount',
                 params: [address, 'pending']
@@ -475,11 +514,13 @@ export const CreateNFT: React.FC = () => {
             mintData.tokenURI
           );
           
-          // 设置一个定时器来提醒用户检查MetaMask
+          // Set a timer to remind the user to check the meta mask
+
           setTimeout(() => {
             if (currentStep === 'minting') {
               console.log('🔔 提醒：请检查MetaMask扩展是否有待确认的交易');
-              // 尝试主动获焦点到MetaMask
+              // Try to actively gain focus on meta mask
+
               if ((window as any).ethereum) {
                 (window as any).ethereum.request({ method: 'eth_requestAccounts' }).catch(() => {});
               }
@@ -501,14 +542,18 @@ export const CreateNFT: React.FC = () => {
     }
   };
 
-  // 检查ETH余额是否不足的函数
+  // Function that checks whether the eth balance is insufficient
+
   const hasInsufficientETH = () => {
-    if (!balance?.value) return true; // 没有余额数据时认为不足
+    if (!balance?.value) return true; // Deem insufficient when there is no balance data
+
     const ethBalance = parseFloat(balance.formatted);
-    return ethBalance < 0.002; // 如果ETH余额小于0.002认为不足
+    return ethBalance < 0.002; // If the eth balance is less than 0.002, it is considered insufficient
+
   };
 
-  // 获取按钮文本
+  // Get button text
+
   const getButtonText = () => {
     if (!isConnected) return t('createNFT.buttons.connectWallet', '请先连接钱包');
     if (!isFormValid) return t('createNFT.buttons.fillCompleteInfo', '请填写完整信息');
@@ -518,16 +563,19 @@ export const CreateNFT: React.FC = () => {
     if (currentStep === 'uploading') return t('createNFT.buttons.uploading', '上传中...');
     if (currentStep === 'approving') return t('createNFT.buttons.authorizing', '授权中...');
     if (currentStep === 'minting') return t('createNFT.buttons.submittingApplication', '提交申请中...');
-    // 如果有交易hash但还在等待确认
+    // If there is a transaction hash but is still waiting for confirmation
+
     if (mintHash && !mintConfirmed) return t('createNFT.buttons.waitingConfirmation', '等待区块链确认...');
     return t('createNFT.buttons.submitNFTApplication', '提交NFT铸造申请 (需支付 {fee} CARB)', { fee: fee.toString() });
   };
 
-  // 获取按钮状态
+  // Get button status
+
   const getButtonDisabled = () => {
     return !isConnected || !isFormValid || hasInsufficientETH() || hasInsufficientBalance() || 
            currentStep === 'uploading' || currentStep === 'approving' || currentStep === 'minting' ||
-           (mintHash && !mintConfirmed); // 如果有交易但未确认，也禁用按钮
+           (mintHash && !mintConfirmed); // If there is a transaction but is not confirmed, also disable the button
+
   };
 
   return (
@@ -537,7 +585,7 @@ export const CreateNFT: React.FC = () => {
           {t('createNFT.title', '创建绿色NFT')}
         </h2>
         
-        {/* 状态信息 */}
+        {/* Status information */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -594,7 +642,7 @@ export const CreateNFT: React.FC = () => {
                 {hasInsufficientETH() ? t('createNFT.ethInsufficient', 'ETH不足') : t('createNFT.ethSufficient', 'ETH充足')}
               </span>
             </div>
-            {/* 调试信息 */}
+            {/* Debugging information */}
             {process.env.NODE_ENV === 'development' && (
               <div className="col-span-2 mt-2 pt-2 border-t border-gray-200">
                 <div className="text-xs text-gray-500 space-y-1">
@@ -607,7 +655,7 @@ export const CreateNFT: React.FC = () => {
             )}
           </div>
           
-          {/* 调试信息 - 开发环境且查询失败时显示 */}
+          {/* Debugging information -Displayed when the development environment fails */}
           {process.env.NODE_ENV === 'development' && !isLoadingBalance && tokenBalance === undefined ? (
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="text-xs text-gray-500 space-y-1">
@@ -622,9 +670,9 @@ export const CreateNFT: React.FC = () => {
 
 
 
-        {/* 创建表单 */}
+        {/* Create a form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* NFT标题 */}
+          {/* Nft title */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               {t('createNFT.form.nftTitle', 'NFT标题 *')}
@@ -640,7 +688,7 @@ export const CreateNFT: React.FC = () => {
             />
           </div>
 
-          {/* 环保行为详情 */}
+          {/* Environmental protection behavior details */}
           <div>
             <label htmlFor="storyDetails" className="block text-sm font-medium text-gray-700 mb-2">
               {t('createNFT.form.environmentalDetails', '环保行为详情 *')}
@@ -656,7 +704,7 @@ export const CreateNFT: React.FC = () => {
             />
           </div>
 
-          {/* 碳减排量 */}
+          {/* Carbon emission reduction */}
           <div>
             <label htmlFor="carbonReduction" className="block text-sm font-medium text-gray-700 mb-2">
               {t('createNFT.form.carbonReduction', '碳减排量 (tCO₂e) *')}
@@ -674,13 +722,13 @@ export const CreateNFT: React.FC = () => {
             />
           </div>
 
-          {/* 图片上传 */}
+          {/* Image upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t('createNFT.form.environmentalImage', '环保行为图片 *')}
             </label>
             <div className="space-y-4">
-              {/* 图片预览 */}
+              {/* Picture preview */}
               {formData.imagePreview && (
                 <div className="relative">
                   <img
@@ -698,7 +746,7 @@ export const CreateNFT: React.FC = () => {
                 </div>
               )}
               
-              {/* 上传按钮 */}
+              {/* Upload button */}
               <div
                 onClick={triggerFileSelect}
                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
@@ -716,7 +764,7 @@ export const CreateNFT: React.FC = () => {
                 </p>
               </div>
               
-              {/* 隐藏的文件输入 */}
+              {/* Hide file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -727,7 +775,7 @@ export const CreateNFT: React.FC = () => {
             </div>
           </div>
 
-          {/* 操作按钮 */}
+          {/* Operation button */}
           <div className="flex space-x-4">
             <button
               type="button"
@@ -743,7 +791,7 @@ export const CreateNFT: React.FC = () => {
             >
               {t('createNFT.buttons.reset', '重置')}
             </button>
-            {/* 调试按钮 - 仅开发环境显示 */}
+            {/* Debug button -only display in development environment */}
             {process.env.NODE_ENV === 'development' && (
               <button
                 type="button"
@@ -755,7 +803,8 @@ export const CreateNFT: React.FC = () => {
                   try {
                     console.log('🧪 开始合约连接测试...');
                     
-                    // 测试1: 检查网络连接
+                    // Test 1: Check the network connection
+
                     console.log('📡 测试网络连接...');
                     const networkTest = {
                       网络链ID: chainId?.toString(),
@@ -765,7 +814,8 @@ export const CreateNFT: React.FC = () => {
                     };
                     console.log('✅ 网络测试结果:', networkTest);
                     
-                    // 测试2: 检查合约状态
+                    // Test 2: Check the contract status
+
                     console.log('🔗 测试合约状态...');
                     const contractTest = {
                       合约地址: '0x141B2c6Df6AE9863f1cD8FC4624d165209b9c18c',
@@ -774,11 +824,13 @@ export const CreateNFT: React.FC = () => {
                     };
                     console.log('✅ 合约测试结果:', contractTest);
                     
-                    // 测试3: 检查网络延迟
+                    // Test 3: Check for network delays
+
                     console.log('⏱️ 测试网络延迟...');
                     const startTime = Date.now();
                     try {
-                      // 简单的网络测试 - 访问etherscan
+                      // Simple network testing -access etherscan
+
                       await fetch('https://sepolia.etherscan.io/');
                       const latency = Date.now() - startTime;
                       console.log('✅ 网络延迟测试:', `${latency}ms`);
@@ -786,7 +838,8 @@ export const CreateNFT: React.FC = () => {
                       console.log('⚠️ 网络延迟测试失败:', error);
                     }
                     
-                    // 生成测试报告
+                    // Generate a test report
+
                     const report = `🔍 合约连接测试报告
 
 📊 基本信息:
@@ -822,7 +875,7 @@ ${isConnected && tokenBalance && contractInitialized ?
             )}
           </div>
 
-          {/* 提交按钮 */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={getButtonDisabled()}
@@ -836,7 +889,7 @@ ${isConnected && tokenBalance && contractInitialized ?
           </button>
         </form>
 
-        {/* 上传进度 */}
+        {/* Upload progress */}
         {uploadProgress && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center">
@@ -846,7 +899,7 @@ ${isConnected && tokenBalance && contractInitialized ?
           </div>
         )}
 
-        {/* 交易状态 */}
+        {/* Transaction status */}
         {(approvePending || mintPending) && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center">
@@ -869,7 +922,7 @@ ${isConnected && tokenBalance && contractInitialized ?
           </div>
         )}
 
-        {/* 错误信息 */}
+        {/* error message */}
         {(approveError || mintError) && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="text-red-800">
@@ -878,14 +931,14 @@ ${isConnected && tokenBalance && contractInitialized ?
           </div>
         )}
 
-        {/* 成功弹窗 */}
+        {/* Success pop-up window */}
         {showSuccessModal && (
           <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-lg w-full mx-4 overflow-hidden relative">
-              {/* 装饰性顶部渐变 */}
+              {/* Decorative top gradient */}
               <div className="h-1 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600"></div>
               
-              {/* 关闭按钮 */}
+              {/* Close button */}
               <button
                 onClick={() => setShowSuccessModal(false)}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 hover:bg-white/90 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all duration-200 backdrop-blur-sm shadow-lg"
@@ -895,22 +948,22 @@ ${isConnected && tokenBalance && contractInitialized ?
 
               <div className="p-8">
                 <div className="text-center">
-                  {/* 成功图标 - 添加动画和渐变 */}
+                  {/* Success Icon -Add animation and gradient */}
                   <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-pulse">
                     <div className="text-white text-3xl">✅</div>
                   </div>
                   
-                  {/* 标题 - 添加渐变文字 */}
+                  {/* Title -Add gradient text */}
                   <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600 bg-clip-text text-transparent mb-3">
                     {t('createNFT.success.title', '🎉 申请提交成功！')}
                   </h2>
                   
-                  {/* 描述 */}
+                  {/* describe */}
                   <p className="text-gray-600 mb-6 leading-relaxed">
                     {t('createNFT.success.description', '您的NFT申请已成功提交到区块链并进入审核队列')}
                   </p>
                   
-                  {/* 交易信息卡片 */}
+                  {/* Transaction information card */}
                   <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/60 backdrop-blur-sm rounded-xl p-4 mb-6 border border-blue-200/30">
                     <div className="text-sm">
                       <div className="font-semibold text-blue-800 mb-2">{t('createNFT.success.transactionDetails', '📋 交易详情')}</div>
@@ -929,7 +982,7 @@ ${isConnected && tokenBalance && contractInitialized ?
                     </div>
                   </div>
                   
-                  {/* 费用说明卡片 */}
+                  {/* Cost description card */}
                   <div className="bg-gradient-to-br from-amber-50/80 to-yellow-50/60 backdrop-blur-sm rounded-xl p-5 mb-6 border border-amber-200/30">
                     <h3 className="font-bold text-amber-800 mb-3 flex items-center justify-center">
                       <span className="w-6 h-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center mr-2">
@@ -958,7 +1011,7 @@ ${isConnected && tokenBalance && contractInitialized ?
                     </div>
                   </div>
                   
-                  {/* 流程指引卡片 */}
+                  {/* Process guidance card */}
                   <div className="bg-gradient-to-br from-blue-50/80 to-cyan-50/60 backdrop-blur-sm rounded-xl p-5 mb-6 border border-blue-200/30">
                     <h3 className="font-bold text-blue-800 mb-3 flex items-center justify-center">
                       <span className="w-6 h-6 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center mr-2">
@@ -991,7 +1044,7 @@ ${isConnected && tokenBalance && contractInitialized ?
                     </div>
                   </div>
                   
-                  {/* 温馨提示 */}
+                  {/* Kind tips */}
                   <div className="bg-gradient-to-br from-green-50/80 to-emerald-50/60 backdrop-blur-sm rounded-xl p-4 mb-6 border border-green-200/30">
                     <p className="text-green-800 text-sm leading-relaxed">
                       <span className="font-semibold">🌱 温馨提示：</span>
@@ -1000,12 +1053,13 @@ ${isConnected && tokenBalance && contractInitialized ?
                     </p>
                   </div>
                   
-                  {/* 按钮组 */}
+                  {/* Button group */}
                   <div className="flex space-x-4">
                     <button
                       onClick={() => {
                         setShowSuccessModal(false);
-                        // 重置表单
+                        // Reset the form
+
                         setFormData(initialFormData);
                       }}
                       className="flex-1 px-6 py-3 text-gray-700 bg-white/70 backdrop-blur-sm border border-gray-300/50 rounded-xl hover:bg-white/80 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
@@ -1015,9 +1069,11 @@ ${isConnected && tokenBalance && contractInitialized ?
                     <button
                       onClick={() => {
                         setShowSuccessModal(false);
-                        // 重置表单
+                        // Reset the form
+
                         setFormData(initialFormData);
-                        // 跳转到创建记录页面，并触发自动刷新
+                        // Jump to the Create Record page and trigger automatic refresh
+
                         router.push(`/created/${language}?from=create&refresh=true`);
                       }}
                       className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"

@@ -4,14 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { formatTokenAmount } from '@/utils/tokenUtils';
 import { formatTimestamp } from '@/utils/timeUtils';
 
-// NFT信息显示组件
+// Nft information display component
+
 export const NFTInfoSection: React.FC<{ 
   nftTokenId: string; 
   auditedValue?: string; 
   tokenURI?: string;
   className?: string;
   theme?: 'blue' | 'purple';
-  nftExists?: boolean; // 可选：NFT是否存在的预检查结果
+  nftExists?: boolean; // Optional: Pre-check results of whether nft exists
+
 }> = ({ nftTokenId, tokenURI, className = '', theme = 'purple', nftExists }) => {
   const [nftInfo, setNftInfo] = useState<{
     storyTitle: string;
@@ -24,7 +26,8 @@ export const NFTInfoSection: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取主题样式类名
+  // Get the theme style class name
+
   const getThemeClasses = () => {
     if (theme === 'blue') {
       return {
@@ -67,7 +70,8 @@ export const NFTInfoSection: React.FC<{
         setLoading(true);
         setError(null);
 
-        // 如果预检查显示NFT不存在，直接设置错误状态
+        // If the pre-check shows that nft does not exist, set the error status directly
+
         if (nftExists === false) {
           setError('NFT_NOT_EXISTS');
           return;
@@ -77,10 +81,12 @@ export const NFTInfoSection: React.FC<{
         const { config } = await import('@/lib/wagmi');
         const { CONTRACT_ADDRESSES } = await import('@/contracts/addresses');
 
-        // 获取NFT合约地址
+        // Get the nft contract address
+
         const nftAddress = CONTRACT_ADDRESSES.sepolia.NFT as `0x${string}`;
 
-        // NFT合约ABI中的getStoryMeta函数
+        // get story meta function in Nft contract abi
+
         const nftABI = [
           {
             name: 'getStoryMeta',
@@ -137,7 +143,8 @@ export const NFTInfoSection: React.FC<{
         console.error('获取NFT信息失败:', err);
         const errorMsg = err instanceof Error ? err.message : '获取NFT信息失败';
         
-        // 特殊处理NFT不存在的情况
+        // Special handling of the situation where nft does not exist
+
         if (errorMsg.includes('Token does not exist') || errorMsg.includes('reverted')) {
           setError('NFT_NOT_EXISTS');
         } else {
@@ -169,7 +176,8 @@ export const NFTInfoSection: React.FC<{
   }
 
   if (error) {
-    // 如果是NFT不存在，显示已兑换销毁状态
+    // If nft does not exist, it will be redeemed and destroyed.
+
     if (error === 'NFT_NOT_EXISTS') {
       return (
         <div className={`bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-200/30 shadow-sm ${className}`}>
@@ -179,7 +187,7 @@ export const NFTInfoSection: React.FC<{
           </div>
           
           <div className="space-y-4">
-            {/* 状态指示 */}
+            {/* Status Indications */}
             <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 border border-orange-200/50">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
@@ -207,7 +215,7 @@ export const NFTInfoSection: React.FC<{
               </div>
             </div>
 
-            {/* 说明信息 */}
+            {/* Description Information */}
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <div className="text-sm text-gray-700">
                 <div className="font-medium mb-2">ℹ️ 关于NFT兑换销毁</div>
@@ -224,7 +232,8 @@ export const NFTInfoSection: React.FC<{
       );
     }
 
-    // 其他错误情况
+    // Other error situations
+
     return (
       <div className={`${themeClasses.background} rounded-xl p-6 ${themeClasses.border} shadow-sm ${className}`}>
         <div className="flex items-center space-x-2 mb-4">
@@ -246,7 +255,7 @@ export const NFTInfoSection: React.FC<{
       </div>
       
       <div className="space-y-6">
-        {/* 基本信息 */}
+        {/* Basic information */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <span className={`${themeClasses.label} font-medium text-sm`}>NFT Token ID</span>
@@ -262,7 +271,7 @@ export const NFTInfoSection: React.FC<{
           </div>
         </div>
 
-        {/* NFT故事信息 */}
+        {/* Nft Story Information */}
         {nftInfo && (
           <>
             <div className="space-y-1">
@@ -277,7 +286,7 @@ export const NFTInfoSection: React.FC<{
               </div>
             </div>
 
-            {/* 价值信息 */}
+            {/* Value information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <span className={`${themeClasses.label} font-medium text-sm`}>碳减排量</span>
@@ -307,7 +316,7 @@ export const NFTInfoSection: React.FC<{
               </div>
             </div>
 
-            {/* 时间信息 */}
+            {/* Time information */}
             <div className="space-y-1">
               <span className={`${themeClasses.label} font-medium text-sm`}>铸造时间</span>
               <div className="text-gray-800 font-semibold">{nftInfo.createTime}</div>
@@ -315,7 +324,7 @@ export const NFTInfoSection: React.FC<{
           </>
         )}
 
-        {/* 元数据URI */}
+        {/* Metadata uri */}
         {tokenURI && (
           <div className="space-y-1">
             <span className={`${themeClasses.label} font-medium text-sm`}>元数据URI</span>
@@ -325,7 +334,7 @@ export const NFTInfoSection: React.FC<{
           </div>
         )}
 
-        {/* 外部链接按钮 */}
+        {/* External link button */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <a
             href={`https://sepolia.etherscan.io/token/0x3456a42043955B1626F6353936c0FEfCd1cB5f1c?a=${nftTokenId}`}
@@ -350,7 +359,7 @@ export const NFTInfoSection: React.FC<{
           </a>
         </div>
 
-        {/* 恭喜信息 */}
+        {/* Congratulations message */}
         <div className={`${themeClasses.congratsBg} rounded-lg p-4 border ${themeClasses.congratsBorder}`}>
           <div className={`flex items-center space-x-2 ${themeClasses.congratsTitle} mb-2`}>
             <span className="text-lg">🌟</span>

@@ -8,14 +8,14 @@ import { useTranslation } from '@/hooks/useI18n';
 
 import { AuditRequest } from '@/hooks/useAuditData';
 
-// 审计表单组件Props
+// Audit form component props
 interface AuditFormProps {
   request: AuditRequest;
   onClose: () => void;
   onComplete: () => void;
 }
 
-// 审计表单组件
+// Audit Form Components
 export const AuditForm: React.FC<AuditFormProps> = ({ 
   request, 
   onClose, 
@@ -26,7 +26,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
   const [auditReason, setAuditReason] = useState('');
   const [isApproved, setIsApproved] = useState(true);
   
-  // 提交审计结果
+  // Submit audit results
   const { 
     submitMintAudit, 
     isPending, 
@@ -35,21 +35,21 @@ export const AuditForm: React.FC<AuditFormProps> = ({
     error 
   } = useSubmitMintAudit();
 
-  // 处理提交审计
+  // Process Submit Audit
   const handleSubmitAudit = async () => {
     if (!auditReason.trim()) {
       alert(t('audit.form.fillAuditComment', '请填写审计意见'));
       return;
     }
 
-    // 验证碳减排量输入格式
+    // Verify the carbon emission reduction input format
     if (isApproved && !isValidTokenAmount(auditedCarbonReduction)) {
       alert(t('audit.form.validCarbonReduction', '请输入有效的碳减排量（支持最多18位小数）'));
       return;
     }
 
     try {
-      // 如果拒绝，碳价值设为0；如果通过，使用审计员输入的值
+      // If rejected, set the carbon value to 0; if passed, use the value entered by the auditor
       const carbonValue = isApproved ? parseTokenAmount(auditedCarbonReduction) : BigInt(0);
       
       console.log('提交审计结果:', {
@@ -71,34 +71,34 @@ export const AuditForm: React.FC<AuditFormProps> = ({
     }
   };
 
-  // 处理审计决定变化
+  // Handle audit decision changes
   const handleAuditDecisionChange = (approved: boolean) => {
     setIsApproved(approved);
     if (!approved) {
-      // 如果拒绝，将碳减排量设为0
+      // If rejected, set the carbon emission reduction to 0
       setAuditedCarbonReduction('0');
     } else {
-      // 如果通过，恢复为原始申请量
+      // If passed, restore to the original application volume
       setAuditedCarbonReduction(request.carbonReduction);
     }
   };
 
-  // 监听交易确认
+  // Listen to transaction confirmation
   React.useEffect(() => {
     if (isConfirmed) {
       onComplete();
     }
   }, [isConfirmed, onComplete]);
 
-  // 使用统一的时间格式化工具
+  // Use a unified time formatting tool
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/50 to-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ top: 0, left: 0, right: 0, bottom: 0, position: 'fixed' }}>
       <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 max-w-5xl w-full max-h-[90vh] overflow-hidden">
-        {/* 装饰性顶部渐变条 */}
+        {/* Decorative top gradient bar */}
         <div className="h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"></div>
         
-        {/* 标题栏 */}
+        {/* Title bar */}
         <div className="flex justify-between items-center p-6 bg-gradient-to-r from-white/90 to-gray-50/80 border-b border-gray-200/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -123,10 +123,10 @@ export const AuditForm: React.FC<AuditFormProps> = ({
           </button>
         </div>
 
-        {/* 滚动内容区域 */}
+        {/* Scroll content area */}
         <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
           <div className="p-6 space-y-6 bg-gradient-to-br from-white/90 via-gray-50/50 to-white/80">
-            {/* 申请详情 */}
+            {/* Application details */}
             <div className="bg-gradient-to-br from-white/80 to-gray-50/60 rounded-xl p-6 border border-gray-200/50 shadow-sm backdrop-blur-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center mr-2">
@@ -203,7 +203,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
               </div>
             </div>
 
-            {/* 审计表单 */}
+            {/* Audit form */}
             <div className="bg-gradient-to-br from-white/80 to-blue-50/60 rounded-xl p-6 border border-blue-200/50 shadow-sm backdrop-blur-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-6 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center mr-2">
@@ -212,7 +212,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 {t('audit.form.auditDecision', '审计决策')}
               </h3>
               
-              {/* 审计决定 */}
+              {/* Audit decision */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t('audit.form.auditDecision', '审计决定')} *
@@ -259,7 +259,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
               </div>
 
-              {/* 审计后的碳减排量 */}
+              {/* Audited carbon emission reduction */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t('audit.form.auditedCarbonReduction', '审计后的碳减排量')} (tCO₂e) *
@@ -291,7 +291,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </p>
               </div>
 
-              {/* 审计意见 */}
+              {/* Audit opinion */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {t('audit.form.auditComment', '审计意见')} *
@@ -311,7 +311,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </p>
               </div>
 
-              {/* 错误信息 */}
+              {/* error message */}
               {error && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200/50 rounded-xl shadow-inner backdrop-blur-sm">
                   <div className="flex items-start">
@@ -324,7 +324,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                 </div>
               )}
 
-              {/* 操作按钮 */}
+              {/* Operation button */}
               <div className="flex justify-end gap-4 pt-4 border-t border-gray-200/50">
                 <button
                   onClick={onClose}

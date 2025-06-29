@@ -5,22 +5,25 @@ import { useAdminData } from '@/hooks/useAdminData';
 import { useAuditDetails } from '@/hooks/useAuditDetails';
 import { formatContractTimestamp } from '@/utils/formatUtils';
 import { useTranslation } from '@/hooks/useI18n';
-import { formatEther } from 'viem';
+import { formatEther, parseUnits } from 'viem';
 
-// 审计状态映射
+// Audit status mapping
+
 const getAuditStatusMap = (t: any) => ({
   0: { label: t('audit.status.pending'), color: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
   1: { label: t('audit.status.approved'), color: 'bg-green-100 text-green-800', icon: '✅' },
   2: { label: t('audit.status.rejected'), color: 'bg-red-100 text-red-800', icon: '❌' },
 });
 
-// 审计类型映射
+// Audit type mapping
+
 const getAuditTypeMap = (t: any) => ({
   0: { label: t('admin.auditDataManagement.mintAudits'), color: 'bg-blue-100 text-blue-800', icon: '🔨' },
   1: { label: t('admin.auditDataManagement.exchangeAudits'), color: 'bg-green-100 text-green-800', icon: '💰' },
 });
 
-// 标签页类型
+// Tag page type
+
 type TabType = 'pending' | 'mint' | 'cash' | 'all';
 
 interface TabConfig {
@@ -31,16 +34,14 @@ interface TabConfig {
 }
 
 /**
- * 审计数据管理组件
- * @description 查看和管理所有审计记录，支持按类型和状态筛选
+ * Audit Data Management Component
+ * @description View and manage all audit records, support filtering by type and status
  */
 export const AuditDataManagement: React.FC = () => {
   const { t, language } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
-  const [selectedAudit, setSelectedAudit] = useState<string | null>(null);
 
   const {
-    systemStats,
     pendingMintAudits,
     pendingCashAudits,
     allAuditedMintRequests,
@@ -49,13 +50,13 @@ export const AuditDataManagement: React.FC = () => {
     pendingCashLoading,
     auditedMintLoading,
     auditedCashLoading,
-    isAuditor,
     refetchAll,
   } = useAdminData();
 
-  const { getAuditDetails, auditDetailsCache, loadingDetails } = useAuditDetails();
+  const { getAuditDetails, auditDetailsCache } = useAuditDetails();
 
-  // 构建标签页配置
+  // Build tab configuration
+
   const tabs: TabConfig[] = [
     {
       id: 'pending',
@@ -83,11 +84,13 @@ export const AuditDataManagement: React.FC = () => {
     },
   ];
 
-  // 获取状态和类型映射
+  // Get state and type maps
+
   const auditStatusMap = getAuditStatusMap(t);
   const auditTypeMap = getAuditTypeMap(t);
 
-  // 获取当前标签页的数据
+  // Get the data of the current tab page
+
   const getCurrentTabData = () => {
     switch (activeTab) {
       case 'pending':
@@ -119,18 +122,19 @@ export const AuditDataManagement: React.FC = () => {
     }
   };
 
-  const { data: currentData, loading: currentLoading, type: currentType } = getCurrentTabData();
+  const { data: currentData, loading: currentLoading } = getCurrentTabData();
 
-  // 获取审计记录详情
+  // Get audit record details
+
   const handleViewDetails = (requestId: string) => {
-    setSelectedAudit(requestId);
     const isExchange = activeTab === 'cash' || 
       (activeTab === 'pending' && pendingCashAudits.some(id => id.toString() === requestId)) ||
       (activeTab === 'all' && allAuditedCashRequests.some(id => id.toString() === requestId));
     getAuditDetails(requestId, isExchange);
   };
 
-  // 渲染审计记录卡片
+  // Rendering audit record card
+
   const renderAuditCard = (requestId: bigint, index: number) => {
     const requestIdStr = requestId.toString();
     const isExchange = activeTab === 'cash' || 
@@ -138,8 +142,6 @@ export const AuditDataManagement: React.FC = () => {
       (activeTab === 'all' && allAuditedCashRequests.includes(requestId));
 
     const auditDetails = auditDetailsCache[requestIdStr];
-    const isPending = activeTab === 'pending' || 
-      (auditDetails && auditDetails.status === 0);
 
     return (
       <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -211,24 +213,24 @@ export const AuditDataManagement: React.FC = () => {
               <div>
                 <span className="text-gray-500">{t('audit.carbonReduction')}:</span>
                 <span className="ml-2">
-                  {formatEther(auditDetails.carbonReduction)} tCO₂e
+                  {formatEther(parseUnits(auditDetails.requestData.carbonReduction, 18))} tCO₂e
                 </span>
               </div>
               {auditDetails.status !== 0 && (
                 <div>
                   <span className="text-gray-500">{t('audit.auditedValue')}:</span>
                   <span className="ml-2">
-                    {formatEther(auditDetails.auditedValue)} tCO₂e
+                    {formatEther(parseUnits(auditDetails.carbonValue, 18))} tCO₂e
                   </span>
                 </div>
               )}
             </div>
 
-            {auditDetails.status !== 0 && auditDetails.comment && (
+            {auditDetails.status !== 0 && auditDetails.auditComment && (
               <div>
                 <span className="text-gray-500">{t('audit.auditComment')}:</span>
                 <div className="mt-1 p-2 bg-gray-50 rounded text-gray-700">
-                  {auditDetails.comment}
+                  {auditDetails.auditComment}
                 </div>
               </div>
             )}
@@ -240,13 +242,13 @@ export const AuditDataManagement: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* 页面标题 */}
+      {/* Page title */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.auditDataManagement.title')}</h2>
         <p className="text-gray-600">{t('admin.auditDataManagement.subtitle')}</p>
       </div>
 
-      {/* 标签页导航 */}
+      {/* Tag navigation */}
       <div className="mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2">
           <nav className="flex gap-1">
@@ -275,7 +277,7 @@ export const AuditDataManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 数据统计 */}
+      {/* Data statistics */}
       <div className="mb-6">
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="flex items-center justify-between">
@@ -301,7 +303,7 @@ export const AuditDataManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* 审计记录列表 */}
+      {/* List of audit records */}
       <div className="space-y-4">
         {currentLoading ? (
           <div className="text-center py-12">

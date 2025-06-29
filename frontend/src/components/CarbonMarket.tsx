@@ -15,21 +15,23 @@ import GreenTalesLiquidityPoolABI from '@/contracts/abi/GreenTalesLiquidityPool.
 import CarbonUSDTMarketABI from '@/contracts/abi/CarbonUSDTMarket.json'
 
 /**
- * 碳币市场主组件
- * 支持市价单和限价单交易
- * 集成新的CarbonUSDTMarket合约功能
+ * Carbon currency market master component
+ * Support market order and limit order trading
+ * Integrate new CarbonUSDTMarket contract functionality
  */
 export default function CarbonMarket() {
   const { t, language } = useTranslation()
   const [activeTab, setActiveTab] = useState<'market' | 'limit'>('market')
   const [orderType, setOrderType] = useState<'buy' | 'sell'>('buy')
   
-  // 市价单输入 - 双输入框
+  // Market price single input -double input box
+
   const [marketCarbonAmount, setMarketCarbonAmount] = useState('')
   const [marketUsdtAmount, setMarketUsdtAmount] = useState('')
   const [isCalculating, setIsCalculating] = useState(false)
   
-  // 手续费估算状态
+  // Processing fee estimation status
+
   const [swapEstimate, setSwapEstimate] = useState<{
     amountOut: string
     fee: string
@@ -37,15 +39,18 @@ export default function CarbonMarket() {
   } | null>(null)
   const [isEstimating, setIsEstimating] = useState(false)
   
-  // 限价单输入
+  // Limit order input
+
   const [limitAmount, setLimitAmount] = useState('')
   const [limitPrice, setLimitPrice] = useState('')
   
-  // 授权状态
+  // Authorization status
+
   const [isApprovingCarbon, setIsApprovingCarbon] = useState(false)
   const [isApprovingUsdt, setIsApprovingUsdt] = useState(false)
 
-  // 交易成功弹窗状态
+  // Transaction successful pop-up status
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState<{
     type: 'buy' | 'sell';
@@ -54,14 +59,16 @@ export default function CarbonMarket() {
     price: string;
   } | null>(null);
 
-  // 图表数据状态类型定义
+  // Chart data status type definition
+
   type PriceHistoryItem = {
     timestamp: number
     price: number
     volume: number
   }
 
-  // K线数据类型定义 - 适用于专业交易图表
+  // K-line data type definition -suitable for professional trading charts
+
   type CandlestickData = {
     timestamp: number
     open: number
@@ -86,7 +93,8 @@ export default function CarbonMarket() {
   }
 
   const [priceHistory, setPriceHistory] = useState<PriceHistoryItem[]>([])
-  const [candlestickData, setCandlestickData] = useState<CandlestickData[]>([]) // K线数据
+  const [candlestickData, setCandlestickData] = useState<CandlestickData[]>([]) // K-line data
+
   const [orderBookData, setOrderBookData] = useState<OrderBookData>({
     buyOrders: [],
     sellOrders: [],
@@ -95,11 +103,15 @@ export default function CarbonMarket() {
     priceSpread: 0
   })
 
-  // 数据源类型切换状态
-  const [useRealData, setUseRealData] = useState(true) // false=模拟数据, true=真实数据 - 默认显示真实数据
-  const [useRealOrderBook, setUseRealOrderBook] = useState(true) // false=模拟订单簿, true=真实订单簿 - 默认显示真实订单
+  // Data source type switching status
 
-  // 获取hooks
+  const [useRealData, setUseRealData] = useState(true) // false=simulated data, true=real data -default display of real data
+
+  const [useRealOrderBook, setUseRealOrderBook] = useState(true) // false=Simulated order book, true=Real order book -default display of real order
+
+
+  // Get hooks
+
   const {
     isConnected,
     carbonBalance,
@@ -118,19 +130,23 @@ export default function CarbonMarket() {
     usdtTokenAddress,
   } = useCarbonUSDTMarket()
 
-  // 获取流动性池相关状态和函数
+  // Get liquidity pool related state and functions
+
   const {
     isLoading: isLiquidityPoolPending,
     isConnected: isLiquidityPoolConnected,
     swapCarbonToUsdt,
     swapUsdtToCarbon,
     liquidityPoolAddress,
-    poolData, // 获取池子数据，包含当前价格
-    getSwapEstimate, // 获取手续费估算
+    poolData, // Get pool data, including current price
+
+    getSwapEstimate, // Obtain a handling fee estimate
+
 
   } = useGreenTalesLiquidityPool()
 
-  // 添加状态用于存储合约数据和历史价格
+  // Added status to store contract data and historical prices
+
   const [contractPoolStats, setContractPoolStats] = useState<any>(null)
   const [realOrderBookData, setRealOrderBookData] = useState<OrderBookData>({
     buyOrders: [],
@@ -138,17 +154,20 @@ export default function CarbonMarket() {
     averageBuyPrice: 0,
     averageSellPrice: 0,
     priceSpread: 0
-  }) // 真实订单簿数据
+  }) // Real order book data
 
 
-  // 从本地存储加载真实价格历史
+
+  // Loading real price history from local storage
+
   const loadRealPriceHistory = useCallback(() => {
     try {
       const PRICE_CACHE_KEY = 'amm_price_history_real_data'
       const stored = localStorage.getItem(PRICE_CACHE_KEY)
       if (stored) {
         const parsedData = JSON.parse(stored)
-        // 只保留最近24小时的数据
+        // Only the last 24 hours of data are retained
+
         const now = Date.now()
         const oneDayAgo = now - (24 * 60 * 60 * 1000)
         const validData = parsedData.filter((item: PriceHistoryItem) => item.timestamp > oneDayAgo)
@@ -161,21 +180,25 @@ export default function CarbonMarket() {
     return []
   }, [])
 
-  // 保存真实价格数据到本地存储（按小时记录）
+  // Save real price data to local storage (recorded by hour)
+
   const saveRealPriceData = useCallback((price: number, volume: number = 0) => {
     const PRICE_CACHE_KEY = 'amm_price_history_real_data'
     const now = Date.now()
-    // 计算当前小时的起始时间戳（整点时间）
+    // Calculate the start timestamp of the current hour (everything time)
+
     const currentHour = Math.floor(now / (60 * 60 * 1000)) * (60 * 60 * 1000)
     
     const newPricePoint: PriceHistoryItem = {
-      timestamp: currentHour, // 使用整点时间作为时间戳
+      timestamp: currentHour, // Use the full time as the time stamp
+
       price: Number(price.toFixed(2)),
       volume: Number(volume.toFixed(0))
     }
 
     try {
-      // 从本地存储获取现有数据
+      // Get existing data from local storage
+
       const stored = localStorage.getItem(PRICE_CACHE_KEY)
       let existingData: PriceHistoryItem[] = []
       
@@ -183,22 +206,26 @@ export default function CarbonMarket() {
         existingData = JSON.parse(stored)
       }
       
-      // 查找当前小时是否已有数据点
+      // Find out if there are data points in the current hour
+
       const existingIndex = existingData.findIndex(item => item.timestamp === currentHour)
       
       let updated: PriceHistoryItem[]
       if (existingIndex >= 0) {
-        // 如果当前小时已有数据，更新该数据点
+        // If there is data in the current hour, update the data point
+
         updated = [...existingData]
         updated[existingIndex] = newPricePoint
         console.log('🔄 更新当前小时价格数据:', price, 'USDT，时间:', new Date(currentHour).toLocaleString())
       } else {
-        // 如果当前小时没有数据，添加新数据点
+        // If there is no data in the current hour, add a new data point
+
         updated = [...existingData, newPricePoint]
         console.log('➕ 添加新小时价格数据:', price, 'USDT，时间:', new Date(currentHour).toLocaleString())
       }
       
-      // 只保留最近24小时的数据
+      // Only the last 24 hours of data are retained
+
       const oneDayAgo = now - (24 * 60 * 60 * 1000)
       const validData = updated.filter(item => item.timestamp > oneDayAgo)
       
@@ -209,7 +236,8 @@ export default function CarbonMarket() {
     }
   }, [])
 
-  // 监听TokensSwapped事件 - 当有交易时立即记录价格
+  // Listen to TokensSwapped Events -Record prices immediately when there is a transaction
+
   useWatchContractEvent({
     address: liquidityPoolAddress as `0x${string}`,
     abi: GreenTalesLiquidityPoolABI.abi,
@@ -217,7 +245,8 @@ export default function CarbonMarket() {
     onLogs(logs) {
       console.log('🔥 检测到新的交易事件，立即记录当前价格:', logs.length, '笔交易')
       
-      // 当有新交易时，立即记录当前价格到缓存
+      // When there is a new transaction, record the current price to cache immediately
+
       if (useRealData) {
         const currentMarketPrice = Number(poolData?.currentPrice) || 88
         const volume = logs.reduce((total, log: any) => {
@@ -229,7 +258,8 @@ export default function CarbonMarket() {
         console.log('📊 交易触发价格更新:', currentMarketPrice, 'USDT，交易量:', volume.toFixed(2))
         saveRealPriceData(currentMarketPrice, volume)
         
-        // 触发价格历史更新
+        // Trigger price history update
+
         setTimeout(() => {
           generateRealPriceHistory()
         }, 500)
@@ -238,7 +268,8 @@ export default function CarbonMarket() {
     enabled: !!liquidityPoolAddress && useRealData,
   })
 
-  // 监听限价单事件 - 当有订单创建、成交、取消时更新订单簿
+  // Listen to limit order events -Update the order book when orders are created, sold, or canceled
+
   useWatchContractEvent({
     address: marketAddress as `0x${string}`,
     abi: CarbonUSDTMarketABI.abi,
@@ -284,12 +315,14 @@ export default function CarbonMarket() {
     enabled: !!marketAddress && useRealOrderBook,
   })
 
-  // 从合约获取实时数据的函数
+  // Functions to get real-time data from contracts
+
   const fetchContractData = useCallback(async () => {
     if (!liquidityPoolAddress) return
 
     try {
-      // 使用readContract获取合约数据
+      // Use read contract to get contract data
+
       const poolStatsResult = await readContract(config, {
         address: liquidityPoolAddress as `0x${string}`,
         abi: GreenTalesLiquidityPoolABI.abi,
@@ -300,7 +333,8 @@ export default function CarbonMarket() {
         poolStats: poolStatsResult
       })
 
-      // 将BigInt转换为可用的数据
+      // Convert big int to available data
+
       if (poolStatsResult) {
         const [totalCarbon, totalUsdt, totalLP, currentPrice, swapCount, totalVolume, totalFees, totalProviders] = poolStatsResult as any[]
         setContractPoolStats({
@@ -320,37 +354,44 @@ export default function CarbonMarket() {
     }
   }, [liquidityPoolAddress])
 
-  // 定时记录AMM市场价格（按小时）
+  // Regularly record the market price of amm (by hour)
+
   useEffect(() => {
     if (!useRealData) return
 
-    // 立即记录一次当前价格
+    // Record the current price immediately
+
     const currentMarketPrice = Number(poolData?.currentPrice) || 88
     if (currentMarketPrice > 0) {
       saveRealPriceData(currentMarketPrice, Number(contractPoolStats?.totalVolume) || 0)
     }
 
-    // 计算距离下一个整点的时间
+    // Calculate the time from the next hour
+
     const now = Date.now()
     const nextHour = Math.ceil(now / (60 * 60 * 1000)) * (60 * 60 * 1000)
     const timeToNextHour = nextHour - now
 
-    // 在下一个整点时开始定时记录
+    // Start timing recording at the next hour
+
     const initialTimeout = setTimeout(() => {
-      // 记录整点价格
+      // Record the price
+
       const marketPrice = Number(poolData?.currentPrice) || 88
       const volume = Number(contractPoolStats?.totalVolume) || 0
       console.log('⏰ 整点记录AMM市场价格:', marketPrice, 'USDT')
       saveRealPriceData(marketPrice, volume)
 
-      // 然后每小时记录一次
+      // Then record it once an hour
+
       const priceRecordInterval = setInterval(() => {
         const marketPrice = Number(poolData?.currentPrice) || 88
         const volume = Number(contractPoolStats?.totalVolume) || 0
         
         console.log('⏰ 每小时记录AMM市场价格:', marketPrice, 'USDT')
         saveRealPriceData(marketPrice, volume)
-      }, 60 * 60 * 1000) // 1小时 = 60 * 60 * 1000 毫秒
+      }, 60 * 60 * 1000) // 1 hour = 60 *60 *1000 milliseconds
+
 
       return () => {
         clearInterval(priceRecordInterval)
@@ -362,12 +403,14 @@ export default function CarbonMarket() {
     }
   }, [useRealData, poolData?.currentPrice, contractPoolStats?.totalVolume, saveRealPriceData])
 
-  // 从CarbonUSDTMarket合约获取真实订单簿数据
+  // Get real order book data from carbon usdt market contract
+
   const fetchRealOrderBookData = useCallback(async () => {
     if (!marketAddress || !useRealOrderBook) return
 
     try {
-      // 使用readContract获取订单簿数据
+      // Use read contract to get order book data
+
       const orderBookResult = await readContract(config, {
         address: marketAddress as `0x${string}`,
         abi: CarbonUSDTMarketABI.abi,
@@ -380,21 +423,30 @@ export default function CarbonMarket() {
       if (orderBookResult) {
         const [buyOrdersRaw, sellOrdersRaw] = orderBookResult as any[]
         
-        // 转换买单数据
-        const buyOrders: OrderItem[] = buyOrdersRaw.map((order: any) => ({
-          price: Number(formatUnits(order.price, 0)), // 价格已经是基础单位
-          amount: Number(formatUnits(order.remainingAmount, 18)), // 数量是18位精度
-          total: Number(formatUnits(order.remainingAmount, 18)) * Number(formatUnits(order.price, 0))
-        })).sort((a: OrderItem, b: OrderItem) => b.price - a.price) // 买单按价格从高到低排序
-        
-        // 转换卖单数据
-        const sellOrders: OrderItem[] = sellOrdersRaw.map((order: any) => ({
-          price: Number(formatUnits(order.price, 0)), // 价格已经是基础单位
-          amount: Number(formatUnits(order.remainingAmount, 18)), // 数量是18位精度
-          total: Number(formatUnits(order.remainingAmount, 18)) * Number(formatUnits(order.price, 0))
-        })).sort((a: OrderItem, b: OrderItem) => a.price - b.price) // 卖单按价格从低到高排序
+        // Convert paying data
 
-        // 计算平均价格和价差
+        const buyOrders: OrderItem[] = buyOrdersRaw.map((order: any) => ({
+          price: Number(formatUnits(order.price, 0)), // Price is already the basic unit
+
+          amount: Number(formatUnits(order.remainingAmount, 18)), // The quantity is 18 bit accuracy
+
+          total: Number(formatUnits(order.remainingAmount, 18)) * Number(formatUnits(order.price, 0))
+        })).sort((a: OrderItem, b: OrderItem) => b.price - a.price) // Pay orders sorted from high to low by price
+
+        
+        // Convert sell order data
+
+        const sellOrders: OrderItem[] = sellOrdersRaw.map((order: any) => ({
+          price: Number(formatUnits(order.price, 0)), // Price is already the basic unit
+
+          amount: Number(formatUnits(order.remainingAmount, 18)), // The quantity is 18 bit accuracy
+
+          total: Number(formatUnits(order.remainingAmount, 18)) * Number(formatUnits(order.price, 0))
+        })).sort((a: OrderItem, b: OrderItem) => a.price - b.price) // Sell ​​orders are sorted from low to high by price
+
+
+        // Calculate the average price and price difference
+
         const totalBuyValue = buyOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
         const totalBuyAmount = buyOrders.reduce((sum, order) => sum + order.amount, 0)
         const totalSellValue = sellOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
@@ -427,34 +479,42 @@ export default function CarbonMarket() {
     }
   }, [marketAddress, useRealOrderBook])
 
-  // 基于真实数据生成价格历史
+  // Generate price history based on real data
+
   const generateRealPriceHistory = useCallback(() => {
     if (!useRealData) return
 
     console.log('🔍 基于真实数据生成价格历史...')
     
-    // 加载真实价格历史
+    // Loading real price history
+
     const realData = loadRealPriceHistory()
     
     if (realData.length >= 5) {
-      // 如果有足够的真实数据，直接使用
+      // If there is enough real data, use it directly
+
       console.log('📈 使用真实价格历史，小时数:', realData.length)
       setPriceHistory(realData)
     } else {
-      // 如果真实数据不足，生成初始数据并开始收集
+      // If the real data is insufficient, generate initial data and start collecting
+
       console.log('📈 真实数据不足，生成初始估算数据并开始收集真实数据')
       
       const now = Date.now()
       const history: PriceHistoryItem[] = []
       const basePrice = Number(poolData?.currentPrice) || 88
-      const minPrice = 45 // 历史最低价
+      const minPrice = 45 // Historical lowest price
+
       
-      // 生成过去24小时的估算数据（每小时一个点）
-      for (let i = 23; i >= 0; i--) { // 每小时一个点，从23小时前到当前
+      // Generate estimates for the past 24 hours (one point per hour)
+
+      for (let i = 23; i >= 0; i--) { // One point per hour, from 23 hours ago to current
+
         const hourTimestamp = Math.floor((now - (i * 60 * 60 * 1000)) / (60 * 60 * 1000)) * (60 * 60 * 1000)
         const timeProgress = i / 24
         
-        // 价格恢复趋势
+        // Price recovery trend
+
         const recoveryFactor = Math.pow(1 - timeProgress, 1.8) * 0.48
         const marketNoise = (Math.random() - 0.5) * 0.03
         
@@ -470,16 +530,19 @@ export default function CarbonMarket() {
         })
       }
       
-      // 添加真实数据
+      // Add real data
+
       if (realData.length > 0) {
         history.push(...realData)
       }
       
-              // 按时间排序并去重（按小时去重）
+              // Sort by time and deduplicate (deduplicate by hour)
+
         const uniqueHistory = history
           .sort((a, b) => a.timestamp - b.timestamp)
           .filter((item, index, arr) => 
-            index === 0 || Math.abs(item.timestamp - arr[index - 1].timestamp) > 3600000 // 至少间隔1小时
+            index === 0 || Math.abs(item.timestamp - arr[index - 1].timestamp) > 3600000 // At least 1 hour interval
+
           )
       
       setPriceHistory(uniqueHistory)
@@ -487,36 +550,44 @@ export default function CarbonMarket() {
     }
   }, [useRealData, poolData?.currentPrice, loadRealPriceHistory])
 
-  // 初始化时加载真实数据
+  // Load real data during initialization
+
   useEffect(() => {
     if (useRealData) {
       loadRealPriceHistory()
     }
   }, [useRealData, loadRealPriceHistory])
 
-  // 获取代币授权状态
+  // Obtain the token authorization status
+
   const carbonApproval = useTokenApproval(carbonTokenAddress, marketAddress)
   const usdtApproval = useTokenApproval(usdtTokenAddress, marketAddress)
   const carbonApprovalLiquidity = useTokenApproval(carbonTokenAddress, liquidityPoolAddress)
   const usdtApprovalLiquidity = useTokenApproval(usdtTokenAddress, liquidityPoolAddress)
 
-  // 地址验证
+  // Address Verification
+
   const isValidAddress = (address: string) => {
     return address && address !== '0x' && address.length === 42
   }
 
   const isMarketReady = isValidAddress(marketAddress) && isValidAddress(carbonTokenAddress) && isValidAddress(usdtTokenAddress)
 
-  // 获取当前市场价格 - 优先使用流动性池价格，备选使用默认价格
+  // Get the current market price -Priority to liquidity pool prices, alternatively use the default price
+
   const currentPrice = poolData?.currentPrice || '88.00'
   
-  // 获取预言机参考价格 - 用于价格偏离检查
+  // Get oracle reference price -for price deviation check
+
   const referencePrice = poolData?.referencePrice || '88.00'
 
-  // 临时使用固定价格进行测试
-  const testPrice = '88.00' // 固定测试价格
+  // Temporary use of fixed prices for testing
 
-  // 调试信息
+  const testPrice = '88.00' // Fixed test price
+
+
+  // Debugging information
+
   console.log('价格调试信息:', {
     poolData,
     currentPrice,
@@ -529,26 +600,33 @@ export default function CarbonMarket() {
     poolDataValues: poolData ? Object.values(poolData) : 'poolData is null'
   })
 
-  // 检查流动性池连接状态
+  // Check the liquidity pool connection status
+
   console.log('流动性池状态:', {
     isLiquidityPoolConnected,
     isLiquidityPoolPending,
     liquidityPoolAddress
   })
 
-  // 模拟价格历史数据生成函数
+  // Simulated price historical data generation function
+
   const generatePriceHistory = useCallback((): PriceHistoryItem[] => {
     const now = Date.now()
     const history: PriceHistoryItem[] = []
     const basePrice = Number(currentPrice) || 88
     
-    // 生成过去24小时的价格数据，每15分钟一个数据点
+    // Generate price data for the past 24 hours, one data point every 15 minutes
+
     for (let i = 96; i >= 0; i--) {
-      const timestamp = now - (i * 15 * 60 * 1000) // 15分钟间隔
-      const randomVariation = (Math.random() - 0.5) * 4 // ±2的随机波动
-      const trendVariation = Math.sin(i / 10) * 2 // 添加趋势性波动
+      const timestamp = now - (i * 15 * 60 * 1000) // 15 minutes interval
+
+      const randomVariation = (Math.random() - 0.5) * 4 // Random fluctuations of ±2
+
+      const trendVariation = Math.sin(i / 10) * 2 // Add trend fluctuations
+
       const price = Math.max(0.1, basePrice + randomVariation + trendVariation)
-      const volume = Math.random() * 10000 + 1000 // 随机交易量
+      const volume = Math.random() * 10000 + 1000 // Random trading volume
+
       
       history.push({
         timestamp,
@@ -560,31 +638,36 @@ export default function CarbonMarket() {
     return history
   }, [currentPrice])
 
-  // 生成K线数据 - 将价格历史转换为专业K线格式
+  // Generate K-line data -Convert price history to professional K-line format
+
   const generateCandlestickData = useCallback((priceData: PriceHistoryItem[]): CandlestickData[] => {
     if (priceData.length === 0) return []
     
     const candlesticks: CandlestickData[] = []
     const basePrice = Number(currentPrice) || 88
     
-    // 按小时分组生成K线数据
+    // Generate k-line data by grouping by hours
+
     const hourlyGroups = new Map<number, PriceHistoryItem[]>()
     
     priceData.forEach(item => {
-      const hourKey = Math.floor(item.timestamp / (60 * 60 * 1000)) // 按小时分组
+      const hourKey = Math.floor(item.timestamp / (60 * 60 * 1000)) // Grouped by hour
+
       if (!hourlyGroups.has(hourKey)) {
         hourlyGroups.set(hourKey, [])
       }
       hourlyGroups.get(hourKey)!.push(item)
     })
     
-    // 为每个小时生成K线数据
+    // Generate k-line data for each hour
+
     Array.from(hourlyGroups.entries())
       .sort(([a], [b]) => a - b)
       .forEach(([hourKey, hourData]) => {
         if (hourData.length === 0) return
         
-        // 计算该小时的开盘、收盘、最高、最低价
+        // Calculate the opening, closing, highest and lowest prices of the hour
+
         const sortedByTime = hourData.sort((a, b) => a.timestamp - b.timestamp)
         const open = sortedByTime[0].price
         const close = sortedByTime[sortedByTime.length - 1].price
@@ -593,7 +676,8 @@ export default function CarbonMarket() {
         const volume = hourData.reduce((sum, d) => sum + d.volume, 0)
         
         candlesticks.push({
-          timestamp: hourKey * 60 * 60 * 1000, // 转回时间戳
+          timestamp: hourKey * 60 * 60 * 1000, // Turn back to timestamp
+
           open: Number(open.toFixed(2)),
           high: Number(high.toFixed(2)),
           low: Number(low.toFixed(2)),
@@ -602,22 +686,29 @@ export default function CarbonMarket() {
         })
       })
     
-    // 如果数据不足，生成模拟K线数据
+    // If the data is insufficient, generate simulated k-line data
+
     if (candlesticks.length < 24) {
       const now = Date.now()
       for (let i = 23; i >= 0; i--) {
-        const timestamp = now - (i * 60 * 60 * 1000) // 每小时
+        const timestamp = now - (i * 60 * 60 * 1000) // per hour
+
         const existingCandle = candlesticks.find(c => 
-          Math.abs(c.timestamp - timestamp) < 30 * 60 * 1000 // 30分钟容差
+          Math.abs(c.timestamp - timestamp) < 30 * 60 * 1000 // 30 minutes tolerance
+
         )
         
         if (!existingCandle) {
-          // 生成模拟K线数据
-          const baseVariation = (Math.random() - 0.5) * 6 // ±3的基础波动
-          const trendFactor = Math.sin(i / 8) * 2 // 趋势性变化
+          // Generate simulated k-line data
+
+          const baseVariation = (Math.random() - 0.5) * 6 // ±3 basic fluctuations
+
+          const trendFactor = Math.sin(i / 8) * 2 // Trend changes
+
           
           const open = Math.max(1, basePrice + baseVariation + trendFactor)
-          const volatility = Math.random() * 2 + 0.5 // 0.5-2.5的波动率
+          const volatility = Math.random() * 2 + 0.5 // 0.5 2.5 volatility
+
           const high = open + Math.random() * volatility
           const low = open - Math.random() * volatility
           const closeVariation = (Math.random() - 0.5) * volatility
@@ -638,18 +729,21 @@ export default function CarbonMarket() {
     return candlesticks.sort((a, b) => a.timestamp - b.timestamp)
   }, [currentPrice])
 
-  // 当价格历史更新时，生成对应的K线数据
+  // When the price history is updated, the corresponding k-line data is generated
+
   useEffect(() => {
     if (priceHistory.length > 0) {
       setCandlestickData(generateCandlestickData(priceHistory))
     }
   }, [priceHistory, generateCandlestickData])
 
-  // 模拟订单簿数据生成函数
+  // Simulate order book data generation function
+
   const generateOrderBookData = useCallback((): OrderBookData => {
     const basePrice = Number(currentPrice) || 88
     
-    // 生成买单（价格递减）
+    // Generate a pay order (decreasing price)
+
     const buyOrders: OrderItem[] = []
     let totalBuyAmount = 0
     for (let i = 0; i < 10; i++) {
@@ -663,7 +757,8 @@ export default function CarbonMarket() {
       })
     }
     
-    // 生成卖单（价格递增）
+    // Generate a sell order (increasing price)
+
     const sellOrders: OrderItem[] = []
     let totalSellAmount = 0
     for (let i = 0; i < 10; i++) {
@@ -677,7 +772,8 @@ export default function CarbonMarket() {
       })
     }
     
-    // 计算平均价格
+    // Calculate the average price
+
     const totalBuyValue = buyOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
     const totalSellValue = sellOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
     const averageBuyPrice = totalBuyValue / totalBuyAmount
@@ -693,52 +789,66 @@ export default function CarbonMarket() {
     }
   }, [currentPrice])
 
-  // 初始化图表数据
+  // Initialize chart data
+
   useEffect(() => {
     const initializeData = async () => {
-      // 获取合约真实数据
+      // Obtain the real contract data
+
       await fetchContractData()
       
       if (useRealData) {
-        // 使用真实数据，调用专门的函数
+        // Use real data to call special functions
+
         generateRealPriceHistory()
       } else {
-        // 使用模拟数据
+        // Using simulation data
+
         setPriceHistory(generatePriceHistory())
       }
       
-      // 初始化订单簿数据
+      // Initialize order book data
+
       if (useRealOrderBook) {
-        // 获取真实订单簿数据
+        // Get real order book data
+
         await fetchRealOrderBookData()
       } else {
-        // 使用模拟订单簿数据
+        // Use mock order book data
+
         setOrderBookData(generateOrderBookData())
       }
     }
     
     initializeData()
-  }, [useRealData, useRealOrderBook, generateRealPriceHistory, currentPrice, poolData?.referencePrice, fetchContractData, generatePriceHistory, generateOrderBookData, fetchRealOrderBookData, generateCandlestickData]) // 包含所有依赖
+  }, [useRealData, useRealOrderBook, generateRealPriceHistory, currentPrice, poolData?.referencePrice, fetchContractData, generatePriceHistory, generateOrderBookData, fetchRealOrderBookData, generateCandlestickData]) // Includes all dependencies
 
-  // 基于事件的数据更新 - 不再使用定时器，保留订单簿的定时更新
+
+  // Event-based data updates -Timers are no longer used, keeping order book timed updates
+
   useEffect(() => {
-    // 订单簿数据定时更新（独立于价格历史）
+    // Order book data is updated regularly (independent of price history)
+
     const orderInterval = setInterval(() => {
       if (useRealOrderBook) {
-        // 使用真实订单簿数据
+        // Using real order book data
+
         fetchRealOrderBookData()
       } else {
-        // 使用模拟订单簿数据
+        // Use mock order book data
+
         setOrderBookData(generateOrderBookData())
       }
-    }, 10000) // 每10秒更新订单数据
+    }, 10000) // Update order data every 10 seconds
+
     
     return () => {
       clearInterval(orderInterval)
     }
   }, [generateOrderBookData, useRealOrderBook, fetchRealOrderBookData])
 
-  // 实时换算函数
+  // Real-time conversion function
+
   const calculateConversion = useCallback(async (inputType: 'carbon' | 'usdt', value: string) => {
     if (!value || isNaN(Number(value)) || Number(value) <= 0) {
       if (inputType === 'carbon') {
@@ -752,7 +862,8 @@ export default function CarbonMarket() {
       return
     }
 
-    // 检查价格是否有效，如果无效则使用测试价格
+    // Check if the price is valid, if it is invalid, use the test price
+
     let price = Number(currentPrice)
     if (isNaN(price) || price <= 0) {
       console.warn('使用测试价格:', testPrice)
@@ -764,15 +875,18 @@ export default function CarbonMarket() {
     
     try {
       if (inputType === 'carbon') {
-        // 用户输入碳币数量，计算对应的USDT数量
+        // The user enters the number of carbon coins and calculates the corresponding usdt number
+
         const carbonAmount = Number(value)
         const usdtAmount = carbonAmount * price
         setMarketCarbonAmount(value)
         setMarketUsdtAmount(usdtAmount.toFixed(6))
         
-        // 计算手续费（卖出碳币）- 用户输入的是要卖出的碳币数量
+        // Calculate the handling fee (sell carbon coins) -The user enters the number of carbon coins to be sold
+
         if (getSwapEstimate) {
           const estimate = await getSwapEstimate(value, true) // true = carbonToUsdt
+
           console.log('卖出碳币手续费估算:', {
             inputCarbon: value,
             estimate,
@@ -783,15 +897,18 @@ export default function CarbonMarket() {
           setSwapEstimate(estimate)
         }
       } else {
-        // 用户输入USDT数量，计算对应的碳币数量
+        // The user enters the usdt quantity to calculate the corresponding carbon coins
+
         const usdtAmount = Number(value)
         const carbonAmount = usdtAmount / price
         setMarketUsdtAmount(value)
         setMarketCarbonAmount(carbonAmount.toFixed(6))
         
-        // 计算手续费（买入碳币）- 用户输入的是要付出的USDT数量
+        // Calculate the handling fee (buy carbon coins) -The user enters the amount of USDT to be paid
+
         if (getSwapEstimate) {
           const estimate = await getSwapEstimate(value, false) // false = usdtToCarbon
+
           console.log('买入碳币手续费估算:', {
             inputUsdt: value,
             estimate,
@@ -811,14 +928,17 @@ export default function CarbonMarket() {
     }
   }, [currentPrice, testPrice, getSwapEstimate])
 
-  // 计算兑换后的新价格和偏差（基于AMM公式）
+  // Calculate the new price and deviation after redemption (based on the amm formula)
+
   const calculatePriceImpact = (amountIn: string, isCarbonToUsdt: boolean) => {
     if (!amountIn || isNaN(Number(amountIn)) || Number(amountIn) <= 0) return null
     
     try {
       const amountInNum = parseFloat(amountIn)
-      const currentCarbonBalance = parseFloat(poolData.carbonBalance || '1000000') // 默认100万
-      const currentUsdtBalance = parseFloat(poolData.usdtBalance || '88000000') // 默认8800万
+      const currentCarbonBalance = parseFloat(poolData.carbonBalance || '1000000') // Default 1 million
+
+      const currentUsdtBalance = parseFloat(poolData.usdtBalance || '88000000') // Default 88 million
+
       const currentPrice = parseFloat(poolData.currentPrice || '88.00')
       const referencePrice = parseFloat(poolData.referencePrice || '88.00')
       
@@ -827,45 +947,61 @@ export default function CarbonMarket() {
       let newPrice: number
       
       if (isCarbonToUsdt) {
-        // 碳币换USDT：用户输入碳币，池子碳币增加，USDT减少，价格下跌
-        // 使用精确的AMM公式：k = x * y
+        // Carbon coins for USDT: Users enter carbon coins, the pool carbon coins increase, USDT decreases, and the price falls
+        // Use exact AMM formula: k = x *y
+
         
-        // 计算实际兑换出的USDT数量（考虑手续费）
+        // Calculate the actual number of usdts redeemed (consider the handling fee)
+
         const amountOutBeforeFee = (amountInNum * currentUsdtBalance) / currentCarbonBalance
-        const feeRate = 0.003 // 0.3%手续费
+        const feeRate = 0.003 // 0.3% handling fee
+
         const fee = amountOutBeforeFee * feeRate
         const amountOutAfterFee = amountOutBeforeFee - fee
         
-        // 计算新的池子状态
-        const newCarbonBalance = currentCarbonBalance + amountInNum // 池子碳币增加
-        const newUsdtBalance = currentUsdtBalance - amountOutAfterFee // 池子USDT减少（扣除实际给用户的）
+        // Calculate the new pool state
+
+        const newCarbonBalance = currentCarbonBalance + amountInNum // Pool carbon coins increase
+
+        const newUsdtBalance = currentUsdtBalance - amountOutAfterFee // Pool usdt reduction (deducted actually to the user)
+
         
-        // 计算新价格
+        // Calculate the new price
+
         newPrice = newUsdtBalance / newCarbonBalance
       } else {
-        // USDT换碳币：用户输入USDT，池子USDT增加，碳币减少，价格上涨
+        // Usdt exchange carbon coins: User input usdt, pool usdt increases, carbon coins decreases, price increases
+
         
-        // 计算实际兑换出的碳币数量（考虑手续费）
+        // Calculate the actual amount of carbon coins redeemed (consider the handling fee)
+
         const amountOutBeforeFee = (amountInNum * currentCarbonBalance) / currentUsdtBalance
-        const feeRate = 0.003 // 0.3%手续费
+        const feeRate = 0.003 // 0.3% handling fee
+
         const fee = amountOutBeforeFee * feeRate
         const amountOutAfterFee = amountOutBeforeFee - fee
         
-        // 计算新的池子状态
-        const newUsdtBalance = currentUsdtBalance + amountInNum // 池子USDT增加
-        const newCarbonBalance = currentCarbonBalance - amountOutAfterFee // 池子碳币减少（扣除实际给用户的）
+        // Calculate the new pool state
+
+        const newUsdtBalance = currentUsdtBalance + amountInNum // Pool usdt increases
+
+        const newCarbonBalance = currentCarbonBalance - amountOutAfterFee // Pool carbon coins are reduced (deducted to users)
+
         
-        // 计算新价格
+        // Calculate the new price
+
         newPrice = newUsdtBalance / newCarbonBalance
       }
       
-      // 计算与参考价格的偏差
+      // Deviation between calculation and reference price
+
       const deviation = ((newPrice - referencePrice) / referencePrice) * 100
       
       return {
         newPrice: newPrice.toFixed(2),
         deviation: deviation.toFixed(2),
-        isDeviated: Math.abs(deviation) > (poolData.priceDeviationThreshold || 10) // 超过阈值认为偏离
+        isDeviated: Math.abs(deviation) > (poolData.priceDeviationThreshold || 10) // Deviation after exceeding the threshold
+
       }
     } catch (error) {
       console.error('计算价格影响失败:', error)
@@ -873,56 +1009,68 @@ export default function CarbonMarket() {
     }
   }
 
-  // 计算碳币换USDT的价格影响（卖出碳币）
+  // Calculate the price impact of carbon coins for usdt (sell carbon coins)
+
   const carbonToUsdtPriceImpact = calculatePriceImpact(marketCarbonAmount, true)
 
-  // 计算USDT换碳币的价格影响（买入碳币）
+  // Calculate the price impact of usdt exchange carbon coins (buy carbon coins)
+
   const usdtToCarbonPriceImpact = calculatePriceImpact(marketUsdtAmount, false)
 
-  // 处理碳币数量输入变化
+  // Process the input changes of carbon coins
+
   const handleCarbonAmountChange = (value: string) => {
     calculateConversion('carbon', value)
   }
 
-  // 处理USDT数量输入变化
+  // Process the usdt quantity input change
+
   const handleUsdtAmountChange = (value: string) => {
     calculateConversion('usdt', value)
   }
 
-  // 监听交易状态变化
+  // Listen to transaction status changes
+
   useEffect(() => {
     if (isConfirmed || isLiquidityPoolConnected) {
-      toast.dismiss() // 清除loading提示
+      toast.dismiss() // Clear loading prompt
+
       
-      // 根据交易类型显示不同的成功提示
+      // Show different success tips according to transaction type
+
       if (isLiquidityPoolConnected) {
-        // 市价单成功（流动性池交易）
+        // Market order successful (liquidity pool trading)
+
         if (activeTab === 'market') {
           toast.success(`🎉 ${t('carbon.success.marketOrderSuccess')}！${orderType === 'buy' ? t('carbon.buyCarbon') : t('carbon.sellCarbon')}`, { 
             duration: 5000,
             icon: '✅'
           })
         } else {
-          // 限价单自动执行
+          // Automatically execute limit orders
+
           toast.success('🤖 智能限价单执行成功！', { 
             duration: 5000,
             icon: '🚀'
           })
         }
       } else if (isConfirmed) {
-        // 限价单合约交易成功
+        // Limited price contract transaction successfully
+
         if (activeTab === 'limit') {
           toast.success(`🔗 限价${orderType === 'buy' ? t('carbon.buyOrder') : t('carbon.sellOrder')}创建成功！`, { 
             duration: 5000,
             icon: '✅'
           })
         } else {
-          // 其他合约交易成功
+          // Other contract transactions were successful
+
           toast.success('🎉 交易已确认成功！', { duration: 4000 })
         }
       }
       
-      // 清空表单
+      // Clear the form
+
       if (activeTab === 'market') {
         setMarketCarbonAmount('')
         setMarketUsdtAmount('')
@@ -932,9 +1080,11 @@ export default function CarbonMarket() {
         setLimitPrice('')
       }
       
-      // 刷新订单簿（如果是限价单成功）
+      // Refresh the order book (if the limit order is successful)
+
       if (activeTab === 'limit') {
-        // 延迟刷新，让交易先完成
+        // Delay refresh, let the transaction be completed first
+
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('refreshOrderBook'))
         }, 3000)
@@ -942,29 +1092,34 @@ export default function CarbonMarket() {
     }
   }, [isConfirmed, isLiquidityPoolConnected, activeTab, orderType, t])
 
-  // 处理市价单交易
+  // Process market order transactions
+
   const handleMarketOrder = async () => {
     if (orderType === 'buy') {
-      // 买入时验证USDT数量
+      // Verify usdt quantity when buying
+
       if (!marketUsdtAmount || isNaN(Number(marketUsdtAmount)) || Number(marketUsdtAmount) <= 0) {
         toast.error(t('carbon.errors.invalidAmount'))
         return
       }
       
-      // 检查价格偏离 - 如果兑换后价格偏离超过阈值，阻止交易
+      // Check price deviation -If the price deviation exceeds the threshold after redemption, block transactions
+
       if (usdtToCarbonPriceImpact?.isDeviated === true) {
         const threshold = poolData.priceDeviationThreshold || 10
         toast.error(`⚠️ 价格偏离过大！兑换后价格将偏离参考价 ${usdtToCarbonPriceImpact.deviation}%，超过${threshold}%阈值。请减少兑换数量或等待价格稳定。`)
         return
       }
     } else {
-      // 卖出时验证碳币数量
+      // Verify the quantity of carbon coins when selling
+
       if (!marketCarbonAmount || isNaN(Number(marketCarbonAmount)) || Number(marketCarbonAmount) <= 0) {
         toast.error(t('carbon.errors.invalidAmount'))
         return
       }
       
-      // 检查价格偏离 - 如果兑换后价格偏离超过阈值，阻止交易
+      // Check price deviation -If the price deviation exceeds the threshold after redemption, block transactions
+
       if (carbonToUsdtPriceImpact?.isDeviated === true) {
         const threshold = poolData.priceDeviationThreshold || 10
         toast.error(`⚠️ 价格偏离过大！兑换后价格将偏离参考价 ${carbonToUsdtPriceImpact.deviation}%，超过${threshold}%阈值。请减少兑换数量或等待价格稳定。`)
@@ -974,13 +1129,15 @@ export default function CarbonMarket() {
 
     try {
       if (orderType === 'buy') {
-        // 市价买入碳币 - 使用USDT数量（USDT换碳币）
+        // Buy carbon coins for market price -Use USDT quantity (USDT for carbon coins)
+
         if (Number(marketUsdtAmount) > Number(usdtBalance)) {
           toast.error(t('carbon.balances.insufficientBalance'))
           return
         }
 
-        // 检查USDT授权（对流动性池）
+        // Check usdt authorization (for liquidity pools)
+
         const needsApproval = usdtApprovalLiquidity.checkApprovalNeeded(marketUsdtAmount, 18)
         if (needsApproval) {
           setIsApprovingUsdt(true)
@@ -994,7 +1151,8 @@ export default function CarbonMarket() {
         await swapUsdtToCarbon(marketUsdtAmount)
         toast.success('📈 市价买入已提交！等待确认...', { id: 'market-buy', duration: 3000 })
         
-        // 显示成功弹窗
+        // Show successful pop-up window
+
         const currentPrice = Number(poolData?.currentPrice) || 88;
         setSuccessData({
           type: 'buy',
@@ -1004,13 +1162,15 @@ export default function CarbonMarket() {
         });
         setShowSuccessModal(true);
       } else {
-        // 市价卖出碳币 - 使用碳币数量（碳币换USDT）
+        // Sell ​​carbon coins at market price -Use carbon coins in quantity (carbon coins for USDT)
+
         if (Number(marketCarbonAmount) > Number(carbonBalance)) {
           toast.error(t('carbon.balances.insufficientBalance'))
           return
         }
 
-        // 检查碳币授权（对流动性池）
+        // Check the Carbon Coin Authorization (to liquidity pool)
+
         const needsApproval = carbonApprovalLiquidity.checkApprovalNeeded(marketCarbonAmount, 18)
         if (needsApproval) {
           setIsApprovingCarbon(true)
@@ -1024,7 +1184,8 @@ export default function CarbonMarket() {
         await swapCarbonToUsdt(marketCarbonAmount)
         toast.success('📉 市价卖出已提交！等待确认...', { id: 'market-sell', duration: 3000 })
         
-        // 显示成功弹窗
+        // Show successful pop-up window
+
         const currentPrice = Number(poolData?.currentPrice) || 88;
         setSuccessData({
           type: 'sell',
@@ -1046,8 +1207,8 @@ export default function CarbonMarket() {
   }
 
   /**
-   * 处理限价单交易 - 使用新的CarbonUSDTMarket合约
-   * @description 支持自动撮合功能，创建订单时自动匹配现有订单
+   * Process limit order transactions -Use the new CarbonUSDTMarket contract
+   * @description Supports automatic matching function, automatically matches existing orders when creating orders
    */
   const handleLimitOrder = async () => {
     if (!limitAmount || !limitPrice || isNaN(Number(limitAmount)) || isNaN(Number(limitPrice))) {
@@ -1062,15 +1223,18 @@ export default function CarbonMarket() {
 
     try {
       if (orderType === 'buy') {
-        // 限价买单 - 需要USDT + 挂单费
-        // 注意：要与合约计算保持一致，合约中 totalUSDT = amount(wei) * price(基础精度wei)
-        // 所以我们计算: amount * price (都是常规数值)
+        // Pay limit -USDT + pending fee required
+        // Note: To be consistent with the contract calculation, totalUSDT = amount(wei) *price(basic precision wei) in the contract
+        // So we calculate: amount *price (all regular values)
+
         const totalUsdt = Number(limitAmount) * Number(limitPrice)
-        const feeRate = feeRates ? Number(feeRates.limitOrderFee.toString()) : 50 // 默认0.5%
+        const feeRate = feeRates ? Number(feeRates.limitOrderFee.toString()) : 50 // Default 0.5%
+
         const orderFee = (totalUsdt * feeRate) / 10000
         const totalRequired = totalUsdt + orderFee
         
-        // 检查总余额（包含挂单费）
+        // Check the total balance (including order fee)
+
         console.log('买单余额检查:', {
           limitAmount,
           limitPrice,
@@ -1088,8 +1252,10 @@ export default function CarbonMarket() {
           return
         }
         
-        // 检查USDT授权 - 使用稍微大一点的值确保授权足够
-        const approvalAmount = (totalRequired * 1.01).toString() // 增加1%的缓冲
+        // Check USDT Authorization -Use a slightly larger value to make sure that authorization is sufficient
+
+        const approvalAmount = (totalRequired * 1.01).toString() // Increase 1% buffering
+
         const approvalDetails = usdtApproval.getApprovalDetails(approvalAmount, 18)
         console.log('USDT授权检查:', approvalDetails)
         
@@ -1106,7 +1272,8 @@ export default function CarbonMarket() {
         await createBuyOrder(limitAmount, limitPrice)
         toast.success('📝 限价买单已提交！等待区块链确认...', { id: 'create-buy-order', duration: 3000 })
         
-        // 显示成功弹窗
+        // Show successful pop-up window
+
         setSuccessData({
           type: 'buy',
           orderType: 'limit',
@@ -1116,18 +1283,22 @@ export default function CarbonMarket() {
         setShowSuccessModal(true);
         
       } else {
-        // 限价卖单 - 需要碳币 + USDT（挂单费）
+        // Limited price sell order -Requires carbon coins + USDT (pending order fee)
+
         if (Number(limitAmount) > Number(carbonBalance)) {
           toast.error(t('carbon.balances.insufficientBalance'))
           return
         }
         
-        // 计算挂单费
+        // Calculate order fee
+
         const totalUsdt = Number(limitAmount) * Number(limitPrice)
-        const feeRate = feeRates ? Number(feeRates.limitOrderFee.toString()) : 50 // 默认0.5%
+        const feeRate = feeRates ? Number(feeRates.limitOrderFee.toString()) : 50 // Default 0.5%
+
         const orderFee = (totalUsdt * feeRate) / 10000
         
-        // 检查USDT余额是否足够支付挂单费
+        // Check if the usdt balance is sufficient to pay the pending order fee
+
         console.log('卖单余额检查:', {
           limitAmount,
           limitPrice,
@@ -1146,7 +1317,8 @@ export default function CarbonMarket() {
           return
         }
         
-        // 检查碳币授权
+        // Check the carbon currency authorization
+
         const needsCarbonApproval = carbonApproval.checkApprovalNeeded(limitAmount, 18)
         if (needsCarbonApproval) {
           setIsApprovingCarbon(true)
@@ -1156,7 +1328,8 @@ export default function CarbonMarket() {
           return
         }
         
-        // 检查USDT授权（用于支付挂单费）
+        // Check usdt authorization (used to pay pending order fees)
+
         if (orderFee > 0) {
           const needsUsdtApproval = usdtApproval.checkApprovalNeeded(orderFee.toString(), 18)
           if (needsUsdtApproval) {
@@ -1172,7 +1345,8 @@ export default function CarbonMarket() {
         await createSellOrder(limitAmount, limitPrice)
         toast.success('📝 限价卖单已提交！等待区块链确认...', { id: 'create-sell-order', duration: 3000 })
         
-        // 显示成功弹窗
+        // Show successful pop-up window
+
         setSuccessData({
           type: 'sell',
           orderType: 'limit',
@@ -1191,7 +1365,8 @@ export default function CarbonMarket() {
     }
   }
 
-  // 如果合约地址无效，显示错误信息
+  // If the contract address is invalid, the error message will be displayed
+
   if (!isMarketReady) {
     return (
       <ConfigError 
@@ -1211,10 +1386,10 @@ export default function CarbonMarket() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* 用户余额信息 */}
+        {/* User balance information */}
         {isConnected && (
           <div className="bg-white/90 rounded-2xl shadow-xl p-6 mb-6 border border-white/20 relative">
-            {/* 价格偏离状态指示器 - 右上角 */}
+            {/* Price Deviation Status Indicator -Top Right */}
             <div className="absolute top-4 right-4 flex items-center gap-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg px-3 py-2 border border-gray-200 shadow-sm">
               <div className={`w-2 h-2 rounded-full ${
                 Math.abs(Number(currentPrice) - Number(referencePrice)) / Number(referencePrice) * 100 > (poolData.priceDeviationThreshold || 10)
@@ -1238,7 +1413,7 @@ export default function CarbonMarket() {
               <span className="text-2xl">💰</span>
               {t('carbon.tradingInfo', '交易信息')}
             </h2>
-            {/* 余额和价格信息一行显示 - 五个格子 */}
+            {/* Balance and price information are displayed in one line -five grids */}
             <div className="grid grid-cols-5 gap-4">
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="text-center">
@@ -1297,9 +1472,9 @@ export default function CarbonMarket() {
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* 左侧：交易表单 */}
+          {/* Left: Trading Form */}
           <div className="xl:col-span-1 space-y-6">
-            {/* 交易类型切换 */}
+            {/* Transaction type switching */}
             <div className="bg-white/90 rounded-2xl shadow-xl border border-gray-200">
               <div className="flex border-b border-gray-200">
                 <button
@@ -1324,7 +1499,7 @@ export default function CarbonMarket() {
                 </button>
               </div>
 
-              {/* 买卖类型切换 */}
+              {/* Switching of buying and selling types */}
               <div className="flex border-b border-gray-200">
                 <button
                   onClick={() => setOrderType('buy')}
@@ -1348,12 +1523,13 @@ export default function CarbonMarket() {
                 </button>
               </div>
 
-              {/* 交易表单 */}
+              {/* Transaction form */}
               <div className="p-6">
                 {activeTab === 'market' ? (
-                  // 市价单表单 - 双输入框
+                  // Market price single form -double input box
+
                   <div className="space-y-6">
-                    {/* 交易方向指示器 */}
+                    {/* Trading Direction Indicator */}
                     <div className="flex items-center justify-center space-x-4">
                       <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
                         orderType === 'buy' 
@@ -1374,7 +1550,7 @@ export default function CarbonMarket() {
                       </div>
                     </div>
 
-                    {/* 碳币数量输入框 */}
+                    {/* Carbon Coin Quantity Input Box */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
                       <label className="block text-sm font-semibold text-green-800 mb-3">
                         {t('carbon.carbonAmount', '💚 碳币数量')}
@@ -1395,7 +1571,7 @@ export default function CarbonMarket() {
                       </div>
                     </div>
 
-                    {/* 换算箭头 */}
+                    {/* Convert arrows */}
                     <div className="flex justify-center">
                       <div className="bg-blue-100 text-blue-600 p-2 rounded-full">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1404,7 +1580,7 @@ export default function CarbonMarket() {
                       </div>
                     </div>
 
-                    {/* USDT数量输入框 */}
+                    {/* Usdt quantity input box */}
                     <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
                       <label className="block text-sm font-semibold text-blue-800 mb-3">
                         {t('carbon.usdtAmount', '💙 USDT数量')}
@@ -1425,14 +1601,14 @@ export default function CarbonMarket() {
                       </div>
                     </div>
 
-                    {/* 价格和手续费信息卡片 */}
+                    {/* Price and handling fee information card */}
                     <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
                       <h4 className="font-semibold text-purple-800 mb-3 flex items-center">
                         <span className="mr-2">📊</span>
                         {t('carbon.tradingDetails', '交易详情')}
                       </h4>
                       
-                      {/* 当前价格 */}
+                      {/* Current Price */}
                       <div className="flex justify-between items-center mb-3 p-2 bg-white/60 rounded-lg">
                         <span className="text-sm text-purple-700">{t('carbon.currentPrice', '当前市价')}</span>
                         <span className="font-bold text-purple-900">
@@ -1440,7 +1616,7 @@ export default function CarbonMarket() {
                         </span>
                       </div>
 
-                      {/* 参考价格 */}
+                      {/* Reference price */}
                       <div className="flex justify-between items-center mb-3 p-2 bg-white/60 rounded-lg">
                         <span className="text-sm text-purple-700">🔮 {t('carbon.referencePrice', '参考价格')}</span>
                         <span className="font-bold text-purple-900">
@@ -1448,7 +1624,7 @@ export default function CarbonMarket() {
                         </span>
                       </div>
 
-                      {/* 手续费信息 */}
+                      {/* Processing fee information */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                           <span className="text-sm text-purple-700">{t('carbon.tradingFee', '手续费')}</span>
@@ -1463,7 +1639,7 @@ export default function CarbonMarket() {
                           </span>
                         </div>
                         
-                        {/* 新增：兑换后价格和偏差显示 */}
+                        {/* New: Price and deviation display after redemption */}
                         {orderType === 'buy' && usdtToCarbonPriceImpact && (
                           <>
                             <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
@@ -1522,7 +1698,7 @@ export default function CarbonMarket() {
                         </div>
                       </div>
 
-                      {/* 计算状态 */}
+                      {/* Calculate the status */}
                       {(isCalculating || isEstimating) && (
                         <div className="flex items-center justify-center mt-3 p-2 bg-blue-100 rounded-lg">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -1533,7 +1709,7 @@ export default function CarbonMarket() {
                       )}
                     </div>
 
-                    {/* 交易按钮 */}
+                    {/* Trading Button */}
                     <button
                       onClick={handleMarketOrder}
                       disabled={
@@ -1592,7 +1768,8 @@ export default function CarbonMarket() {
                     </button>
                   </div>
                 ) : (
-                  // 限价单表单
+                  // Price limit form
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1620,19 +1797,22 @@ export default function CarbonMarket() {
                         type="number"
                         value={limitPrice}
                         onChange={(e) => {
-                          // 自动去除小数部分，只保留整数
+                          // Automatically remove decimal parts and only integers are retained
+
                           const value = e.target.value;
                           if (value.includes('.')) {
                             const integerValue = value.split('.')[0];
                             setLimitPrice(integerValue);
-                            // 显示提醒
+                            // Show reminder
+
                             toast.success(`价格已自动调整为整数: ${integerValue} USDT`, { duration: 2000 });
                           } else {
                             setLimitPrice(value);
                           }
                         }}
                         onBlur={(e) => {
-                          // 失焦时也确保是整数
+                          // Be sure to be an integer when out of focus
+
                           const value = e.target.value;
                           if (value.includes('.')) {
                             const integerValue = value.split('.')[0];
@@ -1650,36 +1830,36 @@ export default function CarbonMarket() {
                       
                     </div>
 
-                    {/* 订单详情卡片 - 修改显示条件，使其一直显示 */}
+                    {/* Order Details Card -Modify the display conditions so that it is always displayed */}
                       <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
                         <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
                           <span className="mr-2">📊</span>
                           {t('carbon.orderDetails', '订单详情')}
                         </h4>
-                        {/* 订单详情内容 */}
+                        {/* Order details */}
                         <div className="space-y-2">
-                          {/* 订单类型 */}
+                          {/* Order Type */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">{t('carbon.orderType', '订单类型')}</span>
                             <span className="font-medium text-blue-900">
                               {orderType === 'buy' ? t('carbon.limitBuyOrder', '📈 限价买单') : t('carbon.limitSellOrder', '📉 限价卖单')}
                             </span>
                           </div>
-                          {/* 代币数量 */}
+                          {/* Token number */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">{t('carbon.tokenAmount', '代币数量')}</span>
                             <span className="font-medium text-blue-900">
                               {limitAmount || '0.000000'} CARB
                             </span>
                           </div>
-                          {/* 限价 */}
+                          {/* Price limit */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">{t('carbon.limitPrice', '限价')}</span>
                             <span className="font-medium text-blue-900">
                               {limitPrice || '0.00'} USDT
                             </span>
                           </div>
-                          {/* 价格调整提醒 */}
+                          {/* Price adjustment reminder */}
                           {limitPrice && limitPrice.includes('.') && (
                             <div className="flex justify-between items-center p-2 bg-orange-100 rounded-lg border border-orange-300">
                               <span className="text-sm text-orange-700">{t('carbon.priceAdjustmentReminder', '⚠️ 价格调整提醒')}</span>
@@ -1688,21 +1868,21 @@ export default function CarbonMarket() {
                               </span>
                             </div>
                           )}
-                          {/* 当前市价 */}
+                          {/* Current market price */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">{t('carbon.currentPrice', '当前市价')}</span>
                             <span className="font-medium text-blue-900">
                               {Number(currentPrice) > 0 ? currentPrice : testPrice} USDT
                             </span>
                           </div>
-                          {/* 预言机参考价格 */}
+                          {/* Oracle reference price */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">🔮 {t('carbon.referencePrice', '参考价格')}</span>
                             <span className="font-medium text-blue-900">
                               {Number(referencePrice) > 0 ? referencePrice : testPrice} USDT
                             </span>
                           </div>
-                          {/* 价格差异（相对于参考价格） */}
+                          {/* Price difference (relative to reference price) */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">{t('carbon.priceDifference', '价格差异')}</span>
                             <span className={`font-medium ${
@@ -1715,14 +1895,14 @@ export default function CarbonMarket() {
                                 : '0.00%'}
                             </span>
                           </div>
-                          {/* 交易金额 */}
+                          {/* Transaction amount */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">{t('carbon.tradeAmount', '交易金额')}</span>
                             <span className="font-medium text-blue-900">
                               {(Number(limitAmount || 0) * Number(limitPrice || 0)).toFixed(2)} USDT
                             </span>
                           </div>
-                          {/* 挂单费 */}
+                          {/* Pending order fee */}
                           <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
                             <span className="text-sm text-blue-700">
                               {t('carbon.listingFee', '挂单费')} ({feeRates ? Number(feeRates.limitOrderFee) / 100 : 0.5}%)
@@ -1731,14 +1911,14 @@ export default function CarbonMarket() {
                               {((Number(limitAmount || 0) * Number(limitPrice || 0) * (feeRates ? Number(feeRates.limitOrderFee) : 50)) / 10000).toFixed(4)} USDT
                             </span>
                           </div>
-                          {/* 总计 */}
+                          {/* total */}
                           <div className="flex justify-between items-center p-2 bg-blue-100 rounded-lg border border-blue-300">
                             <span className="text-sm font-semibold text-blue-800">{t('carbon.total', '总计')}</span>
                             <span className="font-bold text-blue-900">
                               {(Number(limitAmount || 0) * Number(limitPrice || 0) * (1 + (feeRates ? Number(feeRates.limitOrderFee) : 50) / 10000)).toFixed(4)} USDT
                             </span>
                           </div>
-                          {/* 订单状态 */}
+                          {/* Order Status */}
                           <div className="flex justify-between items-center p-2 bg-blue-100 rounded-lg border border-blue-300">
                             <span className="text-sm font-semibold text-blue-800">{t('carbon.orderStatus', '订单状态')}</span>
                             <span className="font-bold text-blue-900">
@@ -1748,7 +1928,7 @@ export default function CarbonMarket() {
                         </div>
                       </div>
 
-                      {/* 授权状态卡片 */}
+                      {/* Authorization status card */}
                       {!!limitAmount && !!limitPrice && (
                         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
                           <h4 className="font-semibold text-yellow-800 mb-3 flex items-center">
@@ -1756,7 +1936,7 @@ export default function CarbonMarket() {
                             {t('carbon.authorizationStatus', '授权状态')}
                           </h4>
                           <div className="space-y-3">
-                            {/* 买单授权状态 */}
+                            {/* Payment Authorization Status */}
                             {orderType === 'buy' && (
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
@@ -1788,7 +1968,7 @@ export default function CarbonMarket() {
                               </div>
                             )}
                             
-                            {/* 卖单授权状态 */}
+                            {/* Sell ​​order authorization status */}
                             {orderType === 'sell' && (
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
@@ -1843,10 +2023,10 @@ export default function CarbonMarket() {
                         </div>
                       )}
 
-                      {/* 授权按钮 */}
+                      {/* Authorization button */}
                       {!!limitAmount && !!limitPrice && (
                         <div className="space-y-2">
-                          {/* 买单授权按钮 */}
+                          {/* Pay order authorization button */}
                           {orderType === 'buy' && usdtApproval.checkApprovalNeeded(
                             (Number(limitAmount) * Number(limitPrice) * 1.01).toString(), 
                             18
@@ -1878,7 +2058,7 @@ export default function CarbonMarket() {
                             </button>
                           )}
                           
-                          {/* 卖单授权按钮 */}
+                          {/* Sell ​​order authorization button */}
                           {orderType === 'sell' && (
                             <>
                               {carbonApproval.checkApprovalNeeded(limitAmount, 18) && (
@@ -1990,9 +2170,9 @@ export default function CarbonMarket() {
             </div>
           </div>
 
-          {/* 右侧：图表区域 */}
+          {/* Right: Chart area */}
           <div className="xl:col-span-2 space-y-6">
-            {/* AMM市价波动图表卡片 */}
+            {/* Ammm Market Price Volatility Chart Card */}
             <div className="bg-white/90 rounded-2xl shadow-xl p-6 border border-white/20">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -2001,7 +2181,7 @@ export default function CarbonMarket() {
                   <span className="text-sm text-gray-500 ml-2">{t('carbon.24hourTrend', '24小时走势')}</span>
                 </h2>
                 
-                {/* 数据源切换按钮 */}
+                {/* Data source toggle button */}
                 <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setUseRealData(false)}
@@ -2026,7 +2206,7 @@ export default function CarbonMarket() {
                 </div>
               </div>
               
-              {/* 价格统计信息 */}
+              {/* Price statistics */}
               <div className="grid grid-cols-4 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200">
                   <div className="text-center">
@@ -2081,9 +2261,9 @@ export default function CarbonMarket() {
                 </div>
               </div>
 
-              {/* 专业K线图表 */}
+              {/* Professional K-line chart */}
               <div className="h-96 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-4 border border-gray-700 relative overflow-hidden">
-                {/* 图表标题栏 */}
+                {/* Chart title bar */}
                 <div className="absolute top-2 left-4 right-4 flex justify-between items-center z-10">
                   <div className="text-white text-sm font-medium">CARB/USDT</div>
                   <div className="flex items-center gap-4 text-xs">
@@ -2096,9 +2276,9 @@ export default function CarbonMarket() {
                 </div>
 
                 <div className="h-full pt-8 relative">
-                  {/* 网格线背景 */}
+                  {/* Grid line background */}
                   <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1 }}>
-                    {/* 水平网格线 */}
+                    {/* Horizontal grid lines */}
                     {[0, 1, 2, 3, 4, 5].map(i => (
                       <line
                         key={`h-${i}`}
@@ -2111,7 +2291,7 @@ export default function CarbonMarket() {
                         strokeDasharray="2,2"
                       />
                     ))}
-                    {/* 垂直网格线 */}
+                    {/* Vertical grid lines */}
                     {[0, 1, 2, 3, 4, 5, 6].map(i => (
                       <line
                         key={`v-${i}`}
@@ -2126,7 +2306,7 @@ export default function CarbonMarket() {
                     ))}
                   </svg>
 
-                  {/* Y轴价格标签 */}
+                  {/* Y-axis price tag */}
                   <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-400 py-8">
                     {[0, 1, 2, 3, 4, 5].map(i => {
                       const maxPrice = candlestickData.length > 0 ? Math.max(...candlestickData.map(c => c.high)) : 90
@@ -2141,9 +2321,9 @@ export default function CarbonMarket() {
                     })}
                   </div>
                   
-                  {/* K线图和成交量 */}
+                  {/* K-line chart and trading volume */}
                   <div className="ml-16 h-full relative">
-                    {/* 主K线图区域 */}
+                    {/* Main K-line chart area */}
                     <div className="h-3/4 relative">
                       <svg className="w-full h-full" viewBox="0 0 800 300" style={{ zIndex: 2 }}>
                         {candlestickData.length > 0 && candlestickData.map((candle, index) => {
@@ -2154,7 +2334,8 @@ export default function CarbonMarket() {
                           const x = (index / Math.max(candlestickData.length - 1, 1)) * 760 + 20
                           const candleWidth = Math.max(6, 760 / candlestickData.length * 0.8)
                           
-                          // 计算Y坐标
+                          // Calculate y coordinates
+
                           const yHigh = 30 + ((maxPrice - candle.high) / priceRange) * 240
                           const yLow = 30 + ((maxPrice - candle.low) / priceRange) * 240
                           const yOpen = 30 + ((maxPrice - candle.open) / priceRange) * 240
@@ -2166,7 +2347,7 @@ export default function CarbonMarket() {
                           
                           return (
                             <g key={index}>
-                              {/* 上下影线 */}
+                              {/* Up and down shadow lines */}
                               <line
                                 x1={x}
                                 y1={yHigh}
@@ -2176,7 +2357,7 @@ export default function CarbonMarket() {
                                 strokeWidth="1"
                               />
                               
-                              {/* K线实体 */}
+                              {/* K-line entity */}
                               <rect
                                 x={x - candleWidth / 2}
                                 y={bodyY}
@@ -2201,10 +2382,10 @@ export default function CarbonMarket() {
                           )
                         })}
                         
-                        {/* MA移动平均线 */}
+                        {/* Ma Moving Average */}
                         {candlestickData.length > 5 && (
                           <>
-                            {/* 5日移动平均线 */}
+                            {/* 5-day moving average */}
                             <polyline
                               fill="none"
                               stroke="#fbbf24"
@@ -2229,7 +2410,7 @@ export default function CarbonMarket() {
                               }
                             />
                             
-                            {/* 20日移动平均线 */}
+                            {/* 20-day moving average */}
                             <polyline
                               fill="none"
                               stroke="#8b5cf6"
@@ -2258,7 +2439,7 @@ export default function CarbonMarket() {
                       </svg>
                     </div>
                     
-                    {/* 成交量柱状图 */}
+                    {/* Volume bar chart */}
                     <div className="h-1/4 border-t border-gray-600 pt-2 relative">
                       <svg className="w-full h-full" viewBox="0 0 800 75">
                         {candlestickData.length > 0 && candlestickData.map((candle, index) => {
@@ -2288,7 +2469,7 @@ export default function CarbonMarket() {
                     </div>
                   </div>
                   
-                  {/* X轴时间标签 */}
+                  {/* X-axis time tag */}
                   <div className="absolute bottom-0 left-16 right-0 flex justify-between text-xs text-gray-400 px-2">
                     {candlestickData.length > 0 && [0, Math.floor(candlestickData.length / 4), Math.floor(candlestickData.length / 2), Math.floor(candlestickData.length * 3 / 4), candlestickData.length - 1].map(i => (
                       <span key={i}>
@@ -2298,7 +2479,7 @@ export default function CarbonMarket() {
                   </div>
                 </div>
                 
-                {/* 图例和数据源说明 */}
+                {/* Legend and data source description */}
                 <div className="absolute bottom-2 left-4 right-4 flex justify-between items-center">
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
@@ -2328,7 +2509,7 @@ export default function CarbonMarket() {
               </div>
             </div>
 
-            {/* 限价单分布图表卡片 */}
+            {/* Limit order distribution chart card */}
             <div className="bg-white/90 rounded-2xl shadow-xl p-6 border border-white/20">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -2337,7 +2518,7 @@ export default function CarbonMarket() {
                   <span className="text-sm text-gray-500 ml-2">{t('carbon.orderBookDepth', '买卖盘深度')}</span>
                 </h2>
                 
-                {/* 订单簿数据源切换按钮 */}
+                {/* Order Book Data Source Toggle Button */}
                 <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setUseRealOrderBook(false)}
@@ -2362,7 +2543,7 @@ export default function CarbonMarket() {
                 </div>
               </div>
               
-              {/* 订单统计信息 */}
+              {/* Order statistics */}
               <div className="grid grid-cols-4 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-3 border border-green-200">
                   <div className="text-center">
@@ -2415,7 +2596,8 @@ export default function CarbonMarket() {
                         const allOrders = [...currentData.buyOrders, ...currentData.sellOrders]
                         if (allOrders.length === 0) return '0.00'
                         
-                        // 计算加权平均价格（按数量加权）
+                        // Calculate weighted average price (weighted by quantity)
+
                         const totalWeightedPrice = allOrders.reduce((sum, order) => sum + (order.price * order.amount), 0)
                         const totalAmount = allOrders.reduce((sum, order) => sum + order.amount, 0)
                         const marketAvgPrice = totalAmount > 0 ? totalWeightedPrice / totalAmount : 0
@@ -2428,9 +2610,9 @@ export default function CarbonMarket() {
                 </div>
               </div>
 
-              {/* 订单分布图 */}
+              {/* Order distribution chart */}
               <div className="grid grid-cols-2 gap-4">
-                {/* 买单深度 */}
+                {/* Payment depth */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
                   <h3 className="text-green-800 font-semibold mb-3 flex items-center gap-2">
                     <span className="text-lg">📈</span>
@@ -2471,7 +2653,7 @@ export default function CarbonMarket() {
                   </div>
                 </div>
 
-                {/* 卖单深度 */}
+                {/* Sell ​​order depth */}
                 <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-4 border border-red-200">
                   <h3 className="text-red-800 font-semibold mb-3 flex items-center gap-2">
                     <span className="text-lg">📉</span>
@@ -2513,7 +2695,7 @@ export default function CarbonMarket() {
                 </div>
               </div>
 
-              {/* 市场流动性分布图（简化版） */}
+              {/* Market liquidity distribution chart (simplified version) */}
               <div className="mt-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
                 <h3 className="text-gray-800 font-semibold mb-3 text-center flex items-center justify-center gap-2">
                   {t('carbon.marketLiquidityDistribution', '市场流动性分布')}
@@ -2534,7 +2716,7 @@ export default function CarbonMarket() {
                         
                         return (
                           <>
-                            {/* 买单资金扇形 */}
+                            {/* Pay order fund fan */}
                             <circle
                               cx="50"
                               cy="50"
@@ -2546,7 +2728,7 @@ export default function CarbonMarket() {
                               strokeLinecap="round"
                               className="transition-all duration-300"
                             />
-                            {/* 卖单资金扇形 */}
+                            {/* Sell ​​order fund fan */}
                             <circle
                               cx="50"
                               cy="50"
@@ -2582,7 +2764,7 @@ export default function CarbonMarket() {
                     </div>
                   </div>
                   
-                  {/* 图例 */}
+                  {/* legend */}
                   <div className="ml-6 space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 bg-green-500 rounded-full"></div>
@@ -2620,12 +2802,12 @@ export default function CarbonMarket() {
         </div>
       </div>
 
-      {/* 下侧：订单簿 */}
+      {/* Underside: Order Book */}
       <div>
         <OrderBook />
       </div>
 
-      {/* 市场统计信息 */}
+      {/* Market statistics information */}
       {marketStats && (
         <div className="mt-8 bg-white/90 rounded-2xl shadow-xl p-6 border border-white/20">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">📊 {t('carbon.marketStats.title')}</h2>
@@ -2650,11 +2832,11 @@ export default function CarbonMarket() {
         </div>
       )}
 
-      {/* 交易成功弹窗 */}
+      {/* Transaction success pop-up window */}
       {showSuccessModal && successData && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-white/20">
-            {/* 成功图标 */}
+            {/* Success Icon */}
             <div className="text-center mb-6">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">🎉</span>
@@ -2670,7 +2852,7 @@ export default function CarbonMarket() {
               </p>
             </div>
 
-            {/* 交易详情 */}
+            {/* Transaction details */}
             <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 mb-6">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
@@ -2694,7 +2876,7 @@ export default function CarbonMarket() {
               </div>
             </div>
 
-            {/* 操作按钮 */}
+            {/* Operation button */}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowSuccessModal(false)}
@@ -2705,7 +2887,8 @@ export default function CarbonMarket() {
               <button
                 onClick={() => {
                   setShowSuccessModal(false);
-                  // 可以添加查看交易记录的跳转
+                  // You can add a jump to view transaction history
+
                 }}
                 className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors"
               >

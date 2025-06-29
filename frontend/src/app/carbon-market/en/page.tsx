@@ -1,6 +1,7 @@
 import CarbonMarketPage from '../page';
  
-// 碳币市场英文版
+// Carbon Coin Market English Version
+
 export default function EnglishCarbonMarketPage() {
   return <CarbonMarketPage />;
 } 

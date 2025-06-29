@@ -8,7 +8,8 @@ import GreenTalesMarketABI from '@/contracts/abi/GreenTalesMarket.json';
 import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 import { toast } from 'react-hot-toast';
 
-// Hook返回类型接口
+// Hook return type interface
+
 export interface UseListNFTReturn {
   listNFT: (tokenId: string, price: string) => Promise<void>;
   isLoading: boolean;
@@ -22,9 +23,9 @@ export interface UseListNFTReturn {
 }
 
 /**
- * NFT挂单功能Hook
- * @description 处理NFT挂单流程，包括授权和挂单操作
- * @returns 挂单相关的方法和状态
+ * NFT Pending Function Hook
+ * @description Handle NFT order pending process, including authorization and order pending operations
+ * @returns Methods and statuses related to placing orders
  */
 export const useListNFT = (): UseListNFTReturn => {
   const { address } = useAccount();
@@ -32,7 +33,8 @@ export const useListNFT = (): UseListNFTReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -54,39 +56,49 @@ export const useListNFT = (): UseListNFTReturn => {
   const marketAddress = getMarketAddress(chainId);
   const nftAddress = getNFTAddress(chainId);
 
-  // NFT授权合约调用
+  // Nft authorization contract call
+
   const { writeContract: approveNFTContract, data: approveHash } = useWriteContract();
   
-  // NFT挂单合约调用
+  // Nft pending contract call
+
   const { writeContract: listNFTContract, data: listHash } = useWriteContract();
 
-  // 监听授权交易状态
+  // Listen to authorized transaction status
+
   const { isLoading: isApproving, isSuccess: approveSuccess } = useWaitForTransactionReceipt({
     hash: approveHash,
   });
 
-  // 监听挂单交易状态
+  // Listen to the status of pending order transactions
+
   const { isLoading: isListing, isSuccess: listSuccess } = useWaitForTransactionReceipt({
     hash: listHash,
   });
 
-  // 检查NFT是否需要授权
+  // Check if nft requires authorization
+
   const needsApproval = (): boolean => {
-    // 这里可以通过 useReadContract 检查授权状态
-    // 为简化，暂时返回 true，让用户主动授权
+    // Here you can check the authorization status through useReadContract
+    // For simplicity, return true temporarily, allowing users to actively authorize
+
     return true;
   };
 
-  // 获取NFT授权状态
+  // Get the nft authorization status
+
   const { refetch: refetchApproval } = useReadContract({
     address: nftAddress as `0x${string}`,
     abi: GreenTalesNFTABI.abi,
     functionName: 'getApproved',
-    args: address ? [BigInt(0)] : undefined, // 这里需要传入具体的tokenId
-    query: { enabled: false } // 手动触发查询
+    args: address ? [BigInt(0)] : undefined, // Here you need to pass the specific token id
+
+    query: { enabled: false } // Manually trigger query
+
   });
 
-  // 授权NFT给市场合约
+  // Authorize nft to market contracts
+
   const approveNFT = async (tokenId: string) => {
     if (!address) {
       toast.error('请先连接钱包');
@@ -113,7 +125,8 @@ export const useListNFT = (): UseListNFTReturn => {
     }
   };
 
-  // 挂单NFT
+  // Pending order nft
+
   const listNFT = async (tokenId: string, price: string) => {
     if (!address) {
       toast.error('请先连接钱包');
@@ -125,7 +138,8 @@ export const useListNFT = (): UseListNFTReturn => {
       setError(null);
       console.log(`🏪 开始挂单NFT #${tokenId}，价格: ${price}...`);
 
-      // 验证价格
+      // Verify price
+
       const priceInWei = BigInt(price);
       if (priceInWei <= 0) {
         throw new Error('价格必须大于0');
@@ -148,7 +162,8 @@ export const useListNFT = (): UseListNFTReturn => {
     }
   };
 
-  // 监听授权完成
+  // Monitoring authorization completed
+
   useEffect(() => {
     if (approveSuccess) {
       toast.success('NFT授权成功！现在可以挂单', { id: 'approve-success' });
@@ -156,7 +171,8 @@ export const useListNFT = (): UseListNFTReturn => {
     }
   }, [approveSuccess, refetchApproval]);
 
-  // 监听挂单完成
+  // Listening to orders completed
+
   useEffect(() => {
     if (listSuccess) {
       setIsLoading(false);

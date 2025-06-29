@@ -7,15 +7,21 @@ import { useMarketNFTs } from './useMarketNFTs';
 import { useEventBasedSalesHistory } from './useEventBasedSalesHistory';
 import { formatCarbonPrice } from '@/utils/formatUtils';
 
-// 市场统计数据接口
+// Market statistics interface
+
 export interface MarketStats {
-  totalListings: number;     // 总挂单数
-  totalUsers: number;        // 活跃用户数
-  totalVolume: string;       // 总交易额（基于历史交易事件计算）
-  averagePrice: string;      // 平均价格（当前挂单NFT的平均价格）
+  totalListings: number;     // Total number of pending orders
+
+  totalUsers: number;        // Number of active users
+
+  totalVolume: string;       // Total transaction volume (calculated based on historical transaction events)
+
+  averagePrice: string;      // Average price (average price for currently pending orders NFT)
+
 }
 
-// Hook返回类型接口
+// Hook return type interface
+
 export interface UseMarketStatsReturn {
   stats: MarketStats | null;
   isLoading: boolean;
@@ -24,20 +30,24 @@ export interface UseMarketStatsReturn {
 }
 
 /**
- * 获取市场统计数据的Hook
- * @description 获取市场的关键统计信息，通过查询历史事件计算交易额和价格统计
- * @returns 市场统计数据和操作方法
+ * Hook for obtaining market statistics
+ * @description Obtain key market statistics and calculate transaction volume and price statistics by querying historical events
+ * @returns Market statistics and operation methods
  */
 export const useMarketStats = (): UseMarketStatsReturn => {
   const chainId = useChainId();
   
-  // 获取市场NFT数据（用于计算平均价格）
-  const { nfts } = useMarketNFTs(100); // 获取更多数据用于统计
+  // Get market nft data (used to calculate average price)
+
+  const { nfts } = useMarketNFTs(100); // Get more data for statistics
+
   
-  // 获取全市场销售历史（用于计算总交易额）
+  // Get the market-wide sales history (used to calculate the total transaction volume)
+
   const { salesHistory } = useEventBasedSalesHistory();
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1:
@@ -53,7 +63,8 @@ export const useMarketStats = (): UseMarketStatsReturn => {
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 获取市场统计信息
+  // Get market statistics
+
   const { 
     data: marketStats, 
     isLoading, 
@@ -65,22 +76,27 @@ export const useMarketStats = (): UseMarketStatsReturn => {
     functionName: 'getListingStats',
     query: {
       enabled: !!marketAddress,
-      // 每30秒刷新一次数据
+      // Refresh data every 30 seconds
+
       refetchInterval: 30000,
     }
   });
 
-  // 计算总交易额
+  // Calculate the total transaction volume
+
   const calculateTotalVolume = (): string => {
     if (!salesHistory || salesHistory.length === 0) return '0';
     
-    console.log('🔍 计算总交易额，销售历史数据:', salesHistory.slice(0, 3)); // 查看前3条数据
+    console.log('🔍 计算总交易额，销售历史数据:', salesHistory.slice(0, 3)); // View the first 3 data
+
     
     const total = salesHistory.reduce((sum, sale) => {
-      // 使用formatCarbonPrice来正确处理wei格式的价格
+      // Use format carbon price to correctly handle price in wei format
+
       const rawPrice = sale.currentPrice || '0';
       const formattedPrice = formatCarbonPrice(rawPrice);
-      // 解析时先移除逗号分隔符，避免parseFloat只解析到逗号前
+      // Remove the comma separator first when parsing to avoid parse float only before commas
+
       const numPrice = parseFloat(formattedPrice.replace(/,/g, ''));
       
       console.log('💰 价格转换:', {
@@ -95,15 +111,18 @@ export const useMarketStats = (): UseMarketStatsReturn => {
     }, 0);
     
     console.log('📊 总交易额计算结果:', total);
-    // 返回实际的交易总额，不进行wei转换
+    // Returns the actual transaction amount without wei conversion
+
     return total.toString();
   };
 
-  // 计算平均价格
+  // Calculate the average price
+
   const calculateAveragePrice = (): string => {
     if (!nfts || nfts.length === 0) return '0';
     
-    console.log('🔍 计算平均价格，所有NFT数据:', nfts.length, '个NFT'); // 查看总数
+    console.log('🔍 计算平均价格，所有NFT数据:', nfts.length, '个NFT'); // View the total number
+
     console.log('📋 所有NFT详情:', nfts.map(nft => ({
       tokenId: nft.tokenId,
       priceRaw: nft.price,
@@ -112,10 +131,12 @@ export const useMarketStats = (): UseMarketStatsReturn => {
     
     const priceDetails = [];
     const total = nfts.reduce((sum, nft) => {
-      // 使用formatCarbonPrice来正确处理wei格式的价格
+      // Use format carbon price to correctly handle price in wei format
+
       const rawPrice = nft.price || '0';
       const formattedPrice = formatCarbonPrice(rawPrice);
-      // 解析时先移除逗号分隔符，避免parseFloat只解析到逗号前
+      // Remove the comma separator first when parsing to avoid parse float only before commas
+
       const numPrice = parseFloat(formattedPrice.replace(/,/g, ''));
       
       const detail = {
@@ -124,7 +145,8 @@ export const useMarketStats = (): UseMarketStatsReturn => {
         raw: rawPrice,
         formatted: formattedPrice,
         parsed: numPrice,
-        修复前解析: parseFloat(formattedPrice), // 显示修复前的错误结果用于对比
+        修复前解析: parseFloat(formattedPrice), // Show error results before repair for comparison
+
         修复后解析: numPrice
       };
       priceDetails.push(detail);
@@ -143,15 +165,18 @@ export const useMarketStats = (): UseMarketStatsReturn => {
       数学验证: `(${priceDetails.map(p => p.parsed).join(' + ')}) / ${nfts.length} = ${average}`
     });
     
-    // 返回实际的平均价格，不进行wei转换
+    // Returns the actual average price without wei conversion
+
     return average.toString();
   };
 
-  // 处理统计数据
+  // Process statistics
+
   const processedStats: MarketStats | null = marketStats ? {
     totalListings: Number((marketStats as [bigint, bigint])[0]),
     totalUsers: Number((marketStats as [bigint, bigint])[1]),
-    // 实时计算的统计数据
+    // Real-time calculated statistics
+
     totalVolume: calculateTotalVolume(),
     averagePrice: calculateAveragePrice(),
   } : null;

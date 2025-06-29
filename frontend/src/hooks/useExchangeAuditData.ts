@@ -9,25 +9,41 @@ import { formatTokenAmount } from '@/utils/tokenUtils';
 import { readContracts } from '@wagmi/core';
 import { config } from '@/lib/wagmi';
 
-// 兑换审计申请数据结构
+// Redemption audit application data structure
+
 export interface ExchangeAuditRequest {
-  cashId: string; // 兑换申请ID（合约中的真实ID）
-  requestId: string; // 通用申请ID，与cashId相同（保持兼容性）
+  cashId: string; // Redemption application id (real id in the contract)
+
+  requestId: string; // Common application id, same as cash id (maintain compatibility)
+
   nftTokenId: string; // NFT Token ID
-  requester: string; // 申请人地址
-  basePrice: string; // NFT基础价格
-  requestFee: string; // 申请手续费
-  blockTimestamp: string; // 申请时间
-  transactionHash: string; // 交易哈希
-  auditStatus: 'pending' | 'approved' | 'rejected'; // 审计状态
-  auditor?: string; // 审计员地址
-  auditedCarbonValue?: string; // 审计员确认的兑换价值
-  auditComment?: string; // 审计意见
-  auditTimestamp?: string; // 审计时间
-  source?: 'event' | 'contract'; // 数据来源标识
+
+  requester: string; // Applicant's address
+
+  basePrice: string; // Nft basic price
+
+  requestFee: string; // Application fee
+
+  blockTimestamp: string; // Application time
+
+  transactionHash: string; // Transaction hash
+
+  auditStatus: 'pending' | 'approved' | 'rejected'; // Audit status
+
+  auditor?: string; // Auditor's address
+
+  auditedCarbonValue?: string; // The redemption value confirmed by the auditor
+
+  auditComment?: string; // Audit opinion
+
+  auditTimestamp?: string; // Audit time
+
+  source?: 'event' | 'contract'; // Data source identification
+
 }
 
-// 兑换审计统计数据
+// Exchange audit statistics
+
 export interface ExchangeAuditStats {
   pendingCount: number;
   approvedCount: number;
@@ -35,11 +51,14 @@ export interface ExchangeAuditStats {
   totalCount: number;
 }
 
-// 缓存相关常量
-const CACHE_DURATION = 30 * 60 * 1000; // 30分钟
+// Cache related constants
+
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
 const EXCHANGE_AUDIT_CACHE_PREFIX = 'exchange_audit_center_';
 
-// 读取本地缓存
+// Read local cache
+
 function getLocalCache(): ExchangeAuditRequest[] | null {
   try {
     const key = `${EXCHANGE_AUDIT_CACHE_PREFIX}all`;
@@ -56,7 +75,8 @@ function getLocalCache(): ExchangeAuditRequest[] | null {
   return null;
 }
 
-// 保存到本地缓存
+// Save to local cache
+
 function saveLocalCache(data: ExchangeAuditRequest[]) {
   try {
     const key = `${EXCHANGE_AUDIT_CACHE_PREFIX}all`;
@@ -70,7 +90,8 @@ function saveLocalCache(data: ExchangeAuditRequest[]) {
   }
 }
 
-// 清除本地缓存
+// Clear local cache
+
 function clearLocalCache() {
   try {
     const key = `${EXCHANGE_AUDIT_CACHE_PREFIX}all`;
@@ -80,33 +101,40 @@ function clearLocalCache() {
   }
 }
 
-// 兑换审计数据Hook：事件监听（实时性）+ 合约查询（准确性）+ 缓存（性能）
+// Redeem audit data Hook: event listening (real time) + contract query (accuracy) + cache (performance)
+
 export const useExchangeAuditData = () => {
   const { isConnected } = useAccount();
   const [exchangeAuditRequests, setExchangeAuditRequests] = useState<ExchangeAuditRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const [eventRecords, setEventRecords] = useState<ExchangeAuditRequest[]>([]); // 事件监听获得的记录
-  const [contractRecords, setContractRecords] = useState<ExchangeAuditRequest[]>([]); // 合约查询获得的记录
+  const [eventRecords, setEventRecords] = useState<ExchangeAuditRequest[]>([]); // Records obtained by event listening
 
-  // 合并数据源：事件记录 + 合约记录，去重并优先使用合约数据
+  const [contractRecords, setContractRecords] = useState<ExchangeAuditRequest[]>([]); // Records obtained by contract query
+
+
+  // Merge data source: Event record + contract record, deduplication and priority use of contract data
+
   const mergeRecords = useCallback(() => {
     const merged = new Map<string, ExchangeAuditRequest>();
     
-    // 先添加事件记录（临时、实时数据）
+    // Add event records first (temporary, real-time data)
+
     eventRecords.forEach(record => {
       const key = record.cashId || record.transactionHash;
       merged.set(key, { ...record, source: 'event' });
     });
     
-    // 再添加合约记录（权威、准确数据），会覆盖同key的事件记录
+    // Adding the contract record (authoritative and accurate data) will overwrite the event record of the same key
+
     contractRecords.forEach(record => {
       const key = record.cashId || record.transactionHash;
       merged.set(key, { ...record, source: 'contract' });
     });
     
-    // 按时间戳降序排序
+    // Sort by descending timestamp
+
     const finalRecords = Array.from(merged.values()).sort((a, b) => 
       parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp)
     );
@@ -120,12 +148,14 @@ export const useExchangeAuditData = () => {
     setExchangeAuditRequests(finalRecords);
   }, [eventRecords, contractRecords]);
 
-  // 当任一数据源更新时，重新合并
+  // When either data source is updated, re-merge
+
   useEffect(() => {
     mergeRecords();
   }, [mergeRecords]);
 
-  // 事件监听：立即获取新的兑换申请，提供实时性
+  // Event monitoring: Get new redemption application immediately, providing real-time
+
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
@@ -133,7 +163,8 @@ export const useExchangeAuditData = () => {
     onLogs: (logs) => {
       console.log('兑换审计中心检测到ExchangeRequested事件:', logs);
       
-      // 简化事件处理，只添加基本信息
+      // Simplify event processing and add only basic information
+
       const newEventRecords: ExchangeAuditRequest[] = [];
       if (logs.length > 0) {
         const record: ExchangeAuditRequest = {
@@ -155,7 +186,8 @@ export const useExchangeAuditData = () => {
         console.log('兑换审计中心从事件获得新记录:', newEventRecords.length, '条');
         setEventRecords(prev => [...newEventRecords, ...prev]);
         
-        // 3秒后触发合约查询，获取准确数据
+        // The contract query is triggered after 3 seconds to obtain accurate data
+
         setTimeout(() => {
           refreshExchangeAuditData(true);
         }, 3000);
@@ -164,15 +196,18 @@ export const useExchangeAuditData = () => {
     enabled: isConnected,
   });
 
-  // 审计事件监听：更新现有记录的状态
+  // Audit event listening: Update the status of existing records
+
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
     eventName: 'AuditSubmitted',
     onLogs: (logs) => {
-      // 检查是否是兑换审计事件（auditType为Exchange）
+      // Check whether it is a redemption audit event (audit type is exchange)
+
       const exchangeAudits = logs.filter((log: any) => 
-        log.args?.auditType === 1 // AuditType.Exchange = 1
+        log.args?.auditType === 1 // audit type.Exchange = 1
+
       );
       
       if (exchangeAudits.length > 0) {
@@ -211,7 +246,8 @@ export const useExchangeAuditData = () => {
     enabled: isConnected,
   });
 
-  // 从合约获取兑换审计数据
+  // Obtain redemption audit data from the contract
+
   const fetchExchangeAuditRecordsFromContract = useCallback(async () => {
     if (!isConnected) return;
 
@@ -226,7 +262,8 @@ export const useExchangeAuditData = () => {
         abi: getGreenTraceABI(),
       };
 
-      // 1. 获取所有待审计的兑换申请
+      // 1. Obtain all redemption applications to be audited
+
       const pendingResult = await readContracts(config, {
         contracts: [
           {
@@ -238,7 +275,8 @@ export const useExchangeAuditData = () => {
         ]
       });
 
-      // 2. 获取所有已审计的兑换申请
+      // 2. Obtain all audited redemption applications
+
       const auditedResult = await readContracts(config, {
         contracts: [
           {
@@ -274,7 +312,8 @@ export const useExchangeAuditData = () => {
 
       console.log(`找到 ${allCashIds.length} 个兑换申请ID，开始批量查询详情...`);
 
-      // 3. 批量查询每个兑换申请的详情
+      // 3. Bulk query of the details of each redemption application
+
       const detailContracts = allCashIds.map((id: bigint) => ({
         ...contractConfig,
         abi: contractConfig.abi as any,
@@ -286,7 +325,8 @@ export const useExchangeAuditData = () => {
       
       console.log('兑换详情查询结果:', detailResults);
 
-      // 4. 转换为ExchangeAuditRequest格式
+      // 4. Convert to ExchangeAuditRequest format
+
       const exchangeRecords: ExchangeAuditRequest[] = [];
       
       detailResults.forEach((result, index) => {
@@ -294,7 +334,8 @@ export const useExchangeAuditData = () => {
           const item = result.result as Record<string, unknown>;
           const cashId = allCashIds[index];
           
-          // 解析状态：0=pending, 1=approved, 2=rejected
+          // Analysis status: 0=pending, 1=approved, 2=rejected
+
           let auditStatus: ExchangeAuditRequest['auditStatus'] = 'pending';
           if (item.status === 1) {
             auditStatus = 'approved';
@@ -312,10 +353,12 @@ export const useExchangeAuditData = () => {
           
           const record: ExchangeAuditRequest = {
             cashId: cashId.toString(),
-            requestId: cashId.toString(), // 使用cashId作为requestId保持兼容性
+            requestId: cashId.toString(), // Use cash id as request id to maintain compatibility
+
             nftTokenId: (item.nftTokenId as bigint).toString(),
             requester: item.requester as string || 'Unknown',
-            basePrice: formatTokenAmount(item.carbonValue as bigint), // 使用审计后的碳价值作为基础价格
+            basePrice: formatTokenAmount(item.carbonValue as bigint), // Use audited carbon value as the base price
+
             requestFee: formatTokenAmount((item.requestData as any)?.requestFee || BigInt(0)),
             blockTimestamp: (Number(item.requestTimestamp || 0) * 1000).toString(),
             transactionHash: `exchange_request_${cashId}`,
@@ -335,7 +378,8 @@ export const useExchangeAuditData = () => {
         }
       });
 
-      // 按时间戳降序排序（最新的在前）
+      // Sort by descending timestamp (latest first)
+
       exchangeRecords.sort((a, b) => parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp));
       
       console.log(`成功获取 ${exchangeRecords.length} 条兑换审计记录:`, exchangeRecords);
@@ -352,17 +396,20 @@ export const useExchangeAuditData = () => {
     }
   }, [isConnected]);
 
-  // 刷新兑换审计数据
+  // Refresh redemption audit data
+
   const refreshExchangeAuditData = useCallback(async (force = false) => {
     console.log('refreshExchangeAuditData被调用', { force });
     if (force) {
       clearLocalCache();
-      setEventRecords([]); // 清除事件记录，重新开始
+      setEventRecords([]); // Clear event logs and start over
+
     }
     await fetchExchangeAuditRecordsFromContract();
   }, [fetchExchangeAuditRecordsFromContract]);
 
-  // 首次加载：优先用缓存
+  // First loading: priority cache
+
   useEffect(() => {
     if (!isConnected) {
       setExchangeAuditRequests([]);
@@ -381,7 +428,8 @@ export const useExchangeAuditData = () => {
       console.log('使用兑换审计缓存数据:', cache.length, '条记录');
       setContractRecords(cache);
       setLoading(false);
-      // 在后台刷新数据
+      // Refresh data in the background
+
       fetchExchangeAuditRecordsFromContract();
     } else {
       console.log('无兑换审计缓存，从合约获取数据');
@@ -389,10 +437,12 @@ export const useExchangeAuditData = () => {
     }
   }, [isConnected, fetchExchangeAuditRecordsFromContract]);
 
-  // 只在客户端渲染
+  // Render only on the client side
+
   useEffect(() => { setIsClient(true); }, []);
 
-  // 兑换审计统计数据
+  // Exchange audit statistics
+
   const getExchangeAuditStats = (): ExchangeAuditStats => {
     const pendingCount = exchangeAuditRequests.filter(req => req.auditStatus === 'pending').length;
     const approvedCount = exchangeAuditRequests.filter(req => req.auditStatus === 'approved').length;
@@ -406,29 +456,36 @@ export const useExchangeAuditData = () => {
     };
   };
 
-  // 获取待审核兑换申请
+  // Obtain a redemption application to be reviewed
+
   const getPendingExchangeRequests = (): ExchangeAuditRequest[] => {
     return exchangeAuditRequests.filter(req => req.auditStatus === 'pending');
   };
 
-  // 获取已完成审计的兑换申请
+  // Obtain redemption application for completed audits
+
   const getCompletedExchangeRequests = (): ExchangeAuditRequest[] => {
     return exchangeAuditRequests.filter(req => req.auditStatus === 'approved' || req.auditStatus === 'rejected');
   };
 
   return {
-    exchangeAuditRequests, // 合并后的最终记录
+    exchangeAuditRequests, // The final record after the merge
+
     loading,
     error,
     isClient,
-    // 重构后的刷新函数
-    refresh: () => refreshExchangeAuditData(false), // 普通刷新：优先使用缓存
-    forceRefresh: () => refreshExchangeAuditData(true), // 强制刷新：清缓存重新获取
-    // 统计和筛选函数
+    // Refactored refresh function
+
+    refresh: () => refreshExchangeAuditData(false), // Normal refresh: priority for cache use
+
+    forceRefresh: () => refreshExchangeAuditData(true), // Force refresh: clear cache and re-get
+    // Statistics and filtering functions
+
     getExchangeAuditStats,
     getPendingExchangeRequests,
     getCompletedExchangeRequests,
-    // 额外提供的信息，用于调试和状态展示
+    // Additional information provided for debugging and status display
+
     eventCount: eventRecords.length,
     contractCount: contractRecords.length,
     getCacheStatus: () => {

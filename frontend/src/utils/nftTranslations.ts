@@ -1,6 +1,6 @@
 /**
- * NFT内容翻译映射
- * 为区块链上的NFT内容提供多语言支持
+ * NFT content translation mapping
+ * Provide multilingual support for NFT content on the blockchain
  */
 
 export interface NFTTranslation {
@@ -16,11 +16,11 @@ export interface NFTTranslations {
 }
 
 /**
- * NFT翻译数据库
- * 根据tokenId提供中英文翻译
+ * NFT translation database
+ * Provide Chinese and English translations based on tokenId
  */
 export const nftTranslations: NFTTranslations = {
-  // Token ID #4 - 陕西延安薛张小流域
+  // Token ID #4 - Shaanxi Yan'an Xuezhang Small Watershed
   '4': {
     zh: {
       storyTitle: '陕西延安薛张小流域‌',
@@ -32,7 +32,7 @@ export const nftTranslations: NFTTranslations = {
     }
   },
   
-  // Token ID #3 - 杭州市湿地生态项目
+  // Token ID #3 - Hangzhou Wetland Ecological Project
   '3': {
     zh: {
       storyTitle: '杭州市湿地生态项目',
@@ -44,16 +44,16 @@ export const nftTranslations: NFTTranslations = {
     }
   },
 
-  // 可以继续添加更多NFT的翻译...
+  // More NFT translations can be added...
 };
 
 /**
- * 获取NFT翻译内容
- * @param tokenId - NFT的token ID
- * @param language - 目标语言 ('zh' | 'en')
- * @param originalTitle - 原始标题（作为备选）
- * @param originalDetail - 原始详情（作为备选）
- * @returns 翻译后的NFT内容
+ * Get NFT translation content
+ * @param tokenId - NFT token ID
+ * @param language - Target language ('zh' | 'en')
+ * @param originalTitle - Original title (as fallback)
+ * @param originalDetail - Original detail (as fallback)
+ * @returns Translated NFT content
  */
 export function getNFTTranslation(
   tokenId: string,
@@ -61,14 +61,14 @@ export function getNFTTranslation(
   originalTitle?: string,
   originalDetail?: string
 ): NFTTranslation {
-  // 获取翻译映射
+  // Get translation mapping
   const translation = nftTranslations[tokenId];
   
   if (translation && translation[language as 'zh' | 'en']) {
     return translation[language as 'zh' | 'en'];
   }
   
-  // 如果没有找到翻译，返回原始内容
+  // If no translation found, return original content
   return {
     storyTitle: originalTitle || `NFT #${tokenId}`,
     storyDetail: originalDetail || 'This is an exciting story about environmental action...'
@@ -76,10 +76,10 @@ export function getNFTTranslation(
 }
 
 /**
- * 检查是否有翻译可用
- * @param tokenId - NFT的token ID
- * @param language - 目标语言
- * @returns 是否有翻译可用
+ * Check if translation is available
+ * @param tokenId - NFT token ID
+ * @param language - Target language
+ * @returns Whether translation is available
  */
 export function hasNFTTranslation(tokenId: string, language: string): boolean {
   const translation = nftTranslations[tokenId];
@@ -87,8 +87,8 @@ export function hasNFTTranslation(tokenId: string, language: string): boolean {
 }
 
 /**
- * 获取所有支持翻译的NFT token ID列表
- * @returns 支持翻译的token ID数组
+ * Get all supported NFT token ID list
+ * @returns Array of supported token IDs
  */
 export function getSupportedNFTIds(): string[] {
   return Object.keys(nftTranslations);

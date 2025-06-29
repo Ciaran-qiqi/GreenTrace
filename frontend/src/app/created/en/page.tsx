@@ -1,6 +1,7 @@
 import CreatedPage from '../page';
 
-// NFT创建页面英文版
+// Nft page creation English version
+
 export default function ENCreatedPage() {
   return <CreatedPage />;
 }

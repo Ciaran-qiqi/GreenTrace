@@ -17,12 +17,12 @@ interface PriceUpdateModalProps {
 }
 
 /**
- * 更新价格模态框组件
- * @description 提供更新NFT挂单价格的用户界面
- * @param isOpen 是否显示模态框
- * @param onClose 关闭回调
- * @param onSuccess 更新成功回调
- * @param listing NFT挂单信息
+ * Update price modal box components
+ * @description Provides a user interface to update NFT pending order prices
+ * @param isOpen Whether to display the modal box
+ * @param onClose Close callback
+ * @param onSuccess Update successfully callback
+ * @param listing NFT order information
  */
 export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
   isOpen,
@@ -33,7 +33,8 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
   const [newPrice, setNewPrice] = useState('');
   const [priceError, setPriceError] = useState('');
 
-  // 使用更新价格Hook
+  // Use update price hook
+
   const {
     isLoading,
     isSuccess,
@@ -48,16 +49,19 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
     }
   });
 
-  // 初始化价格
+  // Initialized price
+
   useEffect(() => {
     if (isOpen && listing.currentPrice) {
-      // 将wei转换为以太单位显示
+      // Convert wei to Ethernet unit display
+
       const currentPriceInEth = parseFloat(listing.currentPrice) / 1e18;
       setNewPrice(currentPriceInEth.toString());
     }
   }, [isOpen, listing.currentPrice]);
 
-  // 关闭模态框
+  // Close the modal box
+
   const handleClose = () => {
     setNewPrice('');
     setPriceError('');
@@ -65,7 +69,8 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
     onClose();
   };
 
-  // 价格验证
+  // Price verification
+
   const validatePrice = (price: string): boolean => {
     const priceValue = parseFloat(price);
     
@@ -88,7 +93,8 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
     return true;
   };
 
-  // 处理价格输入
+  // Process price input
+
   const handlePriceChange = (value: string) => {
     setNewPrice(value);
     if (value) {
@@ -98,7 +104,8 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
     }
   };
 
-  // 提交更新
+  // Submit update
+
   const handleSubmit = async () => {
     if (!validatePrice(newPrice)) {
       return;
@@ -115,7 +122,8 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
     await updatePrice(listing.tokenId, newPrice);
   };
 
-  // 键盘事件处理
+  // Keyboard event handling
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit();
@@ -129,10 +137,10 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-md w-full relative overflow-hidden">
-        {/* 装饰性顶部渐变 */}
+        {/* Decorative top gradient */}
         <div className="h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"></div>
         
-        {/* 头部 */}
+        {/* head */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-800">
@@ -147,9 +155,9 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
           </div>
         </div>
 
-        {/* 内容 */}
+        {/* content */}
         <div className="p-6">
-          {/* NFT信息 */}
+          {/* Nft information */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium text-gray-800 mb-2">{listing.title}</h4>
             <div className="text-sm text-gray-600 space-y-1">
@@ -161,7 +169,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
             </div>
           </div>
 
-          {/* 价格输入 */}
+          {/* Price input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               新价格 (CARB)
@@ -188,14 +196,14 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
               </div>
             </div>
             
-            {/* 错误提示 */}
+            {/* Error message */}
             {priceError && (
               <div className="mt-2 text-red-500 text-sm">
                 ⚠️ {priceError}
               </div>
             )}
             
-            {/* Hook错误提示 */}
+            {/* Hook error message */}
             {errorMessage && (
               <div className="mt-2 text-red-500 text-sm">
                 ❌ {errorMessage}
@@ -203,7 +211,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
             )}
           </div>
 
-          {/* 价格变化提示 */}
+          {/* Price change tips */}
           {newPrice && !priceError && (
             <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="text-blue-800 text-sm">
@@ -227,7 +235,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
             </div>
           )}
 
-          {/* 操作按钮 */}
+          {/* Operation button */}
           <div className="flex gap-3">
             <button
               onClick={handleClose}
@@ -252,7 +260,7 @@ export const PriceUpdateModal: React.FC<PriceUpdateModalProps> = ({
             </button>
           </div>
 
-          {/* 提示信息 */}
+          {/* Prompt information */}
           <div className="mt-4 text-xs text-gray-500 text-center">
             <p>💡 更新价格将产生Gas费用</p>
             <p>价格更新后立即生效</p>

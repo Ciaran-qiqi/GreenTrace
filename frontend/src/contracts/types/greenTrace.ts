@@ -1,134 +1,219 @@
 import { Address } from 'viem';
 
-// 审计状态枚举
+// Audit status enumeration
+
 export enum AuditStatus {
-  PENDING = 0,    // 待审核
-  APPROVED = 1,   // 已通过
-  REJECTED = 2    // 已拒绝
+  PENDING = 0,    // Pending review
+
+  APPROVED = 1,   // Passed
+
+  REJECTED = 2    // Rejected
+
 }
 
-// 审计类型枚举
+// Audit type enumeration
+
 export enum AuditType {
-  MINT = 0,       // 铸造审计
-  EXCHANGE = 1    // 兑换审计
+  MINT = 0,       // Casting Audit
+
+  EXCHANGE = 1    // Redemption audit
+
 }
 
-// 审计信息接口
+// Audit information interface
+
 export interface AuditInfo {
-  auditor: Address;           // 审计员地址
-  tokenId: bigint;           // NFT代币ID
-  carbonValue: bigint;       // 碳价值
-  status: AuditStatus;       // 审计状态
-  auditType: AuditType;      // 审计类型
-  timestamp: bigint;         // 时间戳
+  auditor: Address;           // Auditor's address
+
+  tokenId: bigint;           // Nft token id
+
+  carbonValue: bigint;       // Carbon value
+
+  status: AuditStatus;       // Audit status
+
+  auditType: AuditType;      // Audit Type
+
+  timestamp: bigint;         // Timestamp
+
 }
 
-// NFT铸造请求参数接口
+// Nft casting request parameter interface
+
 export interface MintRequestParams {
-  title: string;             // NFT标题
-  storyDetails: string;      // 环保行为详情
-  carbonReduction: bigint;   // 碳减排量
-  tokenURI: string;          // 元数据URI
+  title: string;             // Nft title
+
+  storyDetails: string;      // Environmental protection behavior details
+
+  carbonReduction: bigint;   // Carbon emission reduction
+
+  tokenURI: string;          // Metadata uri
+
 }
 
-// 商业铸造参数接口
+// Commercial casting parameter interface
+
 export interface BusinessMintParams {
-  recipient: Address;        // 接收者地址
-  title: string;             // NFT标题
-  storyDetails: string;      // 环保行为详情
-  carbonReduction: bigint;   // 碳减排量
-  initialPrice: bigint;      // 初始价格
-  tokenURI: string;          // 元数据URI
+  recipient: Address;        // Recipient address
+
+  title: string;             // Nft title
+
+  storyDetails: string;      // Environmental protection behavior details
+
+  carbonReduction: bigint;   // Carbon emission reduction
+
+  initialPrice: bigint;      // Initial price
+
+  tokenURI: string;          // Metadata uri
+
 }
 
-// 支付并铸造参数接口
+// Pay and cast parameter interface
+
 export interface PayAndMintParams {
-  tokenId: bigint;           // 代币ID
-  to: Address;               // 接收者地址
-  title: string;             // NFT标题
-  details: string;           // 详情
-  carbonReduction: bigint;   // 碳减排量
-  tokenURI: string;          // 元数据URI
+  tokenId: bigint;           // Token id
+
+  to: Address;               // Recipient address
+
+  title: string;             // Nft title
+
+  details: string;           // Details
+
+  carbonReduction: bigint;   // Carbon emission reduction
+
+  tokenURI: string;          // Metadata uri
+
 }
 
-// 铸造审计参数接口
+// Casting audit parameter interface
+
 export interface MintAuditParams {
-  tokenId: bigint;           // 代币ID
-  carbonValue: bigint;       // 碳价值
-  reason: string;            // 审计理由
+  tokenId: bigint;           // Token id
+
+  carbonValue: bigint;       // Carbon value
+
+  reason: string;            // Audit reasons
+
 }
 
-// 兑换审计参数接口
+// Exchange audit parameter interface
+
 export interface ExchangeAuditParams {
-  tokenId: bigint;           // 代币ID
-  carbonValue: bigint;       // 碳价值
+  tokenId: bigint;           // Token id
+
+  carbonValue: bigint;       // Carbon value
+
 }
 
-// GreenTrace常量接口
+// Green trace constant interface
+
 export interface GreenTraceConstants {
-  baseRate?: bigint;         // 基础费率
-  systemFeeRate?: bigint;    // 系统费率
-  auditFeeRate?: bigint;     // 审计费率
-  initialized?: boolean;     // 是否已初始化
-  isTestEnvironment?: boolean; // 是否为测试环境
+  baseRate?: bigint;         // Base rate
+
+  systemFeeRate?: bigint;    // System rate
+
+  auditFeeRate?: bigint;     // Audit rate
+
+  initialized?: boolean;     // Is it initialized
+
+  isTestEnvironment?: boolean; // Is it a test environment?
+
 }
 
-// 格式化审计信息接口
+// Format audit information interface
+
 export interface FormattedAuditInfo {
-  auditor: string;           // 审计员地址
-  tokenId: string;           // 代币ID
-  carbonValue: number;       // 碳价值
-  status: string;            // 状态
-  auditType: string;         // 审计类型
-  timestamp: string;         // 时间戳
+  auditor: string;           // Auditor's address
+
+  tokenId: string;           // Token id
+
+  carbonValue: number;       // Carbon value
+
+  status: string;            // state
+
+  auditType: string;         // Audit Type
+
+  timestamp: string;         // Timestamp
+
 }
 
-// 铸造请求事件接口
+// Casting request event interface
+
 export interface MintRequestedEvent {
-  tokenId: bigint;           // 代币ID
-  requester: Address;        // 请求者地址
-  title: string;             // 标题
-  details: string;           // 详情
-  carbonReduction: bigint;   // 碳减排量
-  tokenURI: string;          // 元数据URI
-  totalFee: bigint;          // 总费用
+  tokenId: bigint;           // Token id
+
+  requester: Address;        // Requester's address
+
+  title: string;             // title
+
+  details: string;           // Details
+
+  carbonReduction: bigint;   // Carbon emission reduction
+
+  tokenURI: string;          // Metadata uri
+
+  totalFee: bigint;          // Total cost
+
 }
 
-// NFT铸造后审计事件接口
+// Nft post-casting audit event interface
+
 export interface NFTMintedAfterAuditEvent {
-  tokenId: bigint;           // 代币ID
-  recipient: Address;        // 接收者地址
-  title: string;             // 标题
-  carbonReduction: bigint;   // 碳减排量
+  tokenId: bigint;           // Token id
+
+  recipient: Address;        // Recipient address
+
+  title: string;             // title
+
+  carbonReduction: bigint;   // Carbon emission reduction
+
 }
 
-// NFT兑换事件接口
+// Nft redemption event interface
+
 export interface NFTExchangedEvent {
-  tokenId: bigint;           // 代币ID
-  owner: Address;            // 所有者地址
-  carbonAmount: bigint;      // 碳代币数量
+  tokenId: bigint;           // Token id
+
+  owner: Address;            // Owner's address
+
+  carbonAmount: bigint;      // Carbon token number
+
 }
 
-// 审计提交事件接口
+// Audit Submit Event Interface
+
 export interface AuditSubmittedEvent {
-  tokenId: bigint;           // 代币ID
-  auditor: Address;          // 审计员地址
-  carbonValue: bigint;       // 碳价值
-  auditType: AuditType;      // 审计类型
+  tokenId: bigint;           // Token id
+
+  auditor: Address;          // Auditor's address
+
+  carbonValue: bigint;       // Carbon value
+
+  auditType: AuditType;      // Audit Type
+
 }
 
-// 审计完成事件接口
+// Audit completion event interface
+
 export interface AuditCompletedEvent {
-  tokenId: bigint;           // 代币ID
-  status: AuditStatus;       // 审计状态
-  auditType: AuditType;      // 审计类型
+  tokenId: bigint;           // Token id
+
+  status: AuditStatus;       // Audit status
+
+  auditType: AuditType;      // Audit Type
+
 }
 
-// 写合约钩子返回接口
+// Write contract hook to return interface
+
 export interface WriteContractHookReturn {
-  isPending: boolean;        // 是否等待中
-  isConfirming: boolean;     // 是否确认中
-  isConfirmed: boolean;      // 是否已确认
-  error: Error | null;       // 错误信息
-  hash?: string;             // 交易哈希
+  isPending: boolean;        // Waiting or not
+
+  isConfirming: boolean;     // Is it confirmed?
+
+  isConfirmed: boolean;      // Is it confirmed
+
+  error: Error | null;       // error message
+
+  hash?: string;             // Transaction hash
+
 } 

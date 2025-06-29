@@ -3,13 +3,13 @@ import { useReadContract } from 'wagmi'
 import { formatUnits } from 'viem'
 import CarbonUSDTMarketABI from '@/contracts/abi/CarbonUSDTMarket.json'
 
-// 订单接口定义 - 与前端显示需求匹配
+// Order interface definition -Matching front-end display requirements
 interface Order {
   id: string
   user: string
   orderType: 'Buy' | 'Sell'
   amount: string
-  remainingAmount: string // 剩余未成交数量
+  remainingAmount: string // Remaining untransactions
   price: string
   timestamp: string
   status: 'Active' | 'Filled' | 'Cancelled'
@@ -17,16 +17,16 @@ interface Order {
 }
 
 /**
- * 订单数据管理Hook
- * 负责从CarbonUSDTMarket合约获取和管理订单数据
- * @param marketAddress 市场合约地址
+ * Order Data Management Hook
+ * Responsible for obtaining and managing order data from CarbonUSDTMarket contracts
+ * @param marketAddress Market contract address
  */
 export const useOrderData = (marketAddress: string) => {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
   const [totalOrders, setTotalOrders] = useState(0)
 
-  // 获取市场统计来获取订单数量
+  // Get market statistics to get order quantity
   const { data: marketStats, refetch: refetchStats } = useReadContract({
     address: marketAddress as `0x${string}`,
     abi: CarbonUSDTMarketABI.abi,
@@ -37,19 +37,19 @@ export const useOrderData = (marketAddress: string) => {
   })
 
   /**
-   * 获取特定订单信息 - 使用getOrder函数
-   * @param orderId 订单ID
-   * @returns 订单详细信息或null
+   * Get specific order information -use getOrder function
+   * @param orderId Order ID
+   * @returns Order details or null
    */
   const getOrder = useCallback(async (orderId: number) => {
     if (!marketAddress) return null
     
     try {
-      // 动态导入wagmi的readContract函数
+      // Dynamically import wagmi's read contract function
       const { readContract } = await import('wagmi/actions')
       const { config } = await import('@/lib/wagmi')
       
-      // 使用 'getOrder' 函数获取订单详情
+      // Use the 'getOrder' function to get order details
       const orderData = await readContract(config, {
         address: marketAddress as `0x${string}`,
         abi: CarbonUSDTMarketABI.abi,
@@ -65,8 +65,8 @@ export const useOrderData = (marketAddress: string) => {
   }, [marketAddress])
 
   /**
-   * 加载订单数据 - 从合约获取活跃订单
-   * 优先使用分页API以提高性能
+   * Loading order data -Get active orders from contracts
+   * Prioritize the use of pagination API for performance
    */
   const loadOrders = useCallback(async () => {
     if (!marketStats || !marketAddress) return
@@ -75,16 +75,16 @@ export const useOrderData = (marketAddress: string) => {
     const orderList: Order[] = []
     
     try {
-      // 动态导入wagmi的readContract函数
+      // Dynamically import wagmi's read contract function
       const { readContract } = await import('wagmi/actions')
       const { config } = await import('@/lib/wagmi')
       
-      // 使用分页API获取活跃订单（更高效）
+      // Get active orders using pagination api (more efficient)
       const result = await readContract(config, {
         address: marketAddress as `0x${string}`,
         abi: CarbonUSDTMarketABI.abi,
         functionName: 'getActiveOrdersPaginated',
-        args: [BigInt(0), BigInt(50)], // 获取前50个活跃订单
+        args: [BigInt(0), BigInt(50)], // Get the top 50 active orders
       })
       
       const orderIds = (result as any)[0] as bigint[]
@@ -96,19 +96,19 @@ export const useOrderData = (marketAddress: string) => {
         orderInfos
       })
       
-      // 处理订单数据
+      // Processing order data
       orderInfos.forEach((orderData, index) => {
-        if (orderData && orderData.user && orderData.status === 0) { // 只处理活跃订单
+        if (orderData && orderData.user && orderData.status === 0) { // Process only active orders
           const formattedOrder: Order = {
-            id: orderIds[index].toString(), // 使用实际订单ID
+            id: orderIds[index].toString(), // Use the actual order id
             user: orderData.user,
             orderType: orderData.orderType === 0 ? 'Buy' : 'Sell',
             amount: formatUnits(orderData.amount, 18),
             remainingAmount: formatUnits(orderData.remainingAmount, 18),
-            price: orderData.price.toString(), // 价格是基础单位，直接使用
+            price: orderData.price.toString(), // Price is the basic unit, used directly
             timestamp: new Date(Number(orderData.timestamp) * 1000).toLocaleString(),
             status: 'Active',
-            orderFee: formatUnits(orderData.orderFee, 18) // 挂单费是Wei格式，需要格式化
+            orderFee: formatUnits(orderData.orderFee, 18) // The order fee is in wei format and needs to be formatted
           }
           
           console.log(`订单 ${orderIds[index]} 挂单费调试:`, {
@@ -131,13 +131,13 @@ export const useOrderData = (marketAddress: string) => {
     } catch (error) {
       console.error('获取分页订单失败，回退到传统方式:', error)
       
-      // 回退方案：使用传统方式获取订单
-      const nextOrderId = Number((marketStats as any)[7]) // nextOrderId是第8个字段
+      // Rollback solution: Use traditional methods to get orders
+      const nextOrderId = Number((marketStats as any)[7]) // Next order id is the 8th field
       setTotalOrders(nextOrderId)
       
       console.log('开始加载订单，总订单数:', nextOrderId)
       
-      // 只加载最近的20个订单
+      // Load only the most recent 20 orders
       const loadCount = Math.min(20, nextOrderId)
       const startId = Math.max(0, nextOrderId - loadCount)
       
@@ -148,7 +148,7 @@ export const useOrderData = (marketAddress: string) => {
           console.log(`订单 ${i} 原始数据:`, orderData)
           
           if (orderData) {
-            // 合约返回的是结构体格式
+            // The contract returns the structure format
             const orderStruct = orderData as any
             
             console.log(`订单 ${i} 结构体数据:`, {
@@ -162,7 +162,7 @@ export const useOrderData = (marketAddress: string) => {
               orderFee: orderStruct.orderFee?.toString()
             })
             
-            // 检查订单是否有效（用户地址不为0且状态为Active）
+            // Check whether the order is valid (user address is not 0 and the status is active)
             if (orderStruct.user && 
                 orderStruct.user !== '0x0000000000000000000000000000000000000000' && 
                 orderStruct.status === 0) {
@@ -172,10 +172,10 @@ export const useOrderData = (marketAddress: string) => {
                 orderType: orderStruct.orderType === 0 ? 'Buy' : 'Sell',
                 amount: formatUnits(orderStruct.amount, 18),
                 remainingAmount: formatUnits(orderStruct.remainingAmount, 18),
-                price: orderStruct.price?.toString(), // 价格是基础单位，直接使用
+                price: orderStruct.price?.toString(), // Price is the basic unit, used directly
                 timestamp: new Date(Number(orderStruct.timestamp) * 1000).toLocaleString(),
                 status: 'Active',
-                orderFee: formatUnits(orderStruct.orderFee, 18) // 挂单费是Wei格式，需要格式化
+                orderFee: formatUnits(orderStruct.orderFee, 18) // The order fee is in wei format and needs to be formatted
               }
               console.log(`添加订单 ${i} 到列表:`, formattedOrder)
               orderList.push(formattedOrder)
@@ -201,7 +201,7 @@ export const useOrderData = (marketAddress: string) => {
   }, [marketStats, marketAddress, getOrder])
 
   /**
-   * 刷新订单数据 - 重新获取最新订单
+   * Refresh order data -Re-get the latest order
    */
   const refreshOrders = useCallback(() => {
     refetchStats()

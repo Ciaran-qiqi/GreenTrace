@@ -4,7 +4,8 @@ import { Address } from 'viem';
 import { useGetUserMintRequests, getGreenTraceABI } from './useGreenTrace';
 import { CONTRACT_ADDRESSES } from '../addresses';
 
-// NFT创建记录接口
+// Nft creates a record interface
+
 export interface MintRecord {
   tokenId: number;
   title: string;
@@ -17,16 +18,22 @@ export interface MintRecord {
   auditor?: string;
   carbonValue?: string;
   reason?: string;
-  transactionHash?: string; // 交易哈希，用于唯一标识记录
-  source?: 'event' | 'contract'; // 数据来源标识
-  nftTokenId?: string; // NFT Token ID（铸造成功后才有）
+  transactionHash?: string; // Transaction hash, used to uniquely identify records
+
+  source?: 'event' | 'contract'; // Data source identification
+
+  nftTokenId?: string; // NFT Token ID (it is only available after successful casting)
+
 }
 
-// 缓存相关常量
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24小时
+// Cache related constants
+
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
 const CACHE_PREFIX = 'mint_records_';
 
-// 读取本地缓存
+// Read local cache
+
 function getLocalCache(address: string | undefined): MintRecord[] | null {
   if (!address) return null;
   try {
@@ -44,7 +51,8 @@ function getLocalCache(address: string | undefined): MintRecord[] | null {
   return null;
 }
 
-// 保存到本地缓存
+// Save to local cache
+
 function saveLocalCache(address: string | undefined, data: MintRecord[]) {
   if (!address) return;
   try {
@@ -59,7 +67,8 @@ function saveLocalCache(address: string | undefined, data: MintRecord[]) {
   }
 }
 
-// 清除本地缓存
+// Clear local cache
+
 function clearLocalCache(address: string | undefined) {
   if (!address) return;
   try {
@@ -70,36 +79,45 @@ function clearLocalCache(address: string | undefined) {
   }
 }
 
-// 混合数据源hook：事件监听（按需启用）+ 合约查询（准确性）+ 缓存（性能）
+// Hybrid data source hook: event listening (enable on demand) + contract query (accuracy) + cache (performance)
+
 export const useNFTMintRecords = () => {
   const { address, isConnected } = useAccount();
   const [records, setRecords] = useState<MintRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [eventRecords, setEventRecords] = useState<MintRecord[]>([]); // 事件监听获得的记录
-  const [contractRecords, setContractRecords] = useState<MintRecord[]>([]); // 合约查询获得的记录
-  const [eventListeningEnabled, setEventListeningEnabled] = useState(false); // 控制事件监听是否启用
+  const [eventRecords, setEventRecords] = useState<MintRecord[]>([]); // Records obtained by event listening
 
-  // 合约查询hooks - 在组件顶层调用
+  const [contractRecords, setContractRecords] = useState<MintRecord[]>([]); // Records obtained by contract query
+
+  const [eventListeningEnabled, setEventListeningEnabled] = useState(false); // Control whether event listening is enabled
+
+
+  // Contract query hooks -call on top of component
+
   const { data: requestIds, refetch: refetchIds } = useGetUserMintRequests(address);
 
-  // 合并数据源：事件记录 + 合约记录，去重并优先使用合约数据
+  // Merge data source: Event record + contract record, deduplication and priority use of contract data
+
   const mergeRecords = useCallback(() => {
     const merged = new Map<string, MintRecord>();
     
-    // 先添加事件记录（临时、实时数据）
+    // Add event records first (temporary, real-time data)
+
     eventRecords.forEach(record => {
       const key = record.transactionHash || `${record.tokenId}_${record.timestamp}`;
       merged.set(key, { ...record, source: 'event' });
     });
     
-    // 再添加合约记录（权威、准确数据），会覆盖同key的事件记录
+    // Adding the contract record (authoritative and accurate data) will overwrite the event record of the same key
+
     contractRecords.forEach(record => {
       const key = record.transactionHash || `${record.tokenId}_${record.timestamp}`;
       merged.set(key, { ...record, source: 'contract' });
     });
     
-    // 按时间戳降序排序
+    // Sort by descending timestamp
+
     const finalRecords = Array.from(merged.values()).sort((a, b) => b.timestamp - a.timestamp);
     
     console.log('合并数据源:', {
@@ -111,12 +129,14 @@ export const useNFTMintRecords = () => {
     setRecords(finalRecords);
   }, [eventRecords, contractRecords]);
 
-  // 当任一数据源更新时，重新合并
+  // When either data source is updated, re-merge
+
   useEffect(() => {
     mergeRecords();
   }, [mergeRecords]);
 
-  // 按需启用的事件监听：只在合约交互后短时间内监听
+  // Event listening enabled on demand: only listen for a short period of time after contract interaction
+
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
@@ -124,12 +144,15 @@ export const useNFTMintRecords = () => {
     onLogs: (logs) => {
       console.log('检测到MintRequested事件:', logs);
       
-      // 立即处理事件，添加到事件记录中
+      // Process events immediately and add to event records
+
       const newEventRecords: MintRecord[] = [];
-      // 简化事件处理，只添加基本信息 - 不依赖具体的事件数据解析
+      // Simplify event processing and add only basic information -does not rely on specific event data analysis
+
       if (logs.length > 0) {
         const record: MintRecord = {
-          tokenId: Date.now(), // 临时使用时间戳作为ID
+          tokenId: Date.now(), // Temporarily use timestamps as id
+
           title: '新申请正在处理中...',
           details: '等待区块确认，正在获取详细信息...',
           carbonReduction: '0',
@@ -147,7 +170,8 @@ export const useNFTMintRecords = () => {
         console.log('从事件获得新记录:', newEventRecords.length, '条');
         setEventRecords(prev => [...newEventRecords, ...prev]);
         
-        // 3秒后触发合约查询，获取准确数据
+        // The contract query is triggered after 3 seconds to obtain accurate data
+
         setTimeout(() => {
           refreshRecords(true);
         }, 3000);
@@ -156,7 +180,8 @@ export const useNFTMintRecords = () => {
     enabled: isConnected && !!address && eventListeningEnabled,
   });
 
-  // 审计事件监听：更新现有记录的状态
+  // Audit event listening: Update the status of existing records
+
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
@@ -196,14 +221,16 @@ export const useNFTMintRecords = () => {
     enabled: isConnected && !!address && eventListeningEnabled,
   });
 
-  // NFT兑换事件监听：更新NFT状态为已兑换
+  // Nft redemption event monitoring: Update nft status to redeemed
+
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES.sepolia.GreenTrace as Address,
     abi: getGreenTraceABI(),
     eventName: 'NFTExchanged',
     onLogs: () => {
       console.log('创建中心检测到NFTExchanged事件，刷新合约数据');
-      // 立即刷新数据以显示兑换状态变化
+      // Refresh data immediately to show changes in redemption status
+
       setTimeout(() => {
         refreshRecords(true);
       }, 1000);
@@ -211,7 +238,8 @@ export const useNFTMintRecords = () => {
     enabled: isConnected && !!address && eventListeningEnabled,
   });
 
-  // 合约查询：批量获取用户所有申请ID，再并发获取详情
+  // Contract query: Get all user application ids in batches, and then get details concurrently
+
   const fetchRecordsFromContract = useCallback(async () => {
     if (!isConnected || !address) {
       setContractRecords([]);
@@ -223,7 +251,8 @@ export const useNFTMintRecords = () => {
     setError(null);
 
     try {
-      // 1. 确保有申请ID数据
+      // 1. Ensure that there is application ID data
+
       let idArray = requestIds;
       if (!idArray) {
         console.log('requestIds为空，尝试重新获取...');
@@ -241,7 +270,8 @@ export const useNFTMintRecords = () => {
 
       console.log(`找到 ${idArray.length} 个申请ID:`, idArray.map(id => id.toString()));
 
-      // 2. 使用wagmi的readContracts批量查询详情
+      // 2. Use wagmi's readContracts to query details in batches
+
       const { readContracts } = await import('wagmi/actions');
       const { config } = await import('@/lib/wagmi');
       
@@ -250,10 +280,12 @@ export const useNFTMintRecords = () => {
         abi: getGreenTraceABI(),
       };
 
-      // 构建批量查询配置  
+      // Build batch query configuration  
+
       const contracts = idArray.map((id: bigint) => ({
         address: contractConfig.address,
-        abi: contractConfig.abi as any, // 临时处理类型问题
+        abi: contractConfig.abi as any, // Temporary handling of type issues
+
         functionName: 'getRequestById',
         args: [id],
       }));
@@ -263,7 +295,8 @@ export const useNFTMintRecords = () => {
       
       console.log('批量查询结果:', results);
 
-      // 3. 转换为MintRecord格式
+      // 3. Convert to MintRecord format
+
       const mintRecords: MintRecord[] = [];
       
       results.forEach((result, index) => {
@@ -271,18 +304,22 @@ export const useNFTMintRecords = () => {
           const item = result.result as any;
           const requestId = idArray[index];
           
-          // 解析状态：0=pending, 1=approved, 2=rejected
+          // Analysis status: 0=pending, 1=approved, 2=rejected
+
           let status: MintRecord['status'] = 'pending';
           if (item.status === 1) {
-            // 🔍 详细检查NFT铸造状态
-            // ⚠️ 简化判断逻辑：只有申请#2的nftTokenId为0时才认为已铸造
+            // 🔍 Check the NFT casting status in detail
+            // ⚠️ Simplified judgment logic: Only when the nftTokenId of application #2 is considered to have been cast
+
             const nftTokenId = item.nftTokenId;
             const requestIdStr = requestId.toString();
             
-            // 特殊情况：申请#2对应NFT Token ID 0（已确认铸造）
+            // Special circumstances: Application #2 corresponds to NFT Token ID 0 (confirmed casting)
+
             const isSpecialCase = requestIdStr === '2' && Number(nftTokenId) === 0;
             
-            // 一般情况：nftTokenId必须大于0才认为已铸造
+            // General: nft token id must be greater than 0 before it is considered to have been cast
+
             const isGeneralMinted = nftTokenId !== undefined && nftTokenId !== null && Number(nftTokenId) > 0;
             
             const hasNftId = isSpecialCase || isGeneralMinted;
@@ -312,19 +349,22 @@ export const useNFTMintRecords = () => {
             console.log(`⏱️ 申请ID ${requestId} 待审核`);
           }
           
-          // 获取NFT Token ID信息（在record创建前）
+          // Get NFT Token ID information (before record creation)
+
           const nftTokenId = item.nftTokenId;
           const requestIdStr = requestId.toString();
           const isSpecialCase = requestIdStr === '2' && Number(nftTokenId) === 0;
           const isGeneralMinted = nftTokenId !== undefined && nftTokenId !== null && Number(nftTokenId) > 0;
           const hasNftId = isSpecialCase || isGeneralMinted;
           
-          // 格式化数据 - 将Wei转换为可读格式
+          // Format data -Convert Wei to readable format
+
           const formatTokenAmount = (amount: bigint | string | undefined): string => {
             if (!amount) return '0';
             try {
               const value = BigInt(amount);
-              // 除以10^18转换为标准单位
+              // Divided by 10^18 to convert to standard units
+
               const formatted = Number(value) / Math.pow(10, 18);
               return formatted.toFixed(2);
             } catch {
@@ -333,20 +373,27 @@ export const useNFTMintRecords = () => {
           };
 
           const record: MintRecord = {
-            tokenId: Number(requestId), // 使用申请ID作为tokenId（前端显示用）
+            tokenId: Number(requestId), // Use the request id as the token id (for front-end display)
+
             title: item.requestData?.title || '未知标题',
             details: item.requestData?.storyDetails || '无详情',
-            carbonReduction: formatTokenAmount(item.requestData?.carbonReduction), // 格式化碳减排量
+            carbonReduction: formatTokenAmount(item.requestData?.carbonReduction), // Format carbon emission reduction
+
             tokenURI: item.requestData?.tokenURI || '',
-            totalFee: formatTokenAmount(item.requestData?.requestFee), // 格式化费用
+            totalFee: formatTokenAmount(item.requestData?.requestFee), // Format fee
+
             status,
             timestamp: Number(item.requestTimestamp || 0) * 1000,
             auditor: item.auditor && item.auditor !== '0x0000000000000000000000000000000000000000' ? item.auditor : undefined,
-            carbonValue: formatTokenAmount(item.carbonValue), // 格式化审计确认价值
-            reason: item.auditComment || undefined, // 审计意见
-            transactionHash: `request_${requestId}`, // 使用申请ID生成唯一标识
+            carbonValue: formatTokenAmount(item.carbonValue), // Format audit confirmation value
+
+            reason: item.auditComment || undefined, // Audit opinion
+
+            transactionHash: `request_${requestId}`, // Use the request id to generate a unique identifier
+
             source: 'contract',
-            nftTokenId: hasNftId ? item.nftTokenId?.toString() : undefined // 添加NFT Token ID
+            nftTokenId: hasNftId ? item.nftTokenId?.toString() : undefined // Add NFT Token ID
+
           };
           
           mintRecords.push(record);
@@ -355,7 +402,8 @@ export const useNFTMintRecords = () => {
         }
       });
 
-      // 按时间戳降序排序（最新的在前）
+      // Sort by descending timestamp (latest first)
+
       mintRecords.sort((a, b) => b.timestamp - a.timestamp);
       
       console.log(`成功获取 ${mintRecords.length} 条NFT铸造记录:`, mintRecords);
@@ -372,36 +420,43 @@ export const useNFTMintRecords = () => {
     }
   }, [isConnected, address, requestIds, refetchIds]);
 
-  // 刷新记录，force=true时清除缓存
+  // Refresh the record, clear the cache when force=true
+
   const refreshRecords = useCallback(async (force = false) => {
     console.log('refreshRecords被调用', { force, address });
     if (force) {
       clearLocalCache(address);
-      setEventRecords([]); // 清除事件记录，重新开始
+      setEventRecords([]); // Clear event logs and start over
+
     }
-    // 先刷新申请ID列表，再获取详情
+    // First refresh the application id list, then get the details
+
     await refetchIds();
     fetchRecordsFromContract();
   }, [address, refetchIds, fetchRecordsFromContract]);
 
-  // 启用事件监听，持续指定时间（默认30秒）
+  // Enable event listening for a specified time (default 30 seconds)
+
   const enableEventListening = useCallback((duration = 30000) => {
     console.log(`启用事件监听 ${duration}ms`);
     setEventListeningEnabled(true);
-    // 自动关闭
+    // Automatically close
+
     setTimeout(() => {
       console.log('自动关闭事件监听');
       setEventListeningEnabled(false);
     }, duration);
   }, []);
 
-  // 手动关闭事件监听
+  // Manually close event listening
+
   const disableEventListening = useCallback(() => {
     console.log('手动关闭事件监听');
     setEventListeningEnabled(false);
   }, []);
 
-  // 首次加载：优先用缓存，但要监听requestIds变化
+  // First loading: priority is used, but listen for request ids changes
+
   useEffect(() => {
     if (!isConnected || !address) {
       setRecords([]);
@@ -422,7 +477,8 @@ export const useNFTMintRecords = () => {
       console.log('使用缓存数据:', cache.length, '条记录');
       setContractRecords(cache);
       setLoading(false);
-      // 即使有缓存，也在后台刷新数据（如果requestIds已加载）
+      // Even if there is a cache, refresh the data in the background (if the request ids are loaded)
+
       if (requestIds) {
         fetchRecordsFromContract();
       }
@@ -433,15 +489,20 @@ export const useNFTMintRecords = () => {
   }, [isConnected, address, requestIds, fetchRecordsFromContract]);
 
   return {
-    records, // 合并后的最终记录
+    records, // The final record after the merge
+
     loading,
     error,
     refreshRecords,
-    // 事件监听控制
-    enableEventListening, // 启用事件监听指定时间
-    disableEventListening, // 手动关闭事件监听
-    isEventListening: eventListeningEnabled, // 当前事件监听状态
-    // 额外提供的信息，用于调试和状态展示
+    // Event listening control
+
+    enableEventListening, // Enable event listening for specified time
+
+    disableEventListening, // Manually close event listening
+
+    isEventListening: eventListeningEnabled, // Current event listening status
+    // Additional information provided for debugging and status display
+
     eventCount: eventRecords.length,
     contractCount: contractRecords.length,
     getCacheStatus: () => {
@@ -455,7 +516,8 @@ export const useNFTMintRecords = () => {
   };
 };
 
-// 保持向后兼容性 - 原来的实时数据集成Hook  
+// Maintain backward compatibility -original real-time data integration Hook  
+
 export const useRealNFTMintRecords = () => {
   console.warn('useRealNFTMintRecords已废弃，请使用useNFTMintRecords');
   return useNFTMintRecords();

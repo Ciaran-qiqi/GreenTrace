@@ -5,11 +5,13 @@ import { Navigation } from '@/components/Navigation';
 import { CarbonPriceCard } from '@/components/CarbonPriceCard';
 import { useTranslation } from '@/hooks/useI18n';
 
-// 主页面组件 - 展示GreenTrace项目介绍
+// Main page component -Showcase GreenTrace project introduction
+
 export default function Home() {
   const { t, mounted } = useTranslation();
   
-  // 在服务器端渲染时显示基础结构
+  // Display infrastructure when rendering on server side
+
   if (!mounted) {
     return (
       <>
@@ -17,14 +19,14 @@ export default function Home() {
         <main className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-blue-50 relative overflow-hidden">
           <div className="container mx-auto px-4 py-8 relative z-10">
             <div className="max-w-4xl mx-auto">
-              {/* 主标题区域占位符 */}
+              {/* Main title area placeholder */}
               <div className="text-center mb-16">
                 <div className="h-8 bg-gray-200 rounded w-1/3 mx-auto mb-4 animate-pulse"></div>
                 <div className="h-6 bg-gray-200 rounded w-1/2 mx-auto mb-8 animate-pulse"></div>
                 <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto animate-pulse"></div>
               </div>
               
-              {/* 功能特色区域占位符 */}
+              {/* Featured area placeholders */}
               <div className="grid md:grid-cols-3 gap-8 mb-16">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl animate-pulse">
@@ -36,7 +38,7 @@ export default function Home() {
                 ))}
               </div>
               
-              {/* 碳价指数占位符 */}
+              {/* Carbon Price Index Placeholder */}
               <div className="mb-16">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 animate-pulse">
                   <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
@@ -65,17 +67,17 @@ export default function Home() {
     <>
       <Navigation />
       <main className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-blue-50 relative overflow-hidden">
-        {/* 高级背景装饰 */}
+        {/* Premium background decoration */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* 动态渐变圆圈 */}
+          {/* Dynamic gradient circle */}
           <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute top-40 right-20 w-48 h-48 bg-gradient-to-r from-blue-400/20 to-cyan-400/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
           <div className="absolute bottom-20 left-1/3 w-56 h-56 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
           
-          {/* 网格背景 */}
+          {/* Grid background */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,0,0.03)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
           
-          {/* 浮动粒子效果 */}
+          {/* Floating particle effect */}
           <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-green-400/40 rounded-full animate-bounce delay-300"></div>
           <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-blue-400/40 rounded-full animate-bounce delay-700"></div>
           <div className="absolute bottom-1/3 left-3/4 w-1.5 h-1.5 bg-emerald-400/40 rounded-full animate-bounce delay-1100"></div>
@@ -83,9 +85,9 @@ export default function Home() {
         
         <div className="container mx-auto px-4 py-8 relative z-10">
           <div className="max-w-4xl mx-auto">
-            {/* 主标题区域 */}
+            {/* Main title area */}
             <div className="text-center mb-16">
-              {/* 技术标签栏 */}
+              {/* Technical Tag Bar */}
               <div className="flex flex-wrap justify-center gap-2 mb-8">
                 <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-semibold rounded-full">
                   {t('home.hero.tags.blockchain', 'Blockchain')}
@@ -113,7 +115,7 @@ export default function Home() {
                 {t('home.hero.description', '通过区块链技术记录您的环保行为，将绿色行动转化为有价值的NFT资产，为地球贡献一份力量，同时获得碳信用奖励。')}
               </p>
               
-              {/* 增强的CTA按钮组 */}
+              {/* Enhanced cta button group */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link 
                   href="/carbon-market"
@@ -130,7 +132,7 @@ export default function Home() {
                 </Link>
               </div>
               
-              {/* 信任指标 */}
+              {/* Trust indicators */}
               <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -147,7 +149,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 功能特色区域 */}
+            {/* Functional feature area */}
             <div className="grid md:grid-cols-3 gap-8 mb-16">
               <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl text-center border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                 <div className="text-5xl mb-6 group-hover:scale-110 transition-transform duration-300">🌱</div>
@@ -181,7 +183,7 @@ export default function Home() {
                   {t('home.features.exchange.description', '将审核通过的NFT兑换为有价值的碳代币，参与碳信用交易，实现环保价值变现。')}
                 </p>
                 
-                {/* 获得USDT按钮 */}
+                {/* Get the usdt button */}
                 <a 
                   href="https://sepolia.etherscan.io/address/0xdcdc73413c6136c9abcc3e8d250af42947ac2fc7#writeContract"
                   target="_blank"
@@ -193,12 +195,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 碳价指数 */}
+            {/* Carbon Price Index */}
             <div className="mb-16">
               <CarbonPriceCard />
             </div>
 
-            {/* 技术优势展示 */}
+            {/* Display of technical advantages */}
             <div className="mb-16">
               <div className="text-center mb-12">
                 <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
@@ -236,7 +238,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 统计信息 */}
+            {/* Statistical information */}
             <div className="mt-12">
               <div className="text-center mb-8">
                 <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">

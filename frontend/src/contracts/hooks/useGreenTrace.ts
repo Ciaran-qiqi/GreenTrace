@@ -12,29 +12,36 @@ import { CONTRACT_ADDRESSES } from '../addresses';
 import GreenTraceABI from '../abi/GreenTrace.json';
 import { AuditStatus } from '../types/greenTrace';
 
-// 定义ABI类型
+// Define abi type
+
 type ContractABI = readonly unknown[];
 
-// 获取正确的ABI
+// Get the correct abi
+
 export const getGreenTraceABI = (): ContractABI => {
   return (GreenTraceABI.abi || GreenTraceABI) as ContractABI;
 };
 
-// 根据链ID获取合约地址
+// Get the contract address according to the link id
+
 const getContractAddress = (chainId: number): Address => {
   switch (chainId) {
-    case 1: // 以太坊主网
+    case 1: // Ethereum Main Network
+
       return CONTRACT_ADDRESSES.mainnet.GreenTrace as Address;
-    case 11155111: // Sepolia测试网
+    case 11155111: // Sepolia Test Network
+
       return CONTRACT_ADDRESSES.sepolia.GreenTrace as Address;
-    case 31337: // 本地Foundry测试网
+    case 31337: // Local foundry test network
+
       return CONTRACT_ADDRESSES.foundry.GreenTrace as Address;
     default:
       return CONTRACT_ADDRESSES.sepolia.GreenTrace as Address;
   }
 };
 
-// 获取GreenTrace合约常量
+// Get green trace contract constant
+
 export const useGreenTraceConstants = () => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -78,7 +85,8 @@ export const useGreenTraceConstants = () => {
   };
 };
 
-// 计算请求费用
+// Calculate the request fee
+
 export const useCalculateRequestFee = (carbonReduction: bigint | null) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -94,7 +102,8 @@ export const useCalculateRequestFee = (carbonReduction: bigint | null) => {
   });
 };
 
-// 计算系统费用
+// Calculate system costs
+
 export const useCalculateSystemFee = (amount: bigint | null) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -110,7 +119,8 @@ export const useCalculateSystemFee = (amount: bigint | null) => {
   });
 };
 
-// 计算审计费用
+// Calculate audit fees
+
 export const useCalculateAuditFee = (amount: bigint | null) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -126,7 +136,8 @@ export const useCalculateAuditFee = (amount: bigint | null) => {
   });
 };
 
-// 计算返还金额
+// Calculate the amount of return
+
 export const useCalculateReturnAmount = (amount: bigint | null) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -142,7 +153,8 @@ export const useCalculateReturnAmount = (amount: bigint | null) => {
   });
 };
 
-// 检查合约初始化状态
+// Check the contract initialization status
+
 export const useIsContractInitialized = () => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -154,7 +166,8 @@ export const useIsContractInitialized = () => {
   });
 };
 
-// 请求铸造NFT
+// Request to cast nft
+
 export const useRequestMintNFT = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -163,11 +176,14 @@ export const useRequestMintNFT = () => {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = 
     useWaitForTransactionReceipt({ 
       hash,
-      timeout: 120_000, // 2分钟超时，给足时间让交易确认
-      confirmations: 1,  // 等待1个确认即可
+      timeout: 120_000, // Time out of 2 minutes, give enough time to confirm the transaction
+
+      confirmations: 1,  // Just wait for 1 confirmation
+
     });
 
-  // 监控状态变化
+  // Monitor status changes
+
   useEffect(() => {
     console.log('useRequestMintNFT状态监控:', {
       chainId,
@@ -206,7 +222,8 @@ export const useRequestMintNFT = () => {
   };
 };
 
-// 商业合约铸造NFT
+// Commercial contract minting nft
+
 export const useMintNFTByBusiness = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -241,7 +258,8 @@ export const useMintNFTByBusiness = () => {
   };
 };
 
-// 支付并铸造NFT - 简化版本
+// Pay and Cast NFTs -Simplified Version
+
 export const usePayAndMintNFT = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -250,10 +268,12 @@ export const usePayAndMintNFT = () => {
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } = 
     useWaitForTransactionReceipt({ 
       hash,
-      // 不设置自定义配置，使用默认值
+      // Don't set custom configurations, use default values
+
     });
 
-  // 监控状态变化 - 添加详细调试信息
+  // Monitor status changes -add detailed debugging information
+
   useEffect(() => {
     console.log('📊 usePayAndMintNFT状态更新:', {
       网络链ID: chainId,
@@ -277,7 +297,8 @@ export const usePayAndMintNFT = () => {
         错误堆栈: error.stack,
         错误代码: (error as any).code,
         错误数据: (error as any).data,
-        // 🔍 新增：深度分析错误信息
+        // 🔍 New: In-depth analysis error message
+
         原始错误字符串: JSON.stringify(error),
         是否包含ERC20错误: error.message.includes('ERC20') || JSON.stringify(error).includes('ERC20'),
         是否为授权问题: error.message.includes('allowance') || error.message.includes('insufficient allowance') || JSON.stringify(error).includes('allowance'),
@@ -285,7 +306,8 @@ export const usePayAndMintNFT = () => {
         是否为权限问题: error.message.includes('Not the requester') || error.message.includes('requester'),
       });
       
-      // 🎯 智能错误分析 - 优先识别真实的区块链错误
+      // 🎯 Intelligent Error Analysis -Prioritize the identification of real blockchain errors
+
       const errorString = JSON.stringify(error).toLowerCase();
       const errorMessage = error.message.toLowerCase();
       
@@ -299,7 +321,8 @@ export const usePayAndMintNFT = () => {
         console.warn('🔴 余额不足（ETH Gas费用或CARB代币余额）');
       } else if (errorMessage.includes('revert')) {
         console.warn('🔴 合约调用被拒绝 - 分析具体revert原因');
-        // 进一步分析revert原因
+        // Further analyze the reason for revert
+
         if (errorMessage.includes('mint audit not approved')) {
           console.warn('🔴 申请未通过审核');
         } else if (errorMessage.includes('not the requester')) {
@@ -320,7 +343,8 @@ export const usePayAndMintNFT = () => {
     
     if (receiptError) {
       console.error('💥 交易收据错误:', receiptError);
-      // 🔍 分析收据错误是否包含更准确的信息
+      // 🔍 Analysis of whether the receipt error contains more accurate information
+
       const receiptErrorString = JSON.stringify(receiptError).toLowerCase();
       if (receiptErrorString.includes('insufficient allowance') || receiptErrorString.includes('erc20')) {
         console.warn('🔴 交易收据确认：CARB代币授权不足');
@@ -337,8 +361,8 @@ export const usePayAndMintNFT = () => {
   }, [chainId, contractAddress, hash, error, isPending, isConfirming, isConfirmed, receiptError]);
 
   /**
-   * 调用合约的 payAndMintNFT，只需传入申请ID
-   * @param requestId 铸造申请ID
+   * Call the payAndMintNFT of the contract, just pass in the application ID
+   * @param requestId Casting application ID
    */
   const payAndMint = (requestId: bigint) => {
     console.log('🎯 usePayAndMintNFT: 准备调用合约', {
@@ -349,7 +373,8 @@ export const usePayAndMintNFT = () => {
       时间戳: new Date().toISOString()
     });
     
-    // 基本验证
+    // Basic Verification
+
     if (!contractAddress || contractAddress === '0x0000000000000000000000000000000000000000') {
       const error = new Error('合约地址无效');
       console.error('❌ 合约地址验证失败:', contractAddress);
@@ -369,7 +394,8 @@ export const usePayAndMintNFT = () => {
         abi: getGreenTraceABI(),
         functionName: 'payAndMintNFT',
         args: [requestId],
-        // 移除所有自定义Gas配置，让钱包自动处理
+        // Remove all custom gas configurations and let the wallet handle it automatically
+
       });
       console.log('✅ writeContract调用成功，等待钱包确认...');
     } catch (err) {
@@ -381,14 +407,16 @@ export const usePayAndMintNFT = () => {
   return {
     payAndMint,
     hash,
-    error: error || receiptError, // 合并两种错误
+    error: error || receiptError, // Merge two errors
+
     isPending,
     isConfirming,
     isConfirmed,
   };
 };
 
-// 请求兑换NFT
+// Request redemption nft
+
 export const useRequestExchangeNFT = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -416,7 +444,8 @@ export const useRequestExchangeNFT = () => {
   };
 };
 
-// 兑换NFT
+// Redeem nft
+
 export const useExchangeNFT = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -444,7 +473,8 @@ export const useExchangeNFT = () => {
   };
 };
 
-// 提交兑换审计
+// Submit redemption audit
+
 export const useSubmitExchangeAudit = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -472,7 +502,8 @@ export const useSubmitExchangeAudit = () => {
   };
 };
 
-// 提交铸造审计
+// Submit a foundry audit
+
 export const useSubmitMintAudit = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -506,7 +537,8 @@ export const useSubmitMintAudit = () => {
 
 
 
-// 完成兑换审计
+// Complete redemption audit
+
 export const useCompleteExchangeAudit = () => {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const chainId = useChainId();
@@ -537,7 +569,8 @@ export const useCompleteExchangeAudit = () => {
   };
 };
 
-// 检查是否为审计员
+// Check whether you are an auditor
+
 export const useIsAuditor = (address: Address) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -553,7 +586,8 @@ export const useIsAuditor = (address: Address) => {
   });
 };
 
-// 检查是否为商业合约
+// Check if it is a commercial contract
+
 export const useIsBusinessContract = (address: Address) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -569,7 +603,8 @@ export const useIsBusinessContract = (address: Address) => {
   });
 };
 
-// 获取审计信息
+// Obtain audit information
+
 export const useGetAudit = (tokenId: bigint) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -585,7 +620,8 @@ export const useGetAudit = (tokenId: bigint) => {
   });
 };
 
-// 获取合约所有者
+// Get the contract owner
+
 export const useGetOwner = () => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -597,7 +633,8 @@ export const useGetOwner = () => {
   });
 };
 
-// 获取碳代币合约地址
+// Get the carbon token contract address
+
 export const useGetCarbonToken = () => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -609,7 +646,8 @@ export const useGetCarbonToken = () => {
   });
 };
 
-// 获取NFT合约地址
+// Get the nft contract address
+
 export const useGetGreenTalesNFT = () => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -621,8 +659,9 @@ export const useGetGreenTalesNFT = () => {
   });
 };
 
-// 获取用户所有铸造申请ID（合约查询）
-// 传入用户地址，返回该用户所有铸造申请ID数组
+// Obtain all user minting application IDs (contract query)
+// Pass in the user address and return the array of all minting application IDs for this user
+
 export const useGetUserMintRequests = (userAddress: Address | undefined) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -638,7 +677,8 @@ export const useGetUserMintRequests = (userAddress: Address | undefined) => {
   });
 };
 
-// 查询申请详情
+// Inquiry on application details
+
 export const useGetRequestById = (requestId: bigint | undefined) => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);
@@ -662,7 +702,8 @@ export const useGetRequestById = (requestId: bigint | undefined) => {
   };
 };
 
-// 通用GreenTrace合约hook
+// Universal green trace contract hook
+
 export const useGreenTrace = () => {
   const chainId = useChainId();
   const contractAddress = getContractAddress(chainId);

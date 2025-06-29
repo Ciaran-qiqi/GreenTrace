@@ -5,7 +5,8 @@ import { useRequestExchangeNFT } from '@/contracts/hooks/useGreenTrace';
 import { formatFeeAmount } from '@/utils/tokenUtils';
 import { useTranslation } from '@/hooks/useI18n';
 
-// NFT信息接口
+// Nft information interface
+
 interface NFTInfo {
   tokenId: string;
   title: string;
@@ -17,7 +18,8 @@ interface NFTInfo {
   owner: string;
 }
 
-// NFT兑换按钮组件属性
+// Nft redemption button component properties
+
 interface NFTExchangeButtonProps {
   nft: NFTInfo;
   onExchangeSuccess?: () => void;
@@ -25,7 +27,8 @@ interface NFTExchangeButtonProps {
   className?: string;
 }
 
-// NFT兑换按钮组件
+// Nft redemption button component
+
 export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
   nft,
   onExchangeSuccess,
@@ -35,23 +38,29 @@ export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
   const { t } = useTranslation();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   
-  // 请求兑换NFT的Hook
+  // Request to redeemed nft hook
+
   const { requestExchange, isPending, isConfirming, isConfirmed, error } = useRequestExchangeNFT();
 
-  // 计算申请手续费（合约逻辑：碳减排量1%或1个碳币中的较大值）
+  // Calculate the application fee (contract logic: 1% carbon emission reduction or the larger value of 1 carbon coin)
+
   const calculateRequestFee = (carbonReduction: string) => {
     const reduction = BigInt(carbonReduction);
     const percentageFee = reduction / BigInt(100); // 1%
-    const minFee = BigInt('1000000000000000000'); // 1 CARB (18位小数)
+
+    const minFee = BigInt('1000000000000000000'); // 1 CARB (18 decimal places)
+
     return percentageFee > minFee ? percentageFee : minFee;
   };
 
-  // 处理申请兑换
+  // Processing application for redemption
+
   const handleRequestExchange = () => {
     setShowConfirmModal(true);
   };
 
-  // 确认申请兑换
+  // Confirm the application for redemption
+
   const confirmRequestExchange = () => {
     try {
       requestExchange(BigInt(nft.tokenId));
@@ -61,12 +70,14 @@ export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
     }
   };
 
-  // 关闭确认弹窗
+  // Close the confirmation pop-up window
+
   const closeConfirmModal = () => {
     setShowConfirmModal(false);
   };
 
-  // 处理兑换完成
+  // Processing and redemption completed
+
   React.useEffect(() => {
     if (isConfirmed) {
       closeConfirmModal();
@@ -76,7 +87,8 @@ export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
     }
   }, [isConfirmed, onExchangeSuccess]);
 
-  // 处理错误
+  // Handling errors
+
   React.useEffect(() => {
     if (error) {
       console.error(t('exchange.errors.requestFailed', '兑换申请错误:'), error);
@@ -94,7 +106,7 @@ export const NFTExchangeButton: React.FC<NFTExchangeButtonProps> = ({
         {isPending ? t('exchange.preparing', '准备中...') : isConfirming ? t('exchange.confirming', '确认中...') : buttonText}
       </button>
 
-      {/* 申请兑换确认弹窗 */}
+      {/* Application for redemption confirmation pop-up window */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 max-w-lg w-full mx-4">

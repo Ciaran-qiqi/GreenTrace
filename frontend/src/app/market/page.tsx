@@ -5,8 +5,8 @@ import { NFTMarketplace } from '@/components/market/NFTMarketplace';
 import { useTranslation } from '@/hooks/useI18n';
 
 /**
- * NFT交易市场页面
- * @description 提供NFT的展示、搜索、购买等功能
+ * NFT Trading Market Page
+ * @description Provide NFT display, search, purchase and other functions
  */
 export default function MarketPage() {
   const { t } = useTranslation();
@@ -17,7 +17,7 @@ export default function MarketPage() {
       <main className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
-            {/* 页面标题区域 */}
+            {/* Page title area */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
                 🏪 {t('nftMarket.title')}
@@ -27,7 +27,7 @@ export default function MarketPage() {
               </p>
             </div>
 
-            {/* NFT市场主体组件 */}
+            {/* Nft Marketing Components */}
             <NFTMarketplace />
           </div>
         </div>

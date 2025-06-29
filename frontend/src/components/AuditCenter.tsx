@@ -16,10 +16,10 @@ import { getGreenTalesNFTAddress } from '@/contracts/addresses';
 import GreenTalesNFTABI from '@/contracts/abi/GreenTalesNFT.json';
 import { useTranslation } from '@/hooks/useI18n';
 
-// 标签页类型 - 分离铸造和兑换历史
+// Tag Page Type -Separate Casting and Redemption History
 type TabType = 'mint-pending' | 'exchange-pending' | 'mint-history' | 'exchange-history';
 
-// 检查NFT是否存在的Hook（用于判断是否已被兑换销毁）
+// Check whether nft exists hook (used to determine whether it has been redeemed and destroyed)
 const useCheckNFTExists = (tokenId: string | undefined) => {
   const chainId = useChainId();
   const nftContractAddress = getGreenTalesNFTAddress(chainId);
@@ -31,12 +31,12 @@ const useCheckNFTExists = (tokenId: string | undefined) => {
     args: tokenId ? [BigInt(tokenId)] : undefined,
     query: {
       enabled: !!tokenId,
-      retry: false, // 不重试，因为NFT不存在会抛出错误
+      retry: false, // Don't try again, because nft does not exist will throw an error
     }
   });
 };
 
-// 状态徽章组件
+// Status Badge Component
 const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] | ExchangeAuditRequest['auditStatus'] }> = ({ status }) => {
   const { t } = useTranslation();
   
@@ -57,21 +57,21 @@ const StatusBadge: React.FC<{ status: AuditRequest['auditStatus'] | ExchangeAudi
   );
 };
 
-// 根据链ID获取GreenTrace合约地址
+// Get the green trace contract address according to the chain id
 const getGreenTraceAddress = (chainId: number): string => {
   switch (chainId) {
-    case 1: // 以太坊主网
+    case 1: // Ethereum Main Network
       return CONTRACT_ADDRESSES.mainnet.GreenTrace;
-    case 11155111: // Sepolia测试网
+    case 11155111: // Sepolia Test Network
       return CONTRACT_ADDRESSES.sepolia.GreenTrace;
-    case 31337: // 本地Foundry测试网
+    case 31337: // Local foundry test network
       return CONTRACT_ADDRESSES.foundry.GreenTrace;
     default:
       return CONTRACT_ADDRESSES.sepolia.GreenTrace;
   }
 };
 
-// 审计中心组件
+// Audit Center Components
 export const AuditCenter: React.FC = () => {
   const { t } = useTranslation();
   const { address, isConnected } = useAccount();
@@ -83,10 +83,10 @@ export const AuditCenter: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('mint-pending');
   
-  // 获取合约地址
+  // Get the contract address
   const greenTraceAddress = getGreenTraceAddress(chainId);
   
-  // 检查是否为审计员 - 使用和Navigation相同的逻辑
+  // Check if it is an auditor -Use the same logic as Navigation
   const { data: isAuditor } = useReadContract({
     address: greenTraceAddress as `0x${string}`,
     abi: GreenTraceABI.abi,
@@ -97,7 +97,7 @@ export const AuditCenter: React.FC = () => {
     }
   });
   
-  // 获取铸造审计数据
+  // Obtain casting audit data
   const { 
     loading: mintLoading, 
     refresh: refreshMint, 
@@ -108,7 +108,7 @@ export const AuditCenter: React.FC = () => {
     getCompletedRequests 
   } = useAuditData();
   
-  // 获取兑换审计数据
+  // Obtain redemption audit data
   const { 
     loading: exchangeLoading, 
     refresh: refreshExchange, 
@@ -118,7 +118,7 @@ export const AuditCenter: React.FC = () => {
     getCompletedExchangeRequests 
   } = useExchangeAuditData();
 
-  // 将AuditRequest转换为RequestRecord格式
+  // Convert audit request to request record format
   const convertToRequestRecord = (request: AuditRequest): RequestRecord => {
     return {
       tokenId: request.tokenId,
@@ -134,7 +134,7 @@ export const AuditCenter: React.FC = () => {
       reason: request.auditComment,
       transactionHash: request.transactionHash,
       source: request.source,
-      // 审计中心特有字段
+      // Audit Center-specific fields
       auditStatus: request.auditStatus,
       auditedCarbonValue: request.auditedCarbonValue,
       auditComment: request.auditComment,
@@ -145,7 +145,7 @@ export const AuditCenter: React.FC = () => {
     };
   };
   
-  // 计算统计数据和获取分类数据
+  // Calculate statistics and obtain classified data
   const mintStats = getAuditStats();
   const exchangeStats = getExchangeAuditStats();
   const pendingMintRequests = getPendingRequests();
@@ -153,72 +153,72 @@ export const AuditCenter: React.FC = () => {
   const pendingExchangeRequests = getPendingExchangeRequests();
   const completedExchangeRequests = getCompletedExchangeRequests();
   
-  // 合并统计数据
+  // Merge statistics
   const totalStats = {
     totalCount: mintStats.totalCount + exchangeStats.totalCount,
     pendingCount: mintStats.pendingCount + exchangeStats.pendingCount,
     approvedCount: mintStats.approvedCount + exchangeStats.approvedCount,
     rejectedCount: mintStats.rejectedCount + exchangeStats.rejectedCount,
-    exchangedCount: 0, // 兑换特有的状态，暂时设为0
+    exchangedCount: 0, // Redeem unique status, temporarily set to 0
   };
 
-  // 处理开始铸造审计
+  // Processing starts casting audit
   const handleStartMintAudit = (request: AuditRequest) => {
     setSelectedRequest(request);
     setShowAuditForm(true);
   };
 
-  // 处理开始兑换审计
+  // Processing starts redemption audit
   const handleStartExchangeAudit = (request: ExchangeAuditRequest) => {
     setSelectedExchangeRequest(request);
     setShowExchangeAuditForm(true);
   };
 
-  // 处理查看详情
+  // Processing to view details
   const handleViewDetails = (request: AuditRequest) => {
     setSelectedRequest(request);
     setShowDetailModal(true);
   };
 
-  // 处理铸造审计完成
+  // Handling casting audit completed
   const handleMintAuditComplete = () => {
     setShowAuditForm(false);
     setSelectedRequest(null);
-    // 刷新数据
+    // Refresh data
     refreshMint();
   };
 
-  // 处理兑换审计完成
+  // Processing and redemption audit completed
   const handleExchangeAuditComplete = () => {
     setShowExchangeAuditForm(false);
     setSelectedExchangeRequest(null);
-    // 刷新数据
+    // Refresh data
     refreshExchange();
   };
 
-  // 关闭详情弹窗
+  // Close the details pop-up window
   const handleCloseDetailModal = () => {
     setShowDetailModal(false);
     setSelectedRequest(null);
   };
 
-  // 刷新所有数据
+  // Refresh all data
   const refreshAll = () => {
     refreshMint();
     refreshExchange();
   };
 
-  // 强制刷新所有数据
+  // Force refresh all data
   const forceRefreshAll = () => {
     forceRefreshMint();
     forceRefreshExchange();
   };
 
-  // 监听全局NFT兑换事件，实时更新状态
+  // Listen to global nft redemption events and update status in real time
   React.useEffect(() => {
     const handleNFTExchanged = (event: CustomEvent) => {
       console.log('审计中心检测到NFT兑换事件:', event.detail);
-      // 立即强制刷新数据以反映兑换状态
+      // Force refresh the data immediately to reflect the redemption status
       forceRefreshAll();
     };
 
@@ -231,29 +231,29 @@ export const AuditCenter: React.FC = () => {
     }
   }, [forceRefreshMint, forceRefreshExchange]);
 
-  // 当前是否在加载中
+  // Is it currently loading
   const loading = mintLoading || exchangeLoading;
 
-  // 格式化时间 - 修复SSR hydration问题
+  // Format time -Fix SSR hydration issues
   const formatTime = (timestamp: string) => {
-    // blockTimestamp已经是毫秒级时间戳，不需要再乘以1000
+    // Block timestamp is already a millisecond-level timestamp, no need to multiply by 1000
     const date = new Date(parseInt(timestamp));
     
-    // 检查时间戳是否有效
+    // Check if the timestamp is valid
     if (isNaN(date.getTime())) {
       return '无效时间';
     }
     
-    // 在服务端渲染时，只显示固定格式的日期，避免locale差异
+    // When rendering on the server, only the dates in fixed format are displayed to avoid locale differences
     if (typeof window === 'undefined') {
       return date.toISOString().slice(0, 19).replace('T', ' ');
     }
     
-    // 客户端使用本地化时间
+    // Client usage localization time
     return date.toLocaleString();
   };
 
-  // 带NFT存在性检查的铸造申请卡片组件
+  // Casting application card assembly with nft existence check
   const MintRequestCard: React.FC<{ request: AuditRequest; isPending: boolean }> = ({ request, isPending }) => {
     const { error: nftError } = useCheckNFTExists(request.nftTokenId);
     const nftExists = !nftError;
@@ -269,7 +269,7 @@ export const AuditCenter: React.FC = () => {
                 #{request.tokenId} {request.title}
               </h3>
               <StatusBadge status={request.auditStatus} />
-              {/* 对于已兑换的NFT，显示额外的兑换标签 */}
+              {/* For redeemed nft, display additional redemption tags */}
               {request.nftTokenId && !nftExists && request.auditStatus === 'approved' && (
                 <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
                   🔥 {t('audit.exchanged', '已兑换')}
@@ -288,7 +288,7 @@ export const AuditCenter: React.FC = () => {
           </div>
         </div>
 
-        {/* 申请详情 */}
+        {/* Application details */}
         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
           <div>
             <span className="text-gray-500">{t('audit.applicant', '申请人')}:</span>
@@ -321,7 +321,7 @@ export const AuditCenter: React.FC = () => {
           )}
         </div>
 
-        {/* 操作按钮和状态说明 */}
+        {/* Operation buttons and status descriptions */}
         <div className="flex justify-between items-center">
           <div className="flex gap-3">
             {isPending ? (
@@ -347,7 +347,7 @@ export const AuditCenter: React.FC = () => {
                 >
                   {t('audit.viewDetails', '查看详情')}
                 </button>
-                {/* 如果NFT已铸造，始终显示查看NFT按钮（NFTInfoSection会自动处理已销毁的情况） */}
+                {/* If nft is cast, the view nft button is always displayed (nft info section will automatically handle the destroyed situation) */}
                 {request.nftTokenId && (
                   <NFTViewButton 
                     nftTokenId={request.nftTokenId}
@@ -361,7 +361,7 @@ export const AuditCenter: React.FC = () => {
             )}
           </div>
           
-          {/* 状态说明 - 根据NFT存在性显示不同状态 */}
+          {/* Status Description -Display different states according to NFT existence */}
           {!isPending && (
             <div className="text-sm">
               {request.auditStatus === 'pending' && (
@@ -397,7 +397,7 @@ export const AuditCenter: React.FC = () => {
           )}
         </div>
         
-        {/* 历史申请特有的说明 */}
+        {/* Description of the unique historical application */}
         {!isPending && (
           <div className="mt-3 pt-3 border-t border-gray-100">
             <div className="text-xs text-gray-500">
@@ -420,12 +420,12 @@ export const AuditCenter: React.FC = () => {
     );
   };
 
-  // 渲染铸造申请卡片
+  // Render casting application card
   const renderMintRequestCard = (request: AuditRequest, isPending: boolean = false) => (
     <MintRequestCard key={request.transactionHash || `${request.tokenId}-${request.blockTimestamp}`} request={request} isPending={isPending} />
   );
 
-  // 带NFT存在性检查的兑换申请卡片组件
+  // Redemption application card component with nft existence check
   const ExchangeRequestCard: React.FC<{ request: ExchangeAuditRequest; isPending: boolean }> = ({ request, isPending }) => {
     const { error: nftError } = useCheckNFTExists(request.nftTokenId);
     const nftExists = !nftError;
@@ -441,7 +441,7 @@ export const AuditCenter: React.FC = () => {
                 🔄 {t('audit.exchangeRequest', '兑换申请')} #{request.cashId}
               </h3>
               <StatusBadge status={request.auditStatus} />
-              {/* 显示NFT兑换状态 - 已兑换的申请显示额外的兑换标签 */}
+              {/* Show NFT redemption status -redeemed applications show additional redemption tags */}
               {!nftExists && request.auditStatus === 'approved' && (
                 <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-orange-200">
                   🔥 {t('audit.exchanged', '已兑换')}
@@ -460,7 +460,7 @@ export const AuditCenter: React.FC = () => {
           </div>
         </div>
 
-        {/* 申请详情 */}
+        {/* Application details */}
         <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
           <div>
             <span className="text-gray-500">{t('audit.applicant', '申请人')}:</span>
@@ -486,7 +486,7 @@ export const AuditCenter: React.FC = () => {
           )}
         </div>
 
-        {/* 操作按钮和状态说明 */}
+        {/* Operation buttons and status descriptions */}
         <div className="flex justify-between items-center">
           <div className="flex gap-3">
             {isPending ? (
@@ -499,7 +499,7 @@ export const AuditCenter: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    // 查看NFT信息
+                    // View nft information
                   }}
                   className="text-gray-600 hover:text-gray-800 text-sm font-medium"
                 >
@@ -519,7 +519,7 @@ export const AuditCenter: React.FC = () => {
             )}
           </div>
           
-          {/* 状态说明 - 根据NFT存在性显示不同状态 */}
+          {/* Status Description -Display different states according to NFT existence */}
           {!isPending && (
             <div className="text-sm">
               {request.auditStatus === 'pending' && (
@@ -549,7 +549,7 @@ export const AuditCenter: React.FC = () => {
           )}
         </div>
         
-        {/* 历史申请特有的说明 */}
+        {/* Description of the unique historical application */}
         {!isPending && (
           <div className="mt-3 pt-3 border-t border-purple-100">
             <div className="text-xs text-gray-500">
@@ -570,12 +570,12 @@ export const AuditCenter: React.FC = () => {
     );
   };
 
-  // 渲染兑换审计申请卡片
+  // Rendering and redemption audit application card
   const renderExchangeRequestCard = (request: ExchangeAuditRequest, isPending: boolean = false) => (
     <ExchangeRequestCard key={request.transactionHash || `${request.cashId}-${request.blockTimestamp}`} request={request} isPending={isPending} />
   );
 
-  // 等待客户端渲染
+  // Waiting for client rendering
   if (!isClient) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -589,7 +589,7 @@ export const AuditCenter: React.FC = () => {
     );
   }
 
-  // 如果没有连接钱包
+  // If the wallet is not connected
   if (!isConnected) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -604,10 +604,10 @@ export const AuditCenter: React.FC = () => {
     );
   }
 
-  // 判断用户权限 - 和Navigation组件保持一致
+  // Determine user permissions -keep consistent with Navigation components
   const isAuthorizedAuditor = Boolean(address && isAuditor);
   
-  // 调试信息
+  // Debugging information
   console.log('AuditCenter权限检查:', {
     address,
     isConnected,
@@ -617,7 +617,7 @@ export const AuditCenter: React.FC = () => {
     greenTraceAddress
   });
   
-  // 如果未连接钱包
+  // If the wallet is not connected
   if (!isConnected) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -632,7 +632,7 @@ export const AuditCenter: React.FC = () => {
     );
   }
 
-  // 如果不是审计员
+  // If not an auditor
   if (!isAuthorizedAuditor) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -654,7 +654,7 @@ export const AuditCenter: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* 统计信息 */}
+      {/* Statistical information */}
       <div className="grid grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="text-center">
@@ -690,9 +690,9 @@ export const AuditCenter: React.FC = () => {
         </div>
       </div>
 
-      {/* 标签页和申请列表 */}
+      {/* Tags and application list */}
       <div className="bg-white rounded-xl shadow-lg p-8">
-        {/* 标签页头部 */}
+        {/* Tag header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
             <button
@@ -737,7 +737,7 @@ export const AuditCenter: React.FC = () => {
             </button>
           </div>
           
-          {/* 刷新按钮 */}
+          {/* Refresh button */}
           <div className="flex gap-2">
             <button
               onClick={() => refreshAll()}
@@ -749,7 +749,7 @@ export const AuditCenter: React.FC = () => {
           </div>
         </div>
 
-        {/* 标签页内容 */}
+        {/* Tag page content */}
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -758,7 +758,7 @@ export const AuditCenter: React.FC = () => {
         ) : (
           <div className="space-y-6">
             {activeTab === 'mint-pending' ? (
-              // 铸造审计申请
+              // Casting audit application
               pendingMintRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">✅</div>
@@ -769,7 +769,7 @@ export const AuditCenter: React.FC = () => {
                 pendingMintRequests.map((request) => renderMintRequestCard(request, true))
               )
             ) : activeTab === 'exchange-pending' ? (
-              // 待兑换审计申请
+              // Application for redemption audit
               pendingExchangeRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">✅</div>
@@ -780,7 +780,7 @@ export const AuditCenter: React.FC = () => {
                 pendingExchangeRequests.map((request) => renderExchangeRequestCard(request, true))
               )
             ) : activeTab === 'mint-history' ? (
-              // 铸造历史申请
+              // Casting History Application
               completedMintRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📋</div>
@@ -791,7 +791,7 @@ export const AuditCenter: React.FC = () => {
                 completedMintRequests.map((request) => renderMintRequestCard(request, false))
               )
             ) : (
-              // 兑换历史申请
+              // Redeem history application
               completedExchangeRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📋</div>
@@ -806,7 +806,7 @@ export const AuditCenter: React.FC = () => {
         )}
       </div>
 
-      {/* 审计表单弹窗 */}
+      {/* Audit form pop-up window */}
       {showAuditForm && selectedRequest && (
         <AuditForm
           request={selectedRequest}
@@ -815,7 +815,7 @@ export const AuditCenter: React.FC = () => {
         />
       )}
 
-      {/* 兑换审计表单弹窗 */}
+      {/* Redemption audit form pop-up window */}
       {showExchangeAuditForm && selectedExchangeRequest && (
         <ExchangeAuditForm
           request={selectedExchangeRequest}
@@ -825,7 +825,7 @@ export const AuditCenter: React.FC = () => {
         />
       )}
 
-      {/* 详情查看弹窗 */}
+      {/* View pop-up window for details */}
       <RequestDetailModal
         record={selectedRequest ? convertToRequestRecord(selectedRequest) : null}
         isOpen={showDetailModal}

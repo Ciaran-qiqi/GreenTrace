@@ -14,11 +14,11 @@ interface MarketNFTDetailModalProps {
 }
 
 /**
- * 市场NFT详情模态框组件
- * @description 专门用于展示市场中NFT的详细信息
- * @param nft NFT数据
- * @param isOpen 是否打开
- * @param onClose 关闭回调
+ * Market NFT details modal box components
+ * @description Specially used to showcase the details of NFTs in the market
+ * @param nft NFT data
+ * @param isOpen Whether to open
+ * @param onClose Close callback
  */
 export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
   nft,
@@ -31,7 +31,8 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
 
   if (!isOpen || !nft) return null;
 
-  // 获取翻译后的NFT内容
+  // Get translated nft content
+
   const translatedContent = getNFTTranslation(
     nft.tokenId, 
     language, 
@@ -39,15 +40,18 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
     nft.storyDetail
   );
   
-  // 检查是否有翻译可用
+  // Check if there is a translation available
+
   const hasTranslation = hasNFTTranslation(nft.tokenId, language);
 
-  // 缩短地址显示
+  // Shorten the address display
+
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // 计算价格变化
+  // Calculate price changes
+
   const getPriceChange = () => {
     if (nft.price === nft.initialPrice) return null;
     
@@ -64,7 +68,8 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
 
   const priceChange = getPriceChange();
 
-  // 处理图片显示逻辑
+  // Processing picture display logic
+
   const getDisplayImage = () => {
     if (imageError || !nft.imageUrl) {
       return generateDefaultNFTImage(nft.tokenId);
@@ -72,13 +77,15 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
     return nft.imageUrl;
   };
 
-  // 图片加载错误处理
+  // Image loading error handling
+
   const handleImageError = () => {
     setImageError(true);
     setImageLoading(false);
   };
 
-  // 图片加载完成处理
+  // Image loading is completed
+
   const handleImageLoad = () => {
     setImageLoading(false);
   };
@@ -86,12 +93,12 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/50 to-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl shadow-2xl border border-gray-200/50 max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        {/* 装饰性顶部渐变条 */}
+        {/* Decorative top gradient bar */}
         <div className="h-1 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600"></div>
         
-        {/* NFT图像区域 */}
+        {/* Nft image area */}
         <div className="relative h-64 overflow-hidden">
-          {/* 加载状态 */}
+          {/* Loading status */}
           {imageLoading && (
             <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
               <div className="text-white opacity-70">
@@ -100,7 +107,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
             </div>
           )}
           
-          {/* NFT图片 */}
+          {/* Nft Pictures */}
           <img
             src={getDisplayImage()}
             alt={translatedContent.storyTitle}
@@ -110,17 +117,17 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
             style={{ display: imageLoading ? 'none' : 'block' }}
           />
           
-          {/* 图片遮罩层 */}
+          {/* Picture mask layer */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
           
-          {/* 碳减排量徽章 */}
+          {/* Carbon emission reduction badge */}
           <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg">
             <div className="text-sm font-medium text-green-700 flex items-center">
               🌿 {formatCarbonReduction(nft.carbonReduction)}
             </div>
           </div>
           
-          {/* 交易次数徽章 */}
+          {/* Number of transaction badge */}
           {nft.tradeCount > 0 && (
             <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg">
               <div className="text-sm font-medium text-gray-700 flex items-center">
@@ -129,7 +136,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
             </div>
           )}
 
-          {/* 元数据来源指示器 */}
+          {/* Metadata source indicator */}
           {nft.imageUrl && !imageError && (
             <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
               IPFS
@@ -137,7 +144,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
           )}
         </div>
         
-        {/* 弹窗头部 */}
+        {/* Pop-up window head */}
         <div className="flex justify-between items-center p-6 bg-gradient-to-r from-gray-50/80 to-white/80 border-b border-gray-200/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
@@ -160,11 +167,11 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
           </button>
         </div>
 
-        {/* 弹窗内容 */}
+        {/* Pop-up content */}
         <div className="overflow-y-auto max-h-[calc(90vh-300px)]">
           <div className="p-6 space-y-6 bg-gradient-to-br from-white/90 via-gray-50/50 to-white/90">
             
-            {/* NFT基本信息 */}
+            {/* Nft basic information */}
             <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl p-5 border border-gray-200/50 shadow-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center mr-2">
@@ -225,7 +232,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
               </div>
             </div>
 
-            {/* 价格信息 */}
+            {/* Price information */}
             <div className="bg-gradient-to-br from-white to-green-50/30 rounded-xl p-5 border border-green-200/50 shadow-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center mr-2">
@@ -270,7 +277,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
               </div>
             </div>
 
-            {/* 市场信息 */}
+            {/* Market Information */}
             <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-xl p-5 border border-blue-200/50 shadow-sm">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4 flex items-center">
                 <span className="w-6 h-6 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center mr-2">
@@ -291,7 +298,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
                   </div>
                 </div>
 
-                {/* 完整地址显示 */}
+                {/* Full address display */}
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <span className="text-gray-500 text-xs">{t('nftMarket.detail.sellerFullAddress')}</span>
                   <div className="font-mono text-xs text-gray-700 mt-1 break-all">
@@ -304,7 +311,7 @@ export const MarketNFTDetailModal: React.FC<MarketNFTDetailModalProps> = ({
           </div>
         </div>
 
-        {/* 底部按钮 */}
+        {/* Bottom button */}
         <div className="p-6 bg-gradient-to-r from-gray-50/80 to-white/80 border-t border-gray-200/50">
           <button
             onClick={onClose}

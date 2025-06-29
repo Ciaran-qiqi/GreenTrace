@@ -14,12 +14,12 @@ interface BuyNFTModalProps {
 }
 
 /**
- * 购买NFT模态框组件
- * @description 处理NFT购买流程，包括余额检查、授权和购买交易
- * @param nft NFT信息
- * @param isOpen 是否显示模态框
- * @param onClose 关闭回调
- * @param onSuccess 购买成功回调
+ * Purchase NFT modal box components
+ * @description Handle NFT purchase process, including balance checks, authorizations and purchase transactions
+ * @param nft NFT information
+ * @param isOpen Whether to display the modal box
+ * @param onClose Close callback
+ * @param onSuccess Successful purchase callback
  */
 export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
   nft,
@@ -27,7 +27,8 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  // 使用重构后的useBuyNFT Hook
+  // Use the refactored useBuyNFT Hook
+
   const {
     currentStep,
     isLoading,
@@ -48,7 +49,8 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
     }
   });
 
-  // 关闭模态框
+  // Close the modal box
+
   const handleClose = () => {
     reset();
     onClose();
@@ -57,10 +59,10 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
   return isOpen ? (
     <div className="fixed inset-0 bg-gradient-to-br from-black/40 via-gray-900/30 to-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 max-w-md w-full max-h-[90vh] overflow-y-auto relative overflow-hidden">
-        {/* 装饰性顶部渐变 */}
+        {/* Decorative top gradient */}
         <div className="h-1 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600"></div>
         
-        {/* 头部 */}
+        {/* head */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-800">
@@ -75,9 +77,9 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
           </div>
         </div>
 
-        {/* 内容 */}
+        {/* content */}
         <div className="p-6">
-          {/* NFT信息 */}
+          {/* Nft information */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium text-gray-800 mb-2">{nft.storyTitle}</h4>
             <div className="text-sm text-gray-600 space-y-1">
@@ -87,7 +89,7 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
             </div>
           </div>
 
-          {/* 余额检查 */}
+          {/* Balance check */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-600">您的CARB余额:</span>
@@ -102,7 +104,7 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
             )}
           </div>
 
-          {/* 操作步骤 */}
+          {/* Operation steps */}
           {hasEnoughBalance && (
             <div className="space-y-3">
               {currentStep === 'check' && (
@@ -206,7 +208,7 @@ export const BuyNFTModal: React.FC<BuyNFTModalProps> = ({
             </div>
           )}
 
-          {/* 底部提示 */}
+          {/* Bottom tips */}
           {hasEnoughBalance && currentStep === 'check' && !needsApproval && (
             <div className="mt-4 p-3 bg-green-50 rounded-lg">
               <div className="text-green-700 text-sm">

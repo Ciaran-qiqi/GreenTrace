@@ -6,7 +6,8 @@ import { parseAbiItem } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/contracts/addresses';
 import { MyListing } from './useMyListings';
 
-// 缓存数据接口
+// Cache data interface
+
 interface CachedCancelHistory {
   version: string;
   userAddress: string;
@@ -20,9 +21,9 @@ const CANCEL_CACHE_KEY_PREFIX = 'cancel_history_';
 const CANCEL_CACHE_VERSION = '1.0.0';
 
 /**
- * 基于事件的取消挂单历史 Hook
- * @description 通过监听 ListingCancelled 事件来获取用户的取消挂单历史
- * @returns 用户取消挂单历史数据
+ * Event-based cancellation of order history Hook
+ * @description Get the user's cancellation order history by listening to the ListingCancelled event
+ * @returns User cancellation of order history data
  */
 export const useEventBasedCancelHistory = () => {
   const { address } = useAccount();
@@ -32,7 +33,8 @@ export const useEventBasedCancelHistory = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取合约地址
+  // Get the contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -44,12 +46,14 @@ export const useEventBasedCancelHistory = () => {
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 获取缓存键
+  // Get the cache key
+
   const getCacheKey = useCallback((userAddress: string, chainId: number): string => {
     return `${CANCEL_CACHE_KEY_PREFIX}${userAddress.toLowerCase()}_${chainId}`;
   }, []);
 
-  // 从本地存储加载缓存数据
+  // Load cached data from local storage
+
   const loadCachedData = useCallback((userAddress: string, chainId: number): CachedCancelHistory | null => {
     try {
       const cacheKey = getCacheKey(userAddress, chainId);
@@ -59,7 +63,8 @@ export const useEventBasedCancelHistory = () => {
       
       const parsed = JSON.parse(cachedData) as CachedCancelHistory;
       
-      // 验证缓存数据
+      // Verify cached data
+
       if (
         parsed.version !== CANCEL_CACHE_VERSION ||
         parsed.userAddress.toLowerCase() !== userAddress.toLowerCase() ||
@@ -70,7 +75,8 @@ export const useEventBasedCancelHistory = () => {
         return null;
       }
 
-      // 将字符串格式的lastBlockNumber转换为BigInt
+      // Convert last block number in string format to big int
+
       if (typeof parsed.lastBlockNumber === 'string') {
         parsed.lastBlockNumber = BigInt(parsed.lastBlockNumber);
       }
@@ -83,7 +89,8 @@ export const useEventBasedCancelHistory = () => {
     }
   }, [getCacheKey]);
 
-  // 保存数据到本地存储
+  // Save data to local storage
+
   const saveCachedData = useCallback((
     userAddress: string, 
     chainId: number, 
@@ -101,7 +108,8 @@ export const useEventBasedCancelHistory = () => {
         records: records.sort((a, b) => parseInt(b.listedAt) - parseInt(a.listedAt)),
       };
 
-      // 解决BigInt序列化问题
+      // Solve the big int serialization problem
+
       const jsonString = JSON.stringify(cacheData, (key, value) => {
         if (typeof value === 'bigint') {
           return value.toString();
@@ -116,17 +124,20 @@ export const useEventBasedCancelHistory = () => {
     }
   }, [getCacheKey]);
 
-  // 合并新旧记录，去重
+  // Merge old and new records and remove the repetition
+
   const mergeRecords = useCallback((existingRecords: MyListing[], newRecords: MyListing[]): MyListing[] => {
     const recordMap = new Map<string, MyListing>();
     
-    // 添加现有记录
+    // Add an existing record
+
     existingRecords.forEach(record => {
       const key = `${record.tokenId}-${record.listedAt}-cancelled`;
       recordMap.set(key, record);
     });
 
-    // 添加新记录（如果已存在则跳过）
+    // Add a new record (skip if it already exists)
+
     let newCount = 0;
     newRecords.forEach(record => {
       const key = `${record.tokenId}-${record.listedAt}-cancelled`;
@@ -141,7 +152,8 @@ export const useEventBasedCancelHistory = () => {
     return Array.from(recordMap.values()).sort((a, b) => parseInt(b.listedAt) - parseInt(a.listedAt));
   }, []);
 
-  // 获取取消挂单历史
+  // Get cancellation order history
+
   const fetchCancelHistory = useCallback(async (forceRefresh: boolean = false) => {
     if (!address || !publicClient || !marketAddress) {
       setCancelHistory([]);
@@ -154,7 +166,8 @@ export const useEventBasedCancelHistory = () => {
     try {
       console.log('🔍 开始获取取消挂单历史...');
 
-      // 1. 加载缓存数据
+      // 1. Load cached data
+
       let cachedData: CachedCancelHistory | null = null;
       let existingRecords: MyListing[] = [];
       let fromBlock: bigint;
@@ -168,14 +181,16 @@ export const useEventBasedCancelHistory = () => {
         }
       }
 
-      // 2. 确定查询范围
+      // 2. Determine the query scope
+
       const latestBlock = await publicClient.getBlockNumber();
       if (!cachedData || forceRefresh) {
         fromBlock = latestBlock - BigInt(100000);
         console.log(`📅 全量查询取消记录区块范围: ${fromBlock} - ${latestBlock}`);
       }
 
-      // 3. 如果没有新区块，直接返回缓存数据
+      // 3. If there is no new block, return cached data directly
+
       if (cachedData && fromBlock >= latestBlock) {
         console.log('✅ 没有新区块，使用取消记录缓存数据');
         setCancelHistory(existingRecords);
@@ -183,17 +198,20 @@ export const useEventBasedCancelHistory = () => {
         return;
       }
 
-      // 4. ListingCancelled 事件的 ABI
+      // 4. ListingCancelled event ABI
+
       const listingCancelledEvent = parseAbiItem(
         'event ListingCancelled(uint256 indexed tokenId, address indexed seller, uint256 timestamp)'
       );
 
-      // 5. 查询 ListingCancelled 事件（用户作为卖家）
+      // 5. Query ListingCancelled Events (user as seller)
+
       const cancelLogs = await publicClient.getLogs({
         address: marketAddress as `0x${string}`,
         event: listingCancelledEvent,
         args: {
-          seller: address, // 用户作为卖家
+          seller: address, // Users as sellers
+
         },
         fromBlock: fromBlock,
         toBlock: 'latest',
@@ -201,7 +219,8 @@ export const useEventBasedCancelHistory = () => {
 
       console.log(`❌ 找到 ${cancelLogs.length} 条新取消记录`);
 
-      // 6. 构建新的取消记录
+      // 6. Build a new cancel record
+
       const newCancelRecords: MyListing[] = [];
 
       for (const log of cancelLogs) {
@@ -213,14 +232,16 @@ export const useEventBasedCancelHistory = () => {
             continue;
           }
 
-          // 获取NFT元数据（标题等信息）
+          // Get nft metadata (title, etc.)
+
           let title = `绿色NFT #${tokenId}`;
           let carbonReduction = '0';
           let price = '0';
           
           try {
-            // 这里可以通过合约调用获取NFT的详细信息
-            // 暂时使用默认值
+            // Here you can get the details of NFT through contract calls
+            // Use default values ​​temporarily
+
           } catch (metaError) {
             console.warn(`⚠️ 获取取消的NFT #${tokenId} 元数据失败:`, metaError);
           }
@@ -244,13 +265,16 @@ export const useEventBasedCancelHistory = () => {
         }
       }
 
-      // 7. 合并新旧记录
+      // 7. Merge old and new records
+
       const mergedRecords = mergeRecords(existingRecords, newCancelRecords);
 
-      // 8. 保存到缓存
+      // 8. Save to cache
+
       saveCachedData(address, chainId, mergedRecords, latestBlock);
 
-      // 9. 更新状态
+      // 9. Update status
+
       setCancelHistory(mergedRecords);
       console.log(`✅ 取消挂单历史更新完成: 总计 ${mergedRecords.length} 条记录`);
 
@@ -258,7 +282,8 @@ export const useEventBasedCancelHistory = () => {
       console.error('❌ 获取取消挂单历史失败:', error);
       setError(error instanceof Error ? error.message : '获取取消历史失败');
       
-      // 出错时，如果有缓存数据，仍然显示缓存数据
+      // If there is cached data, the cached data will still be displayed.
+
       if (address) {
         const cachedData = loadCachedData(address, chainId);
         if (cachedData) {
@@ -273,7 +298,8 @@ export const useEventBasedCancelHistory = () => {
     }
   }, [address, publicClient, marketAddress, chainId, loadCachedData, saveCachedData, mergeRecords]);
 
-  // 清理缓存
+  // Clean up the cache
+
   const clearCache = useCallback(() => {
     if (address) {
       const cacheKey = getCacheKey(address, chainId);
@@ -282,29 +308,34 @@ export const useEventBasedCancelHistory = () => {
     }
   }, [address, chainId, getCacheKey]);
 
-  // 强制刷新
+  // Force refresh
+
   const forceRefresh = useCallback(() => {
     fetchCancelHistory(true);
   }, [fetchCancelHistory]);
 
-  // 监听依赖变化
+  // Listening dependency changes
+
   useEffect(() => {
     if (address && publicClient && marketAddress) {
-      // 首先尝试加载缓存数据
+      // First try to load cached data
+
       const cachedData = loadCachedData(address, chainId);
       if (cachedData) {
         setCancelHistory(cachedData.records);
         console.log(`📦 立即显示取消记录缓存: ${cachedData.records.length} 条记录`);
       }
       
-      // 然后进行增量更新
+      // Then perform incremental update
+
       fetchCancelHistory(false);
     } else {
       setCancelHistory([]);
     }
   }, [address, publicClient, marketAddress, chainId, fetchCancelHistory, loadCachedData]);
 
-  // 手动刷新
+  // Manual refresh
+
   const refetch = useCallback(() => {
     fetchCancelHistory(false);
   }, [fetchCancelHistory]);

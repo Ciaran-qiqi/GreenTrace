@@ -7,17 +7,19 @@ import { useTranslation } from '@/hooks/useI18n';
 import { formatCarbonPrice } from '@/utils/formatUtils';
 
 /**
- * 市场统计信息展示组件
- * @description 展示市场的关键统计数据，包括实时计算的交易额和价格统计
+ * Market Statistics Information Display Component
+ * @description Showcase key statistics of the market, including real-time calculated transaction volume and price statistics
  */
 export const MarketStats: React.FC = () => {
   const { t } = useTranslation();
   const { stats, isLoading, error } = useMarketStats();
   
-  // 直接获取NFT数据进行验证计算
+  // Directly obtain nft data for verification calculation
+
   const { nfts } = useMarketNFTs(100);
   
-  // 手动验证平均价格计算
+  // Manual verification of average price calculation
+
   const verifyAveragePrice = () => {
     if (!nfts || nfts.length === 0) return '0';
     
@@ -27,7 +29,8 @@ export const MarketStats: React.FC = () => {
     const prices = nfts.map(nft => {
       const rawPrice = nft.price || '0';
       const formattedPrice = formatCarbonPrice(rawPrice);
-      // 解析时先移除逗号分隔符，避免parseFloat只解析到逗号前
+      // Remove the comma separator first when parsing to avoid parse float only before commas
+
       const numPrice = parseFloat(formattedPrice.replace(/,/g, ''));
       
       console.log(`📊 NFT #${nft.tokenId}: ${rawPrice} -> ${formattedPrice} -> ${numPrice} (修复前: ${parseFloat(formattedPrice)})`);
@@ -47,7 +50,8 @@ export const MarketStats: React.FC = () => {
     return average;
   };
 
-  // 在开发环境下验证
+  // Verify in the development environment
+
   React.useEffect(() => {
     if (nfts && nfts.length > 0) {
       const manualAverage = verifyAveragePrice();
@@ -62,7 +66,8 @@ export const MarketStats: React.FC = () => {
     }
   }, [nfts, stats]);
 
-  // 加载状态
+  // Loading status
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -76,7 +81,8 @@ export const MarketStats: React.FC = () => {
     );
   }
 
-  // 错误状态
+  // Error status
+
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
@@ -87,14 +93,15 @@ export const MarketStats: React.FC = () => {
     );
   }
 
-  // 统计数据不存在
+  // Statistics do not exist
+
   if (!stats) {
     return null;
   }
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      {/* 总挂单数 */}
+      {/* Total number of pending orders */}
       <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
         <div className="flex items-center">
           <div className="text-2xl mr-3">🏪</div>
@@ -107,7 +114,7 @@ export const MarketStats: React.FC = () => {
         </div>
       </div>
 
-      {/* 活跃卖家 */}
+      {/* Active seller */}
       <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
         <div className="flex items-center">
           <div className="text-2xl mr-3">👤</div>
@@ -120,7 +127,7 @@ export const MarketStats: React.FC = () => {
         </div>
       </div>
 
-      {/* 总交易额 */}
+      {/* Total transaction volume */}
       <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow" title="已完成交易的NFT总价值">
         <div className="flex items-center">
           <div className="text-2xl mr-3">💰</div>
@@ -145,7 +152,7 @@ export const MarketStats: React.FC = () => {
         </div>
       </div>
 
-      {/* 平均价格 */}
+      {/* Average price */}
       <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow" title="当前在售NFT的平均价格">
         <div className="flex items-center">
           <div className="text-2xl mr-3">📊</div>

@@ -11,29 +11,32 @@ interface UseUpdatePriceParams {
 }
 
 interface UseUpdatePriceReturn {
-  // 状态
+  // state
+
   isLoading: boolean;
   isSuccess: boolean;
   isError: boolean;
   errorMessage: string;
   
-  // 操作函数
+  // Operation functions
+
   updatePrice: (tokenId: string, newPrice: string) => Promise<void>;
   reset: () => void;
 }
 
 /**
- * 更新价格 Hook
- * @description 提供更新NFT挂单价格的功能，包括合约调用和状态管理
- * @param onSuccess 更新成功回调
- * @returns 更新价格相关的状态和操作函数
+ * Update price Hook
+ * @description Provides the function of updating NFT pending order prices, including contract calls and state management
+ * @param onSuccess Update successfully callback
+ * @returns Update price-related state and operation functions
  */
 export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpdatePriceReturn => {
   const { address } = useAccount();
   const chainId = useChainId();
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // 获取市场合约地址
+  // Get the market contract address
+
   const getMarketAddress = (chainId: number): string => {
     switch (chainId) {
       case 1: return CONTRACT_ADDRESSES.mainnet.Market;
@@ -45,22 +48,26 @@ export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpd
 
   const marketAddress = getMarketAddress(chainId);
 
-  // 更新价格合约调用
+  // Update price contract call
+
   const { writeContract, data: hash, isPending } = useWriteContract();
 
-  // 监听交易状态
+  // Listen to transaction status
+
   const { isSuccess, isError, error } = useWaitForTransactionReceipt({
     hash,
   });
 
-  // 更新价格操作
+  // Update price action
+
   const updatePrice = async (tokenId: string, newPrice: string): Promise<void> => {
     if (!address) {
       toast.error('请先连接钱包');
       return;
     }
 
-    // 价格验证
+    // Price verification
+
     const priceValue = parseFloat(newPrice);
     if (isNaN(priceValue) || priceValue <= 0) {
       const errorMsg = '请输入有效的价格';
@@ -72,7 +79,8 @@ export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpd
     try {
       setErrorMessage('');
       
-      // 价格是整数格式，直接使用（不需要转换为Wei）
+      // Price is in integer format, used directly (no need to convert to wei)
+
       const priceInInteger = BigInt(Math.floor(priceValue));
       
       await writeContract({
@@ -89,12 +97,14 @@ export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpd
     }
   };
 
-  // 重置状态
+  // Reset status
+
   const reset = (): void => {
     setErrorMessage('');
   };
 
-  // 监听交易完成
+  // Listen to transaction completion
+
   useEffect(() => {
     if (isSuccess) {
       toast.success('🎉 价格更新成功！');
@@ -102,7 +112,8 @@ export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpd
     }
   }, [isSuccess, onSuccess]);
 
-  // 监听交易错误
+  // Listening to transaction errors
+
   useEffect(() => {
     if (isError && error) {
       console.error('更新价格交易失败:', error);
@@ -126,13 +137,15 @@ export const useUpdatePrice = ({ onSuccess }: UseUpdatePriceParams = {}): UseUpd
   }, [isError, error]);
 
   return {
-    // 状态
+    // state
+
     isLoading: isPending,
     isSuccess,
     isError,
     errorMessage,
     
-    // 操作函数
+    // Operation functions
+
     updatePrice,
     reset,
   };
