@@ -11,36 +11,36 @@ import "../src/GreenTrace.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
 /**
- * @title GreenTalesMarket 测试用例
- * @dev 测试NFT交易市场的完整功能
+ * @title GreenTalesMarket Test Cases
+ * @dev Test complete functionality of NFT trading marketplace
  * 
- * 测试覆盖：
- * 1. 基础设置和初始化
- * 2. NFT挂单功能
- * 3. NFT购买功能
- * 4. 取消挂单功能
- * 5. 价格更新功能
- * 6. 交易历史记录
- * 7. 平台费用管理
- * 8. 前端查询功能
- * 9. 事件监听验证
+ * Test coverage:
+ * 1. Basic setup and initialization
+ * 2. NFT listing functionality
+ * 3. NFT purchase functionality
+ * 4. Cancel listing functionality
+ * 5. Price update functionality
+ * 6. Transaction history records
+ * 7. Platform fee management
+ * 8. Frontend query functionality
+ * 9. Event monitoring verification
  */
 contract GreenTalesMarketTest is Test {
-    GreenTalesMarket public market;    // 交易市场合约实例
-    GreenTalesNFT public nft;          // NFT合约实例
-    CarbonToken public carbonToken;    // 碳币合约实例
-    GreenTrace public greenTrace;       // GreenTrace合约实例
-    address public owner;              // 合约所有者
-    address public user1;              // 测试用户1
-    address public user2;              // 测试用户2
-    address public user3;              // 测试用户3
-    address public feeCollector;       // 手续费接收地址
+    GreenTalesMarket public market;    // Trading marketplace contract instance
+    GreenTalesNFT public nft;          // NFT contract instance
+    CarbonToken public carbonToken;    // Carbon token contract instance
+    GreenTrace public greenTrace;       // GreenTrace contract instance
+    address public owner;              // Contract owner
+    address public user1;              // Test user 1
+    address public user2;              // Test user 2
+    address public user3;              // Test user 3
+    address public feeCollector;       // Fee recipient address
     uint256 public constant INITIAL_SUPPLY = 1000000 * 10**18;
     uint256 public constant PLATFORM_FEE_RATE = 250; // 2.5%
 
     /**
-     * @dev 测试环境设置
-     * @notice 在每个测试用例执行前运行，初始化合约和用户
+     * @dev Test environment setup
+     * @notice Runs before each test case, initializes contracts and users
      */
     function setUp() public {
         owner = address(this);
@@ -49,7 +49,7 @@ contract GreenTalesMarketTest is Test {
         user3 = makeAddr("user3");
         feeCollector = makeAddr("feeCollector");
         
-        // 部署合约
+        // Deploy contracts
         CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](1);
         initialBalances[0] = CarbonToken.InitialBalance(owner, INITIAL_SUPPLY);
         carbonToken = new CarbonToken(initialBalances);
@@ -67,16 +67,16 @@ contract GreenTalesMarketTest is Test {
             address(greenTrace)
         );
         
-        // 分配初始代币
+        // Distribute initial tokens
         carbonToken.transfer(user1, 10000 * 10**18);
         carbonToken.transfer(user2, 10000 * 10**18);
         carbonToken.transfer(user3, 10000 * 10**18);
         
-        // 铸造测试NFT
+        // Mint test NFTs
         vm.startPrank(owner);
         greenTrace.mintNFTByBusiness(user1, "Story1", "Details1", 1000 * 10**18, 500 * 10**18, "ipfs://hash1"); // tokenId: 0
         greenTrace.mintNFTByBusiness(user2, "Story2", "Details2", 2000 * 10**18, 800 * 10**18, "ipfs://hash2"); // tokenId: 1
-        // 多为 user1 铸造几个NFT用于测试
+        // Mint more NFTs for user1 for testing
         greenTrace.mintNFTByBusiness(user1, "Story3", "Details3", 100 * 10**18, 60 * 10**18, "ipfs://hash3");   // tokenId: 2
         greenTrace.mintNFTByBusiness(user1, "Story4", "Details4", 100 * 10**18, 70 * 10**18, "ipfs://hash4");   // tokenId: 3
         greenTrace.mintNFTByBusiness(user1, "Story5", "Details5", 100 * 10**18, 80 * 10**18, "ipfs://hash5");   // tokenId: 4
@@ -84,8 +84,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试初始状态
-     * @notice 验证合约部署后的初始状态是否正确
+     * @dev Test initial state
+     * @notice Verify initial state after contract deployment
      */
     function test_InitialState() public view {
         assertEq(address(market.nftContract()), address(nft));
@@ -97,39 +97,39 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试NFT挂单
-     * @notice 验证用户是否可以正确挂单NFT
+     * @dev Test NFT listing
+     * @notice Verify users can list NFTs correctly
      */
     function test_ListNFT() public {
         vm.startPrank(user1);
         
-        uint256 tokenId = 0; // 第一个NFT
+        uint256 tokenId = 0; // First NFT
         uint256 price = 600 * 10**18;
         
-        // 授权NFT转移
+        // Approve NFT transfer
         nft.approve(address(market), tokenId);
         
-        // 挂单
+        // List NFT
         market.listNFT(tokenId, price);
         
-        // 验证挂单信息
+        // Verify listing information
         (address seller, uint256 listingPrice, uint256 timestamp, bool isActive) = market.listings(tokenId);
         assertEq(seller, user1);
         assertEq(listingPrice, price);
         assertEq(isActive, true);
         
-        // 验证NFT所有权转移
+        // Verify NFT ownership transfer
         assertEq(nft.ownerOf(tokenId), address(market));
         
         vm.stopPrank();
     }
 
     /**
-     * @dev 测试购买NFT
-     * @notice 验证用户是否可以正确购买已挂单的NFT
+     * @dev Test buying NFT
+     * @notice Verify users can purchase listed NFTs correctly
      */
     function test_BuyNFT() public {
-        // 先挂单
+        // First list NFT
         vm.startPrank(user1);
         uint256 tokenId = 0;
         uint256 price = 600 * 10**18;
@@ -137,17 +137,17 @@ contract GreenTalesMarketTest is Test {
         market.listNFT(tokenId, price);
         vm.stopPrank();
         
-        // 购买NFT
+        // Buy NFT
         vm.startPrank(user2);
         uint256 buyerBalanceBefore = carbonToken.balanceOf(user2);
         
         carbonToken.approve(address(market), price);
         market.buyNFT(tokenId);
         
-        // 验证购买结果
+        // Verify purchase result
         assertEq(nft.ownerOf(tokenId), user2);
         
-        // 验证费用分配
+        // Verify fee distribution
         uint256 platformFee = (price * PLATFORM_FEE_RATE) / 10000;
         uint256 sellerAmount = price - platformFee;
         
@@ -159,8 +159,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试取消挂单
-     * @notice 验证用户是否可以正确取消已挂单的NFT
+     * @dev Test cancel listing
+     * @notice Verify users can cancel listed NFTs correctly
      */
     function test_CancelListing() public {
         vm.startPrank(user1);
@@ -171,13 +171,13 @@ contract GreenTalesMarketTest is Test {
         nft.approve(address(market), tokenId);
         market.listNFT(tokenId, price);
         
-        // 验证挂单成功
+        // Verify listing success
         assertEq(nft.ownerOf(tokenId), address(market));
         
-        // 取消挂单
+        // Cancel listing
         market.cancelListing(tokenId);
         
-        // 验证取消结果
+        // Verify cancellation result
         assertEq(nft.ownerOf(tokenId), user1);
         (,,, bool isActive) = market.listings(tokenId);
         assertEq(isActive, false);
@@ -186,8 +186,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试更新价格
-     * @notice 验证合约所有者是否可以更新NFT的价格
+     * @dev Test price update
+     * @notice Verify contract owner can update NFT prices
      */
     function test_UpdatePrice() public {
         vm.startPrank(user1);
@@ -199,10 +199,10 @@ contract GreenTalesMarketTest is Test {
         nft.approve(address(market), tokenId);
         market.listNFT(tokenId, initialPrice);
         
-        // 更新价格
+        // Update price
         market.updatePrice(tokenId, newPrice);
         
-        // 验证价格更新
+        // Verify price update
         (, uint256 listingPrice, ,) = market.listings(tokenId);
         assertEq(listingPrice, newPrice);
         
@@ -210,14 +210,14 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试获取用户挂单列表
-     * @notice 验证用户是否可以正确获取自己的挂单列表
+     * @dev Test getting user listings
+     * @notice Verify users can get their listed NFTs correctly
      */
     function test_GetUserListings() public {
         vm.startPrank(user1);
         
         uint256 tokenId1 = 0;
-        uint256 tokenId2 = 2; // user1 拥有的第二个NFT
+        uint256 tokenId2 = 2; // user1's second NFT
         
         nft.approve(address(market), tokenId1);
         nft.approve(address(market), tokenId2);
@@ -234,17 +234,17 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试获取所有挂单列表
-     * @notice 验证是否可以正确获取所有挂单列表
+     * @dev Test getting all listings
+     * @notice Verify all listings can be retrieved correctly
      */
     function test_GetAllListedNFTs() public {
-        // 用户1挂单
+        // user1 lists NFT
         vm.startPrank(user1);
         nft.approve(address(market), 0);
         market.listNFT(0, 600 * 10**18);
         vm.stopPrank();
         
-        // 用户2挂单
+        // user2 lists NFT
         vm.startPrank(user2);
         nft.approve(address(market), 1);
         market.listNFT(1, 800 * 10**18);
@@ -255,8 +255,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试获取带分页的挂单列表
-     * @notice 验证是否可以正确获取带分页的挂单列表
+     * @dev Test getting listings with pagination
+     * @notice Verify listings with pagination can be retrieved correctly
      */
     function test_GetListingsWithPagination() public {
         // user1 owns tokenIds 0, 2, 3, 4
@@ -266,7 +266,7 @@ contract GreenTalesMarketTest is Test {
         user1Tokens[2] = 3;
         user1Tokens[3] = 4;
 
-        // 创建多个挂单
+        // Create multiple listings
         vm.startPrank(user1);
         for (uint256 i = 0; i < 4; i++) {
             nft.approve(address(market), user1Tokens[i]);
@@ -274,7 +274,7 @@ contract GreenTalesMarketTest is Test {
         }
         vm.stopPrank();
         
-        // 测试分页
+        // Test pagination
         (uint256[] memory tokenIds, GreenTalesMarket.Listing[] memory listings) = 
             market.getListingsWithPagination(0, 3);
         
@@ -283,8 +283,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试获取NFT完整信息
-     * @notice 验证是否可以正确获取NFT的完整信息
+     * @dev Test getting NFT full information
+     * @notice Verify NFT full information can be retrieved correctly
      */
     function test_GetNFTFullInfo() public {
         vm.startPrank(user1);
@@ -306,11 +306,11 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试获取挂单统计信息
-     * @notice 验证是否可以正确获取挂单统计信息
+     * @dev Test getting listing stats
+     * @notice Verify listing stats can be retrieved correctly
      */
     function test_GetListingStats() public {
-        // 创建挂单
+        // Create listing
         vm.startPrank(user1);
         nft.approve(address(market), 0);
         market.listNFT(0, 600 * 10**18);
@@ -327,41 +327,41 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试获取交易历史
-     * @notice 验证是否可以正确获取交易历史
+     * @dev Test getting trade history
+     * @notice Verify trade history can be retrieved correctly
      */
     function test_TradeHistory() public {
-        // 挂单
+        // List NFT
         vm.startPrank(user1);
         nft.approve(address(market), 0);
         market.listNFT(0, 600 * 10**18);
         vm.stopPrank();
         
-        // 购买
+        // Buy NFT
         vm.startPrank(user2);
         carbonToken.approve(address(market), 600 * 10**18);
         market.buyNFT(0);
         vm.stopPrank();
         
-        // 验证交易历史
+        // Verify trade history
         GreenTalesMarket.TradeHistory[] memory history = market.getTradeHistory(0);
         assertEq(history.length, 1);
         assertEq(history[0].seller, user1);
         assertEq(history[0].buyer, user2);
         assertEq(history[0].price, 600 * 10**18);
         
-        // 验证最后成交价格
+        // Verify last traded price
         assertEq(market.getLastTradePrice(0), 600 * 10**18);
     }
 
     /**
-     * @dev 测试非所有者挂单失败
-     * @notice 验证非NFT所有者无法挂单
+     * @dev Test non-owner listing failure
+     * @notice Verify non-NFT owner cannot list
      */
     function test_ListNFT_NotOwner() public {
         vm.startPrank(user2);
         
-        uint256 tokenId = 0; // 属于user1的NFT
+        uint256 tokenId = 0; // NFT owned by user1
         
         vm.expectRevert("Not NFT owner");
         market.listNFT(tokenId, 600 * 10**18);
@@ -370,8 +370,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试购买未挂单的NFT失败
-     * @notice 验证用户无法购买未挂单的NFT
+     * @dev Test buying unlisted NFT failure
+     * @notice Verify users cannot buy unlisted NFTs
      */
     function test_BuyNFT_NotListed() public {
         vm.startPrank(user2);
@@ -383,8 +383,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试购买自己的NFT失败
-     * @notice 验证用户无法购买自己挂单的NFT
+     * @dev Test buying own NFT failure
+     * @notice Verify users cannot buy their own listed NFT
      */
     function test_BuyNFT_OwnNFT() public {
         vm.startPrank(user1);
@@ -400,8 +400,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试取消挂单失败
-     * @notice 验证非挂单所有者无法取消挂单
+     * @dev Test cancel listing failure
+     * @notice Verify non-listing owner cannot cancel listing
      */
     function test_CancelListing_NotSeller() public {
         vm.startPrank(user1);
@@ -417,8 +417,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试更新平台手续费率
-     * @notice 验证合约所有者是否可以更新手续费率
+     * @dev Test updating platform fee rate
+     * @notice Verify contract owner can update fee rate
      */
     function test_UpdatePlatformFeeRate() public {
         uint256 newRate = 300; // 3%
@@ -428,8 +428,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试更新手续费接收地址
-     * @notice 验证合约所有者是否可以更新手续费接收地址
+     * @dev Test updating fee recipient
+     * @notice Verify contract owner can update fee recipient
      */
     function test_UpdateFeeCollector() public {
         address newCollector = makeAddr("newCollector");
@@ -439,8 +439,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试手续费率过高失败
-     * @notice 验证手续费率过高无法更新
+     * @dev Test fee rate too high failure
+     * @notice Verify fee rate too high cannot be updated
      */
     function test_UpdatePlatformFeeRate_TooHigh() public {
         uint256 tooHighRate = 1500; // 15%
@@ -450,8 +450,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试事件监听
-     * @notice 验证是否可以正确监听事件
+     * @dev Test event monitoring
+     * @notice Verify events can be monitored correctly
      */
     function test_Events() public {
         vm.startPrank(user1);
@@ -461,12 +461,12 @@ contract GreenTalesMarketTest is Test {
         
         nft.approve(address(market), tokenId);
         
-        // 挂单
+        // List NFT
         market.listNFT(tokenId, price);
         
         vm.stopPrank();
         
-        // 购买
+        // Buy NFT
         vm.startPrank(user2);
         carbonToken.approve(address(market), price);
         market.buyNFT(tokenId);
@@ -474,8 +474,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试价格为零失败
-     * @notice 验证价格为零无法挂单
+     * @dev Test zero price failure
+     * @notice Verify zero price cannot list NFT
      */
     function test_ListNFT_ZeroPrice() public {
         vm.startPrank(user1);
@@ -489,8 +489,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试NFT已挂单失败
-     * @notice 验证NFT已挂单无法再次挂单
+     * @dev Test NFT already listed failure
+     * @notice Verify NFT already listed cannot be listed again
      */
     function test_ListNFT_AlreadyListed() public {
         vm.startPrank(user1);
@@ -499,7 +499,7 @@ contract GreenTalesMarketTest is Test {
         
         market.listNFT(tokenId, 600 * 10**18);
         
-        // NFT已经转移到合约，所以再次挂单会因为所有权问题失败
+        // NFT already transferred to contract, so listing again will fail due to ownership issue
         vm.expectRevert("Not NFT owner");
         market.listNFT(tokenId, 700 * 10**18);
         
@@ -507,8 +507,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 测试价格为零更新失败
-     * @notice 验证价格为零无法更新
+     * @dev Test zero price update failure
+     * @notice Verify zero price cannot update
      */
     function test_UpdatePrice_ZeroPrice() public {
         vm.startPrank(user1);
@@ -523,8 +523,8 @@ contract GreenTalesMarketTest is Test {
     }
 
     /**
-     * @dev 实现 IERC721Receiver 接口，允许本测试合约安全接收 NFT
-     * @notice 这样 NFT safeTransferFrom 到本合约不会 revert
+     * @dev Implement IERC721Receiver interface, allow this test contract to safely receive NFTs
+     * @notice This way NFT safeTransferFrom to this contract will not revert
      */
     function test_OnERC721Received() public {
         bytes4 selector = market.onERC721Received(address(0), address(0), 0, "");

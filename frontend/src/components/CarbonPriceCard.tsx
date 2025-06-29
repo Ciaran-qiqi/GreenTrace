@@ -250,6 +250,21 @@ export const CarbonPriceCard = () => {
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20 relative hover:shadow-2xl transition-all duration-300">
+      {/* 数据源链接按钮 - 右上角 */}
+      <div className="absolute top-4 right-4">
+        <a 
+          href="https://www.eex.com/en/market-data/market-data-hub/environmentals/indices"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold rounded-full hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          title={t('carbon.index.dataSource', '查看数据源')}
+        >
+          <span className="text-sm">📊</span>
+          <span className="hidden sm:inline">{t('carbon.index.dataSource', '数据源')}</span>
+          <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+        </a>
+      </div>
+
       <div className="text-center mb-6">
         <div className="inline-block p-3 bg-emerald-100 rounded-full mb-4">
           <div className="text-3xl">📈</div>

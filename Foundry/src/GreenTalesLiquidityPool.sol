@@ -10,53 +10,53 @@ import "./interfaces/ICarbonPriceOracle.sol";
 
 /**
  * @title GreenTalesLiquidityPool
- * @dev 碳币流动性池合约，支持USDT和碳币的兑换
- * @notice 用于提供碳币的USDT流动性，实现碳币和USDT的双向兑换
+ * @dev Carbon token liquidity pool contract, supports USDT and carbon token swaps
+ * @notice Provides USDT liquidity for carbon tokens, enables bidirectional swaps between carbon tokens and USDT
  * 
- * 主要功能：
- * 1. 提供流动性：用户可以存入USDT和碳币
- * 2. 移除流动性：用户可以取出USDT和碳币
- * 3. 价格兑换：支持USDT和碳币的双向兑换
- * 4. 价格预言：使用碳价预言机获取实时价格
- * 5. 手续费：收取交易手续费并自动分配
- * 6. 手续费分成：平台70%，流动性提供者30%
+ * Main features:
+ * 1. Add liquidity: Users can deposit USDT and carbon tokens
+ * 2. Remove liquidity: Users can withdraw USDT and carbon tokens
+ * 3. Token swaps: Supports bidirectional swaps between USDT and carbon tokens
+ * 4. Price oracle: Uses carbon price oracle for real-time pricing
+ * 5. Fee collection: Collects trading fees and automatically distributes them
+ * 6. Fee sharing: Platform 70%, liquidity providers 30%
  */
 contract GreenTalesLiquidityPool is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for CarbonToken;
 
-    // 合约状态变量
-    CarbonToken public carbonToken;        // 碳币合约
-    IERC20 public usdtToken;              // USDT合约（使用标准ERC20接口）
-    ICarbonPriceOracle public carbonPriceOracle; // 碳价预言机
+    // Contract state variables
+    CarbonToken public carbonToken;        // Carbon token contract
+    IERC20 public usdtToken;              // USDT contract (uses standard ERC20 interface)
+    ICarbonPriceOracle public carbonPriceOracle; // Carbon price oracle
     
-    // 手续费配置 - 改为可修改
-    uint256 public feeRate = 30;  // 0.3%的手续费
+    // Fee configuration - made modifiable
+    uint256 public feeRate = 30;  // 0.3% fee
     uint256 public constant BASE_RATE = 10000; // 100%
-    uint256 public platformFeeShare = 7000;  // 70%平台手续费
-    uint256 public lpFeeShare = 3000;        // 30%流动性提供者手续费
-    uint256 public priceDeviationThreshold; // 价格偏离阈值（百分比）
+    uint256 public platformFeeShare = 7000;  // 70% platform fee
+    uint256 public lpFeeShare = 3000;        // 30% liquidity provider fee
+    uint256 public priceDeviationThreshold; // Price deviation threshold (percentage)
     
-    // 流动性池状态
-    uint256 public totalCarbonTokens;     // 池中碳币总量
-    uint256 public totalUsdtTokens;       // 池中USDT总量
-    uint256 public totalLPTokens;         // LP代币总量
+    // Liquidity pool state
+    uint256 public totalCarbonTokens;     // Total carbon tokens in pool
+    uint256 public totalUsdtTokens;       // Total USDT in pool
+    uint256 public totalLPTokens;         // Total LP tokens
     
-    // 用户流动性信息
-    mapping(address => uint256) public userLPTokens;  // 用户LP代币数量
+    // User liquidity information
+    mapping(address => uint256) public userLPTokens;  // User LP token amount
     
-    // 手续费分配相关
-    uint256 public platformFeesCarbon;    // 平台累积的碳币手续费
-    uint256 public platformFeesUsdt;      // 平台累积的USDT手续费
-    uint256 public totalLpFeesCarbon;     // 流动性提供者累积的碳币手续费
-    uint256 public totalLpFeesUsdt;       // 流动性提供者累积的USDT手续费
+    // Fee distribution related
+    uint256 public platformFeesCarbon;    // Platform accumulated carbon token fees
+    uint256 public platformFeesUsdt;      // Platform accumulated USDT fees
+    uint256 public totalLpFeesCarbon;     // Liquidity providers accumulated carbon token fees
+    uint256 public totalLpFeesUsdt;       // Liquidity providers accumulated USDT fees
     
-    // 用户手续费收益记录
-    mapping(address => uint256) public userClaimedCarbonFees;  // 用户已提取的碳币手续费
-    mapping(address => uint256) public userClaimedUsdtFees;    // 用户已提取的USDT手续费
-    mapping(address => uint256) public userLastLpTokens;       // 用户上次计算手续费时的LP代币数量
+    // User fee earnings records
+    mapping(address => uint256) public userClaimedCarbonFees;  // User claimed carbon token fees
+    mapping(address => uint256) public userClaimedUsdtFees;    // User claimed USDT fees
+    mapping(address => uint256) public userLastLpTokens;       // User LP token amount at last fee calculation
     
-    // 事件定义
+    // Events
     event LiquidityAdded(address indexed user, uint256 carbonAmount, uint256 usdtAmount, uint256 lpTokens);
     event LiquidityRemoved(address indexed user, uint256 carbonAmount, uint256 usdtAmount, uint256 lpTokens);
     event TokensSwapped(address indexed user, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut);
@@ -74,32 +74,32 @@ contract GreenTalesLiquidityPool is Ownable {
     event FeeRateUpdated(uint256 oldFeeRate, uint256 newFeeRate);
     event FeeSharesUpdated(uint256 oldPlatformShare, uint256 oldLpShare, uint256 newPlatformShare, uint256 newLpShare);
 
-    // 紧急暂停状态
+    // Emergency pause state
     bool public paused;
 
-    // 统计信息
+    // Statistics
     uint256 public totalSwaps;
     uint256 public totalVolumeTraded;
     uint256 public totalFeesCollected;
     uint256 public totalLiquidityProviders;
 
     /**
-     * @dev 构造函数
-     * @param _carbonToken 碳币合约地址
-     * @param _usdtToken USDT合约地址
+     * @dev Constructor
+     * @param _carbonToken Carbon token contract address
+     * @param _usdtToken USDT contract address
      */
     constructor(
         address _carbonToken,
         address _usdtToken
     ) {
         carbonToken = CarbonToken(_carbonToken);
-        usdtToken = IERC20(_usdtToken);  // 使用标准ERC20接口
-        priceDeviationThreshold = 10; // 默认10%的偏离阈值
+        usdtToken = IERC20(_usdtToken);  // Use standard ERC20 interface
+        priceDeviationThreshold = 10; // Default 10% deviation threshold
     }
 
     /**
-     * @dev 设置碳价预言机
-     * @param _carbonPriceOracle 碳价预言机地址
+     * @dev Set carbon price oracle
+     * @param _carbonPriceOracle Carbon price oracle address
      */
     function setCarbonPriceOracle(address _carbonPriceOracle) external onlyOwner {
         address oldOracle = address(carbonPriceOracle);
@@ -108,8 +108,8 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 设置价格偏离阈值
-     * @param _threshold 阈值（百分比，例如：10表示10%）
+     * @dev Set price deviation threshold
+     * @param _threshold Threshold (percentage, e.g., 10 means 10%)
      */
     function setPriceDeviationThreshold(uint256 _threshold) external onlyOwner {
         uint256 oldThreshold = priceDeviationThreshold;
@@ -118,20 +118,20 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 设置手续费率
-     * @param _feeRate 手续费率（基点，例如：30表示0.3%）
+     * @dev Set fee rate
+     * @param _feeRate Fee rate (basis points, e.g., 30 means 0.3%)
      */
     function setFeeRate(uint256 _feeRate) external onlyOwner {
-        require(_feeRate <= 1000, "Fee rate too high"); // 最高10%
+        require(_feeRate <= 1000, "Fee rate too high"); // Maximum 10%
         uint256 oldFeeRate = feeRate;
         feeRate = _feeRate;
         emit FeeRateUpdated(oldFeeRate, _feeRate);
     }
 
     /**
-     * @dev 设置手续费分配比例
-     * @param _platformShare 平台手续费比例（基点，例如：7000表示70%）
-     * @param _lpShare 流动性提供者手续费比例（基点，例如：3000表示30%）
+     * @dev Set fee distribution shares
+     * @param _platformShare Platform fee share (basis points, e.g., 7000 means 70%)
+     * @param _lpShare Liquidity provider fee share (basis points, e.g., 3000 means 30%)
      */
     function setFeeShares(uint256 _platformShare, uint256 _lpShare) external onlyOwner {
         require(_platformShare + _lpShare == 10000, "Total share must be 100%");
@@ -147,33 +147,33 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取预言机碳价参考价（美元计价，18位精度）
-     * @return 预言机参考价（18位精度，USD/碳币 可视为USDT/碳币）
+     * @dev Get oracle carbon price reference (USD denominated, 18 decimals)
+     * @return Oracle reference price (18 decimals, USD/carbon can be considered USDT/carbon)
      */
     function getOracleReferencePrice() public view returns (uint256) {
         if (address(carbonPriceOracle) == address(0)) {
             return 0;
         }
         
-        uint256 oraclePrice8 = carbonPriceOracle.getLatestCarbonPriceUSD(); // 8位精度，USD/碳币
+        uint256 oraclePrice8 = carbonPriceOracle.getLatestCarbonPriceUSD(); // 8 decimals, USD/carbon
         if (oraclePrice8 == 0) {
             return 0;
         }
         
-        // 将预言机价格从8位精度转换为18位精度
-        return oraclePrice8 * 1e10; // 8位 -> 18位
+        // Convert oracle price from 8 decimals to 18 decimals
+        return oraclePrice8 * 1e10; // 8 -> 18
     }
 
     /**
-     * @dev 检查价格是否偏离过大
-     * @param marketPrice 市场价格（18位精度，USDT/碳币）
-     * @return bool 是否偏离过大
+     * @dev Check if price deviation is too large
+     * @param marketPrice Market price (18 decimals, USDT/carbon)
+     * @return bool Whether deviation is too large
      */
     function isPriceDeviated(uint256 marketPrice) public view returns (bool) {
         uint256 referencePrice = getOracleReferencePrice();
         if (referencePrice == 0) return false;
         
-        // 计算价格偏离百分比
+        // Calculate price deviation percentage
         uint256 deviation;
         if (marketPrice > referencePrice) {
             deviation = ((marketPrice - referencePrice) * 100) / referencePrice;
@@ -185,12 +185,12 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取价格偏离详细信息
-     * @return referencePrice 预言机参考价（18位精度）
-     * @return marketPrice 市场价格（18位精度）
-     * @return deviation 偏离百分比
-     * @return threshold 偏离阈值
-     * @return isDeviated 是否偏离过大
+     * @dev Get detailed price deviation information
+     * @return referencePrice Oracle reference price (18 decimals)
+     * @return marketPrice Market price (18 decimals)
+     * @return deviation Deviation percentage
+     * @return threshold Deviation threshold
+     * @return isDeviated Whether deviation is too large
      */
     function getPriceDeviationDetails() public view returns (
         uint256 referencePrice,
@@ -203,25 +203,23 @@ contract GreenTalesLiquidityPool is Ownable {
         marketPrice = getCarbonPrice();
         threshold = priceDeviationThreshold;
         
-        if (referencePrice == 0) {
-            return (0, marketPrice, 0, threshold, false);
-        }
-        
-        if (marketPrice > referencePrice) {
-            deviation = ((marketPrice - referencePrice) * 100) / referencePrice;
+        if (referencePrice == 0 || marketPrice == 0) {
+            deviation = 0;
+            isDeviated = false;
         } else {
-            deviation = ((referencePrice - marketPrice) * 100) / referencePrice;
+            if (marketPrice > referencePrice) {
+                deviation = ((marketPrice - referencePrice) * 100) / referencePrice;
+            } else {
+                deviation = ((referencePrice - marketPrice) * 100) / referencePrice;
+            }
+            isDeviated = deviation > threshold;
         }
-        
-        isDeviated = deviation > threshold;
-        
-        return (referencePrice, marketPrice, deviation, threshold, isDeviated);
     }
 
     /**
-     * @dev 获取碳币的实时价格（以USDT计价）
-     * @return 价格（以USDT计价，18位小数）
-     * @notice 基于AMM公式计算：USDT总量 / 碳币总量
+     * @dev Get real-time carbon token price (in USDT)
+     * @return Price (in USDT, 18 decimals)
+     * @notice Calculated using AMM formula: Total USDT / Total Carbon Tokens
      */
     function getCarbonPrice() public view returns (uint256) {
         if (totalCarbonTokens == 0 || totalUsdtTokens == 0) {
@@ -231,19 +229,19 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取碳币的USD价格（通过预言机直接获取）
-     * @return 价格（以USD计价，18位小数）
-     * @notice 直接使用碳价预言机的USD价格，无需USDT转换
+     * @dev Get carbon token USD price (directly from oracle)
+     * @return Price (in USD, 18 decimals)
+     * @notice Directly use carbon price oracle USD price, no USDT conversion needed
      */
     function getCarbonPriceUSD() public view returns (uint256) {
         return getOracleReferencePrice();
     }
 
     /**
-     * @dev 计算用户可提取的手续费收益
-     * @param _user 用户地址
-     * @return carbonFees 可提取的碳币手续费
-     * @return usdtFees 可提取的USDT手续费
+     * @dev Calculate user's claimable fee rewards
+     * @param _user User address
+     * @return carbonFees Claimable carbon token fees
+     * @return usdtFees Claimable USDT fees
      */
     function calculateUserFees(address _user) public view returns (uint256 carbonFees, uint256 usdtFees) {
         uint256 userLP = userLPTokens[_user];
@@ -251,12 +249,12 @@ contract GreenTalesLiquidityPool is Ownable {
             return (0, 0);
         }
         
-        // 计算用户应得的碳币手续费
+        // Calculate user's carbon token fees
         uint256 userCarbonFees = (userLP * totalLpFeesCarbon) / totalLPTokens;
         carbonFees = userCarbonFees > userClaimedCarbonFees[_user] ? 
                     userCarbonFees - userClaimedCarbonFees[_user] : 0;
         
-        // 计算用户应得的USDT手续费
+        // Calculate user's USDT fees
         uint256 userUsdtFees = (userLP * totalLpFeesUsdt) / totalLPTokens;
         usdtFees = userUsdtFees > userClaimedUsdtFees[_user] ? 
                   userUsdtFees - userClaimedUsdtFees[_user] : 0;
@@ -265,16 +263,16 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 用户提取累积的手续费收益
-     * @return carbonFees 提取的碳币手续费
-     * @return usdtFees 提取的USDT手续费
+     * @dev User claims accumulated fee rewards
+     * @return carbonFees Claimed carbon token fees
+     * @return usdtFees Claimed USDT fees
      */
     function claimFees() external returns (uint256 carbonFees, uint256 usdtFees) {
         (carbonFees, usdtFees) = calculateUserFees(msg.sender);
         
         require(carbonFees > 0 || usdtFees > 0, "No fees to claim");
         
-        // 更新已提取记录
+        // Update claimed records
         if (carbonFees > 0) {
             userClaimedCarbonFees[msg.sender] += carbonFees;
             carbonToken.safeTransfer(msg.sender, carbonFees);
@@ -292,19 +290,19 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 添加流动性
-     * @param carbonAmount 碳币数量
-     * @param usdtAmount USDT数量
-     * @return lpTokens 获得的LP代币数量
+     * @dev Add liquidity
+     * @param carbonAmount Carbon token amount
+     * @param usdtAmount USDT amount
+     * @return lpTokens LP tokens received
      */
     function addLiquidity(uint256 carbonAmount, uint256 usdtAmount) external whenNotPaused returns (uint256 lpTokens) {
         require(carbonAmount > 0 && usdtAmount > 0, "Amounts must be greater than 0");
         
-        // 转移代币到合约
+        // Transfer tokens to contract
         carbonToken.safeTransferFrom(msg.sender, address(this), carbonAmount);
         usdtToken.safeTransferFrom(msg.sender, address(this), usdtAmount);
         
-        // 计算LP代币数量
+        // Calculate LP token amount
         if (totalLPTokens == 0) {
             lpTokens = sqrt(carbonAmount * usdtAmount);
             totalLiquidityProviders++;
@@ -313,13 +311,13 @@ contract GreenTalesLiquidityPool is Ownable {
             uint256 usdtShare = (usdtAmount * totalLPTokens) / totalUsdtTokens;
             lpTokens = carbonShare < usdtShare ? carbonShare : usdtShare;
             
-            // 如果是新用户，增加提供者计数
+            // If new user, increment provider count
             if (userLPTokens[msg.sender] == 0) {
                 totalLiquidityProviders++;
             }
         }
         
-        // 更新状态
+        // Update state
         totalCarbonTokens += carbonAmount;
         totalUsdtTokens += usdtAmount;
         totalLPTokens += lpTokens;
@@ -330,31 +328,31 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 移除流动性
-     * @param lpTokens LP代币数量
-     * @return carbonAmount 返还的碳币数量
-     * @return usdtAmount 返还的USDT数量
+     * @dev Remove liquidity
+     * @param lpTokens LP token amount
+     * @return carbonAmount Carbon tokens returned
+     * @return usdtAmount USDT returned
      */
     function removeLiquidity(uint256 lpTokens) external whenNotPaused returns (uint256 carbonAmount, uint256 usdtAmount) {
         require(lpTokens > 0, "Amount must be greater than 0");
         require(userLPTokens[msg.sender] >= lpTokens, "Insufficient LP tokens");
         
-        // 计算返还数量
+        // Calculate return amounts
         carbonAmount = (lpTokens * totalCarbonTokens) / totalLPTokens;
         usdtAmount = (lpTokens * totalUsdtTokens) / totalLPTokens;
         
-        // 更新状态
+        // Update state
         totalCarbonTokens -= carbonAmount;
         totalUsdtTokens -= usdtAmount;
         totalLPTokens -= lpTokens;
         userLPTokens[msg.sender] -= lpTokens;
         
-        // 如果用户移除所有LP代币，减少提供者计数
+        // If user removes all LP tokens, decrement provider count
         if (userLPTokens[msg.sender] == 0) {
             totalLiquidityProviders--;
         }
         
-        // 转移代币
+        // Transfer tokens
         carbonToken.safeTransfer(msg.sender, carbonAmount);
         usdtToken.safeTransfer(msg.sender, usdtAmount);
         
@@ -363,18 +361,18 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 碳币兑换USDT
-     * @param carbonAmount 碳币数量
-     * @return usdtAmount 获得的USDT数量
+     * @dev Swap carbon tokens for USDT
+     * @param carbonAmount Carbon token amount
+     * @return usdtAmount USDT amount received
      */
     function swapCarbonToUsdt(uint256 carbonAmount) external whenNotPaused returns (uint256 usdtAmount) {
         require(carbonAmount > 0, "Amount must be greater than 0");
         
-        // 检查价格偏离 - 使用当前池子价格进行检查
+        // Check price deviation - use current pool price for check
         uint256 currentPrice = getCarbonPrice();
         (uint256 referencePrice, , uint256 deviation, , bool isDeviated) = getPriceDeviationDetails();
         
-        // 发出价格偏离检查事件
+        // Emit price deviation check event
         emit PriceDeviationChecked(referencePrice, currentPrice, deviation, isDeviated);
         
         if (isDeviated) {
@@ -382,28 +380,28 @@ contract GreenTalesLiquidityPool is Ownable {
             revert("Price deviation too large");
         }
         
-        // 计算兑换数量（考虑手续费）
+        // Calculate swap amount (considering fees)
         usdtAmount = (carbonAmount * totalUsdtTokens) / totalCarbonTokens;
         uint256 totalFee = (usdtAmount * feeRate) / BASE_RATE;
         usdtAmount -= totalFee;
         
-        // 分配手续费
-        uint256 platformFee = (totalFee * platformFeeShare) / 10000;  // 70%平台手续费
-        uint256 lpFee = (totalFee * lpFeeShare) / 10000;              // 30%流动性提供者手续费
+        // Distribute fees
+        uint256 platformFee = (totalFee * platformFeeShare) / 10000;  // 70% platform fee
+        uint256 lpFee = (totalFee * lpFeeShare) / 10000;              // 30% liquidity provider fee
         
-        // 转移代币
+        // Transfer tokens
         carbonToken.safeTransferFrom(msg.sender, address(this), carbonAmount);
         usdtToken.safeTransfer(msg.sender, usdtAmount);
         
-        // 更新状态
+        // Update state
         totalCarbonTokens += carbonAmount;
         totalUsdtTokens -= usdtAmount;
         
-        // 累积手续费
+        // Accumulate fees
         platformFeesUsdt += platformFee;
         totalLpFeesUsdt += lpFee;
         
-        // 更新统计信息
+        // Update statistics
         totalSwaps++;
         totalVolumeTraded += carbonAmount;
         totalFeesCollected += totalFee;
@@ -413,18 +411,18 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev USDT兑换碳币
-     * @param usdtAmount USDT数量
-     * @return carbonAmount 获得的碳币数量
+     * @dev Swap USDT for carbon tokens
+     * @param usdtAmount USDT amount
+     * @return carbonAmount Carbon tokens received
      */
     function swapUsdtToCarbon(uint256 usdtAmount) external whenNotPaused returns (uint256 carbonAmount) {
         require(usdtAmount > 0, "Amount must be greater than 0");
         
-        // 检查价格偏离 - 使用当前池子价格进行检查
+        // Check price deviation - use current pool price for check
         uint256 currentPrice = getCarbonPrice();
         (uint256 referencePrice, , uint256 deviation, , bool isDeviated) = getPriceDeviationDetails();
         
-        // 发出价格偏离检查事件
+        // Emit price deviation check event
         emit PriceDeviationChecked(referencePrice, currentPrice, deviation, isDeviated);
         
         if (isDeviated) {
@@ -432,28 +430,28 @@ contract GreenTalesLiquidityPool is Ownable {
             revert("Price deviation too large");
         }
         
-        // 计算兑换数量（考虑手续费）
+        // Calculate swap amount (considering fees)
         carbonAmount = (usdtAmount * totalCarbonTokens) / totalUsdtTokens;
         uint256 totalFee = (carbonAmount * feeRate) / BASE_RATE;
         carbonAmount -= totalFee;
         
-        // 分配手续费
-        uint256 platformFee = (totalFee * platformFeeShare) / 10000;  // 70%平台手续费
-        uint256 lpFee = (totalFee * lpFeeShare) / 10000;              // 30%流动性提供者手续费
+        // Distribute fees
+        uint256 platformFee = (totalFee * platformFeeShare) / 10000;  // 70% platform fee
+        uint256 lpFee = (totalFee * lpFeeShare) / 10000;              // 30% liquidity provider fee
         
-        // 转移代币
+        // Transfer tokens
         usdtToken.safeTransferFrom(msg.sender, address(this), usdtAmount);
         carbonToken.safeTransfer(msg.sender, carbonAmount);
         
-        // 更新状态
+        // Update state
         totalUsdtTokens += usdtAmount;
         totalCarbonTokens -= carbonAmount;
         
-        // 累积手续费
+        // Accumulate fees
         platformFeesCarbon += platformFee;
         totalLpFeesCarbon += lpFee;
         
-        // 更新统计信息
+        // Update statistics
         totalSwaps++;
         totalVolumeTraded += usdtAmount;
         totalFeesCollected += totalFee;
@@ -463,9 +461,9 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 计算平方根
-     * @param x 输入数字
-     * @return 平方根
+     * @dev Calculate square root
+     * @param x Input number
+     * @return Square root
      */
     function sqrt(uint256 x) internal pure returns (uint256) {
         if (x == 0) return 0;
@@ -479,10 +477,10 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 提取平台累积的手续费
-     * @param token 要提取的代币地址（碳币或USDT）
-     * @param amount 提取数量
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Withdraw platform accumulated fees
+     * @param token Token address to withdraw (carbon token or USDT)
+     * @param amount Withdrawal amount
+     * @notice Only contract owner can call this function
      */
     function withdrawPlatformFees(address token, uint256 amount) external onlyOwner {
         require(token == address(carbonToken) || token == address(usdtToken), "Invalid token");
@@ -502,9 +500,9 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取合约中的代币余额
-     * @return carbonBalance 碳币余额
-     * @return usdtBalance USDT余额
+     * @dev Get token balances in contract
+     * @return carbonBalance Carbon token balance
+     * @return usdtBalance USDT balance
      */
     function getContractBalances() external view returns (uint256 carbonBalance, uint256 usdtBalance) {
         carbonBalance = carbonToken.balanceOf(address(this));
@@ -513,11 +511,11 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取手续费统计信息
-     * @return platformCarbonFees 平台碳币手续费
-     * @return platformUsdtFees 平台USDT手续费
-     * @return totalLpCarbonFees 流动性提供者碳币手续费
-     * @return totalLpUsdtFees 流动性提供者USDT手续费
+     * @dev Get fee statistics
+     * @return platformCarbonFees Platform carbon token fees
+     * @return platformUsdtFees Platform USDT fees
+     * @return totalLpCarbonFees Liquidity providers carbon token fees
+     * @return totalLpUsdtFees Liquidity providers USDT fees
      */
     function getFeeStats() external view returns (
         uint256 platformCarbonFees,
@@ -528,7 +526,7 @@ contract GreenTalesLiquidityPool is Ownable {
         return (platformFeesCarbon, platformFeesUsdt, totalLpFeesCarbon, totalLpFeesUsdt);
     }
 
-    // 紧急暂停功能
+    // Emergency pause functionality
     function pause() external onlyOwner {
         paused = true;
         emit EmergencyPaused(msg.sender, true);
@@ -539,15 +537,15 @@ contract GreenTalesLiquidityPool is Ownable {
         emit EmergencyPaused(msg.sender, false);
     }
 
-    // 统计信息更新
+    // Statistics update
     function updatePoolStats() external onlyOwner {
         uint256 currentPrice = getCarbonPrice();
         emit PoolStatsUpdated(totalCarbonTokens, totalUsdtTokens, totalLPTokens, currentPrice);
     }
 
     /**
-     * @dev 紧急暂停修饰器
-     * @notice 当合约暂停时，只有所有者可以执行关键操作
+     * @dev Emergency pause modifier
+     * @notice When contract is paused, only owner can execute critical operations
      */
     modifier whenNotPaused() {
         require(!paused, "Contract is paused");
@@ -555,11 +553,11 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 紧急提取代币
-     * @param _token 代币地址
-     * @param _to 接收地址
-     * @param _amount 提取数量
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Emergency withdraw tokens
+     * @param _token Token address
+     * @param _to Recipient address
+     * @param _amount Withdrawal amount
+     * @notice Only contract owner can call this function
      */
     function emergencyWithdraw(address _token, address _to, uint256 _amount) external onlyOwner {
         require(_to != address(0), "Invalid recipient");
@@ -579,15 +577,15 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取池子统计信息
-     * @return totalCarbon 池中碳币总量
-     * @return totalUsdt 池中USDT总量
-     * @return totalLP LP代币总量
-     * @return currentPrice 当前价格
-     * @return swapCount 总交易次数
-     * @return totalVolume 总交易量
-     * @return totalFees 总手续费
-     * @return totalProviders 流动性提供者数量
+     * @dev Get pool statistics
+     * @return totalCarbon Total carbon tokens in pool
+     * @return totalUsdt Total USDT in pool
+     * @return totalLP Total LP tokens
+     * @return currentPrice Current price
+     * @return swapCount Total swap count
+     * @return totalVolume Total trading volume
+     * @return totalFees Total fees
+     * @return totalProviders Number of liquidity providers
      */
     function getPoolStats() external view returns (
         uint256 totalCarbon,
@@ -612,12 +610,12 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取流动性提供者信息
-     * @param _user 用户地址
-     * @return lpTokens LP代币数量
-     * @return carbonShare 碳币份额
-     * @return usdtShare USDT份额
-     * @return sharePercentage 份额百分比
+     * @dev Get liquidity provider information
+     * @param _user User address
+     * @return lpTokens LP token amount
+     * @return carbonShare Carbon token share
+     * @return usdtShare USDT share
+     * @return sharePercentage Share percentage
      */
     function getLiquidityProviderInfo(address _user) external view returns (
         uint256 lpTokens,
@@ -632,18 +630,18 @@ contract GreenTalesLiquidityPool is Ownable {
         
         carbonShare = (lpTokens * totalCarbonTokens) / totalLPTokens;
         usdtShare = (lpTokens * totalUsdtTokens) / totalLPTokens;
-        sharePercentage = (lpTokens * 10000) / totalLPTokens; // 基点表示
+        sharePercentage = (lpTokens * 10000) / totalLPTokens; // Basis points
         
         return (lpTokens, carbonShare, usdtShare, sharePercentage);
     }
 
     /**
-     * @dev 获取兑换估算信息
-     * @param _amountIn 输入数量
-     * @param _isCarbonToUsdt 是否为碳币兑换USDT
-     * @return amountOut 输出数量
-     * @return fee 手续费
-     * @return priceImpact 价格影响
+     * @dev Get swap estimate information
+     * @param _amountIn Input amount
+     * @param _isCarbonToUsdt Whether it's carbon token to USDT swap
+     * @return amountOut Output amount
+     * @return fee Fee
+     * @return priceImpact Price impact
      */
     function getSwapEstimate(uint256 _amountIn, bool _isCarbonToUsdt) external view returns (
         uint256 amountOut,
@@ -653,12 +651,12 @@ contract GreenTalesLiquidityPool is Ownable {
         require(_amountIn > 0, "Amount must be greater than 0");
         
         if (_isCarbonToUsdt) {
-            // 碳币兑换USDT
+            // Carbon token to USDT swap
             amountOut = (_amountIn * totalUsdtTokens) / totalCarbonTokens;
             fee = (amountOut * feeRate) / BASE_RATE;
             amountOut -= fee;
             
-            // 计算价格影响
+            // Calculate price impact
             uint256 newCarbonTotal = totalCarbonTokens + _amountIn;
             uint256 newUsdtTotal = totalUsdtTokens - amountOut;
             uint256 newPrice = (newUsdtTotal * 1e18) / newCarbonTotal;
@@ -670,12 +668,12 @@ contract GreenTalesLiquidityPool is Ownable {
                 priceImpact = ((newPrice - currentPrice) * 10000) / currentPrice;
             }
         } else {
-            // USDT兑换碳币
+            // USDT to carbon token swap
             amountOut = (_amountIn * totalCarbonTokens) / totalUsdtTokens;
             fee = (amountOut * feeRate) / BASE_RATE;
             amountOut -= fee;
             
-            // 计算价格影响
+            // Calculate price impact
             uint256 newUsdtTotal = totalUsdtTokens + _amountIn;
             uint256 newCarbonTotal = totalCarbonTokens - amountOut;
             uint256 newPrice = (newUsdtTotal * 1e18) / newCarbonTotal;
@@ -692,12 +690,12 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取流动性添加估算
-     * @param _carbonAmount 碳币数量
-     * @param _usdtAmount USDT数量
-     * @return lpTokens LP代币数量
-     * @return carbonShare 碳币份额
-     * @return usdtShare USDT份额
+     * @dev Get liquidity addition estimate
+     * @param _carbonAmount Carbon token amount
+     * @param _usdtAmount USDT amount
+     * @return lpTokens LP token amount
+     * @return carbonShare Carbon token share
+     * @return usdtShare USDT share
      */
     function getAddLiquidityEstimate(uint256 _carbonAmount, uint256 _usdtAmount) external view returns (
         uint256 lpTokens,
@@ -720,11 +718,11 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取流动性移除估算
-     * @param _lpTokens LP代币数量
-     * @return carbonAmount 返还的碳币数量
-     * @return usdtAmount 返还的USDT数量
-     * @return sharePercentage 份额百分比
+     * @dev Get liquidity removal estimate
+     * @param _lpTokens LP token amount
+     * @return carbonAmount Carbon tokens returned
+     * @return usdtAmount USDT returned
+     * @return sharePercentage Share percentage
      */
     function getRemoveLiquidityEstimate(uint256 _lpTokens) external view returns (
         uint256 carbonAmount,
@@ -736,22 +734,22 @@ contract GreenTalesLiquidityPool is Ownable {
         
         carbonAmount = (_lpTokens * totalCarbonTokens) / totalLPTokens;
         usdtAmount = (_lpTokens * totalUsdtTokens) / totalLPTokens;
-        sharePercentage = (_lpTokens * 10000) / totalLPTokens; // 基点表示
+        sharePercentage = (_lpTokens * 10000) / totalLPTokens; // Basis points
         
         return (carbonAmount, usdtAmount, sharePercentage);
     }
 
     /**
-     * @dev 获取池子详细信息（包含价格信息）
-     * @return totalCarbon 池中碳币总量
-     * @return totalUsdt 池中USDT总量
-     * @return totalLP LP代币总量
-     * @return currentPrice 当前价格
-     * @return oraclePrice 预言机价格
-     * @return priceDeviated 是否价格偏离
-     * @return deviationPercent 偏离百分比
-     * @return currentFeeRate 手续费率
-     * @return isPaused 是否暂停
+     * @dev Get detailed pool information (including price information)
+     * @return totalCarbon Total carbon tokens in pool
+     * @return totalUsdt Total USDT in pool
+     * @return totalLP Total LP tokens
+     * @return currentPrice Current price
+     * @return oraclePrice Oracle price
+     * @return priceDeviated Whether price is deviated
+     * @return deviationPercent Deviation percentage
+     * @return currentFeeRate Current fee rate
+     * @return isPaused Whether paused
      */
     function getPoolInfo() external view returns (
         uint256 totalCarbon,
@@ -773,7 +771,7 @@ contract GreenTalesLiquidityPool is Ownable {
         currentFeeRate = feeRate;
         isPaused = paused;
         
-        // 计算偏离百分比
+        // Calculate deviation percentage
         if (oraclePrice > 0) {
             if (currentPrice > oraclePrice) {
                 deviationPercent = ((currentPrice - oraclePrice) * 100) / oraclePrice;
@@ -787,11 +785,11 @@ contract GreenTalesLiquidityPool is Ownable {
 
 
     /**
-     * @dev 获取兑换历史统计
-     * @return totalCarbonSwapped 总碳币兑换量
-     * @return totalUsdtSwapped 总USDT兑换量
-     * @return averageSwapSize 平均兑换大小
-     * @return largestSwap 最大单笔兑换
+     * @dev Get swap history statistics
+     * @return totalCarbonSwapped Total carbon token swap volume
+     * @return totalUsdtSwapped Total USDT swap volume
+     * @return averageSwapSize Average swap size
+     * @return largestSwap Largest single swap
      */
     function getSwapHistory() external view returns (
         uint256 totalCarbonSwapped,
@@ -799,24 +797,24 @@ contract GreenTalesLiquidityPool is Ownable {
         uint256 averageSwapSize,
         uint256 largestSwap
     ) {
-        // 这里返回基础统计信息
-        // 实际实现中可能需要存储更详细的历史数据
-        totalCarbonSwapped = totalVolumeTraded; // 简化处理
-        totalUsdtSwapped = totalVolumeTraded;   // 简化处理
+        // Return basic statistics here
+        // Actual implementation may need to store more detailed historical data
+        totalCarbonSwapped = totalVolumeTraded; // Simplified processing
+        totalUsdtSwapped = totalVolumeTraded;   // Simplified processing
         averageSwapSize = totalSwaps > 0 ? totalVolumeTraded / totalSwaps : 0;
-        largestSwap = 0; // 需要额外存储
+        largestSwap = 0; // Need additional storage
         
         return (totalCarbonSwapped, totalUsdtSwapped, averageSwapSize, largestSwap);
     }
 
     /**
-     * @dev 获取价格影响估算（更精确的版本）
-     * @param _amountIn 输入数量
-     * @param _isCarbonToUsdt 是否为碳币兑换USDT
-     * @return amountOut 输出数量
-     * @return fee 手续费
-     * @return priceImpact 价格影响（基点）
-     * @return newPrice 交易后新价格
+     * @dev Get price impact estimate (more precise version)
+     * @param _amountIn Input amount
+     * @param _isCarbonToUsdt Whether it's carbon token to USDT swap
+     * @return amountOut Output amount
+     * @return fee Fee
+     * @return priceImpact Price impact (basis points)
+     * @return newPrice New price after trade
      */
     function getDetailedSwapEstimate(uint256 _amountIn, bool _isCarbonToUsdt) external view returns (
         uint256 amountOut,
@@ -829,28 +827,28 @@ contract GreenTalesLiquidityPool is Ownable {
         uint256 currentPrice = getCarbonPrice();
         
         if (_isCarbonToUsdt) {
-            // 碳币兑换USDT
+            // Carbon token to USDT swap
             amountOut = (_amountIn * totalUsdtTokens) / totalCarbonTokens;
             fee = (amountOut * feeRate) / BASE_RATE;
             amountOut -= fee;
             
-            // 计算新价格
+            // Calculate new price
             uint256 newCarbonTotal = totalCarbonTokens + _amountIn;
             uint256 newUsdtTotal = totalUsdtTokens - amountOut;
             newPrice = (newUsdtTotal * 1e18) / newCarbonTotal;
         } else {
-            // USDT兑换碳币
+            // USDT to carbon token swap
             amountOut = (_amountIn * totalCarbonTokens) / totalUsdtTokens;
             fee = (amountOut * feeRate) / BASE_RATE;
             amountOut -= fee;
             
-            // 计算新价格
+            // Calculate new price
             uint256 newUsdtTotal = totalUsdtTokens + _amountIn;
             uint256 newCarbonTotal = totalCarbonTokens - amountOut;
             newPrice = (newUsdtTotal * 1e18) / newCarbonTotal;
         }
         
-        // 计算价格影响（基点）
+        // Calculate price impact (basis points)
         if (currentPrice > 0) {
             if (newPrice > currentPrice) {
                 priceImpact = ((newPrice - currentPrice) * 10000) / currentPrice;
@@ -863,14 +861,14 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 获取流动性添加的精确估算
-     * @param _carbonAmount 碳币数量
-     * @param _usdtAmount USDT数量
-     * @return lpTokens LP代币数量
-     * @return carbonShare 碳币份额
-     * @return usdtShare USDT份额
-     * @return priceImpact 价格影响
-     * @return newPrice 添加流动性后的价格
+     * @dev Get precise liquidity addition estimate
+     * @param _carbonAmount Carbon token amount
+     * @param _usdtAmount USDT amount
+     * @return lpTokens LP token amount
+     * @return carbonShare Carbon token share
+     * @return usdtShare USDT share
+     * @return priceImpact Price impact
+     * @return newPrice New price after adding liquidity
      */
     function getDetailedAddLiquidityEstimate(uint256 _carbonAmount, uint256 _usdtAmount) external view returns (
         uint256 lpTokens,
@@ -893,13 +891,13 @@ contract GreenTalesLiquidityPool is Ownable {
             usdtShare = (_usdtAmount * totalLPTokens) / totalUsdtTokens;
             lpTokens = carbonShare < usdtShare ? carbonShare : usdtShare;
             
-            // 计算新价格
+            // Calculate new price
             uint256 newCarbonTotal = totalCarbonTokens + _carbonAmount;
             uint256 newUsdtTotal = totalUsdtTokens + _usdtAmount;
             newPrice = (newUsdtTotal * 1e18) / newCarbonTotal;
         }
         
-        // 计算价格影响
+        // Calculate price impact
         if (currentPrice > 0) {
             if (newPrice > currentPrice) {
                 priceImpact = ((newPrice - currentPrice) * 10000) / currentPrice;
@@ -912,12 +910,12 @@ contract GreenTalesLiquidityPool is Ownable {
     }
 
     /**
-     * @dev 检查用户是否有足够的流动性
-     * @param _user 用户地址
-     * @param _lpTokens LP代币数量
-     * @return hasEnough 是否有足够流动性
-     * @return currentLP 当前LP代币数量
-     * @return requiredLP 需要的LP代币数量
+     * @dev Check if user has sufficient liquidity
+     * @param _user User address
+     * @param _lpTokens LP token amount
+     * @return hasEnough Whether has sufficient liquidity
+     * @return currentLP Current LP token amount
+     * @return requiredLP Required LP token amount
      */
     function checkLiquiditySufficiency(address _user, uint256 _lpTokens) external view returns (
         bool hasEnough,

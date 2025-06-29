@@ -7,92 +7,92 @@ import "../src/interfaces/ICarbonPriceOracle.sol";
 
 /**
  * @title CarbonPriceOracleTest
- * @dev 碳价预言机合约的测试套件
- * @notice 测试预言机的价格获取和更新功能
+ * @dev Test suite for carbon price oracle contract
+ * @notice Tests oracle's price fetching and updating functionality
  */
 contract CarbonPriceOracleTest is Test {
-    // 测试合约实例
+    // Test contract instances
     CarbonPriceOracle public carbonPriceOracle;
     
-    // 模拟合约地址
+    // Mock contract addresses
     address public mockLinkToken;
     address public mockEurUsdPriceFeed;
     
-    // 测试常量
+    // Test constants
     uint256 public constant MOCK_EUR_PRICE = 100 * 1e18;  // 100 EUR
     
     function setUp() public {
-        // 部署模拟合约
+        // Deploy mock contracts
         mockLinkToken = address(new MockLinkToken());
         mockEurUsdPriceFeed = address(new MockPriceFeed());
         
-        // 部署碳价预言机
+        // Deploy carbon price oracle
         carbonPriceOracle = new CarbonPriceOracle(
-            address(0x123), // 模拟router地址
-            bytes32("mock_don_id"), // 模拟DON ID
+            address(0x123), // Mock router address
+            bytes32("mock_don_id"), // Mock DON ID
             mockEurUsdPriceFeed,
             mockLinkToken
         );
         
-        // 设置订阅ID（测试用）
+        // Set subscription ID (for testing)
         carbonPriceOracle.setSubscriptionId(1);
         
-        // 给预言机合约一些LINK代币
+        // Give oracle contract some LINK tokens
         MockLinkToken(mockLinkToken).mint(address(carbonPriceOracle), 1 * 1e18);
     }
     
     /**
-     * @dev 测试请求碳价更新（需要权限）
+     * @dev Test requesting carbon price update (requires permission)
      */
     function testRequestCarbonPrice() public {
-        // 注意：在测试环境中，requestCarbonPrice会失败，因为Chainlink Functions不可用
-        // 这里我们只测试权限控制，不实际调用requestCarbonPrice
-        // 实际的价格更新测试在testCompleteOracleWorkflow中进行
+        // Note: In test environment, requestCarbonPrice will fail because Chainlink Functions is not available
+        // Here we only test permission control, not actually call requestCarbonPrice
+        // Actual price update testing is done in testCompleteOracleWorkflow
         
-        // 测试权限：只有合约所有者可以调用
-        // 由于Chainlink Functions在测试中不可用，我们跳过实际调用
+        // Test permission: only contract owner can call
+        // Since Chainlink Functions is not available in tests, we skip actual calls
         assertTrue(true, "Permission test passed");
     }
     
     /**
-     * @dev 测试非授权用户请求碳价更新失败
+     * @dev Test that unauthorized user requesting carbon price update fails
      */
     function testRevertWhen_RequestCarbonPriceNotAuthorized() public {
-        // 非所有者调用应该失败
+        // Non-owner call should fail
         vm.prank(address(0x1));
         vm.expectRevert("Not authorized");
         carbonPriceOracle.requestCarbonPrice();
     }
     
     /**
-     * @dev 测试LINK余额不足时请求碳价更新失败
+     * @dev Test that requesting carbon price update fails when LINK balance is insufficient
      */
     function testRevertWhen_RequestCarbonPriceInsufficientLink() public {
-        // 这个测试在测试环境中无法完全模拟，因为Chainlink Functions不可用
-        // 我们只测试权限控制，不测试实际的LINK余额检查
-        // 在实际部署时，LINK余额不足会导致requestCarbonPrice失败
+        // This test cannot be fully simulated in test environment because Chainlink Functions is not available
+        // We only test permission control, not actual LINK balance checks
+        // In actual deployment, insufficient LINK balance will cause requestCarbonPrice to fail
         
-        // 测试权限：只有合约所有者可以调用
+        // Test permission: only contract owner can call
         assertTrue(true, "Permission test passed - LINK balance check requires actual Chainlink deployment");
     }
     
     /**
-     * @dev 测试添加和移除操作员
+     * @dev Test adding and removing operators
      */
     function testOperatorManagement() public {
         address operator = address(0x123);
         
-        // 添加操作员
+        // Add operator
         carbonPriceOracle.addOperator(operator);
         assertTrue(carbonPriceOracle.authorizedOperators(operator), "Operator should be added");
         
-        // 移除操作员
+        // Remove operator
         carbonPriceOracle.removeOperator(operator);
         assertFalse(carbonPriceOracle.authorizedOperators(operator), "Operator should be removed");
     }
     
     /**
-     * @dev 测试非所有者添加操作员失败
+     * @dev Test that non-owner adding operator fails
      */
     function testRevertWhen_AddOperatorNotOwner() public {
         vm.prank(address(0x1));
@@ -101,51 +101,51 @@ contract CarbonPriceOracleTest is Test {
     }
     
     /**
-     * @dev 测试获取最新碳价
+     * @dev Test getting latest carbon price
      */
     function testGetLatestCarbonPrice() public {
-        // 设置初始价格（在测试环境中直接设置状态）
-        uint256 mockPrice = 100 * 1e8; // 改为8位精度
+        // Set initial price (directly set state in test environment)
+        uint256 mockPrice = 100 * 1e8; // Changed to 8 decimal precision
         
-        // 使用setter函数设置价格
+        // Use setter function to set price
         carbonPriceOracle.setTestCarbonPriceEUR(mockPrice);
         
-        // 测试获取价格
+        // Test getting price
         uint256 usdPrice = carbonPriceOracle.getLatestCarbonPriceUSD();
         uint256 eurPrice = carbonPriceOracle.getLatestCarbonPriceEUR();
         
         assertEq(eurPrice, mockPrice, "Should return correct EUR price");
-        // USD价格需要EUR/USD汇率计算，这里暂时跳过详细验证
+        // USD price requires EUR/USD exchange rate calculation, skip detailed verification here
     }
     
     /**
-     * @dev 测试提取LINK代币（需要权限）
+     * @dev Test withdrawing LINK tokens (requires permission)
      */
     function testWithdrawLink() public {
         uint256 withdrawAmount = 0.5 * 1e18;
         address recipient = address(0x1);
         
-        // 合约所有者可以提取
+        // Contract owner can withdraw
         carbonPriceOracle.withdrawLink(recipient, withdrawAmount);
         
-        // 验证余额
+        // Verify balance
         assertEq(
             MockLinkToken(mockLinkToken).balanceOf(recipient),
             withdrawAmount,
             "Recipient should receive LINK tokens"
         );
         
-        // 非所有者不能提取
+        // Non-owner cannot withdraw
         vm.prank(address(0x2));
         vm.expectRevert("Ownable: caller is not the owner");
         carbonPriceOracle.withdrawLink(recipient, withdrawAmount);
     }
     
     /**
-     * @dev 测试提取LINK时余额不足
+     * @dev Test insufficient balance when withdrawing LINK
      */
     function testRevertWhen_WithdrawInsufficientBalance() public {
-        uint256 largeAmount = 10 * 1e18; // 大于合约余额
+        uint256 largeAmount = 10 * 1e18; // Larger than contract balance
         address recipient = address(0x1);
         
         vm.expectRevert("Insufficient LINK balance");
@@ -153,11 +153,11 @@ contract CarbonPriceOracleTest is Test {
     }
     
     /**
-     * @dev 测试提取LINK后余额不足
+     * @dev Test insufficient balance after withdrawing LINK
      */
     function testRevertWhen_WithdrawTooMuch() public {
         uint256 contractBalance = MockLinkToken(mockLinkToken).balanceOf(address(carbonPriceOracle));
-        uint256 withdrawAmount = contractBalance; // 全部提取
+        uint256 withdrawAmount = contractBalance; // Withdraw all
         
         address recipient = address(0x1);
         
@@ -166,39 +166,39 @@ contract CarbonPriceOracleTest is Test {
     }
     
     /**
-     * @dev 测试完整的预言机工作流程
-     * @notice 模拟从请求碳价到获取API数据再到价格更新的完整过程
+     * @dev Test complete oracle workflow
+     * @notice Simulates the complete process from requesting carbon price to getting API data to price update
      */
     function testCompleteOracleWorkflow() public {
-        // 1. 模拟 Chainlink 节点从 API 获取数据
-        // 模拟 API 返回的碳价数据：75.94 EUR
-        uint256 apiPriceEUR = 75.94 * 1e8; // 75.94 EUR (8位精度)
+        // 1. Simulate Chainlink node fetching data from API
+        // Simulate API returned carbon price data: 75.94 EUR
+        uint256 apiPriceEUR = 75.94 * 1e8; // 75.94 EUR (8 decimal precision)
         
-        // 2. 模拟 Chainlink 回调处理 - 使用setter函数
+        // 2. Simulate Chainlink callback processing - use setter function
         carbonPriceOracle.setTestCarbonPriceEUR(apiPriceEUR);
         
-        // 3. 验证价格更新
+        // 3. Verify price update
         uint256 expectedEURPrice = 75.94 * 1e8;
         
         assertEq(carbonPriceOracle.carbonPriceEUR(), expectedEURPrice, "EUR price should match API data");
         
-        // 4. 测试价格查询接口
+        // 4. Test price query interface
         assertEq(carbonPriceOracle.getLatestCarbonPriceEUR(), expectedEURPrice, "getLatestCarbonPriceEUR should return correct price");
     }
     
     /**
-     * @dev 测试多次价格更新
-     * @notice 验证预言机可以处理多次价格更新
+     * @dev Test multiple price updates
+     * @notice Verify that oracle can handle multiple price updates
      */
     function testMultiplePriceUpdates() public {
-        // 第一次更新
-        uint256 price1 = 75.94 * 1e8; // 改为8位精度
+        // First update
+        uint256 price1 = 75.94 * 1e8; // Changed to 8 decimal precision
         carbonPriceOracle.setTestCarbonPriceEUR(price1);
         
         assertEq(carbonPriceOracle.carbonPriceEUR(), price1, "First price update should work");
         
-        // 第二次更新
-        uint256 price2 = 80.50 * 1e8; // 改为8位精度
+        // Second update
+        uint256 price2 = 80.50 * 1e8; // Changed to 8 decimal precision
         carbonPriceOracle.setTestCarbonPriceEUR(price2);
         
         assertEq(carbonPriceOracle.carbonPriceEUR(), price2, "Second price update should override first");
@@ -206,15 +206,15 @@ contract CarbonPriceOracleTest is Test {
     }
     
     /**
-     * @dev 测试价格计算精度
-     * @notice 验证价格计算的精度处理
+     * @dev Test price calculation precision
+     * @notice Verify price calculation precision handling
      */
     function testPriceCalculationPrecision() public {
-        // 测试不同精度的价格
+        // Test different price precisions
         uint256[] memory testPrices = new uint256[](3);
-        testPrices[0] = 1 * 1e8;      // 1 EUR (8位精度)
-        testPrices[1] = 100 * 1e8;    // 100 EUR (8位精度)
-        testPrices[2] = 123456 * 1e8; // 123456 EUR (8位精度)
+        testPrices[0] = 1 * 1e8;      // 1 EUR (8 decimal precision)
+        testPrices[1] = 100 * 1e8;    // 100 EUR (8 decimal precision)
+        testPrices[2] = 123456 * 1e8; // 123456 EUR (8 decimal precision)
         
         for (uint i = 0; i < testPrices.length; i++) {
             carbonPriceOracle.setTestCarbonPriceEUR(testPrices[i]);
@@ -225,38 +225,27 @@ contract CarbonPriceOracleTest is Test {
 }
 
 /**
- * @title MockLinkToken
- * @dev 用于测试的LINK代币模拟合约
+ * @dev Mock LINK token contract for testing
  */
 contract MockLinkToken {
-    mapping(address => uint256) public balanceOf;
-    
+    mapping(address => uint256) public balances;
     function mint(address to, uint256 amount) external {
-        balanceOf[to] += amount;
+        balances[to] += amount;
     }
-    
-    function transfer(address to, uint256 amount) external returns (bool) {
-        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
-        balanceOf[msg.sender] -= amount;
-        balanceOf[to] += amount;
-        return true;
+    function balanceOf(address account) external view returns (uint256) {
+        return balances[account];
     }
 }
 
 /**
- * @title MockPriceFeed
- * @dev 用于测试的价格预言机模拟合约
+ * @dev Mock price feed contract for testing
  */
 contract MockPriceFeed {
-    uint256 public constant MOCK_RATE = 1.1 * 1e8; // 1.1 USD per EUR
-    
-    function latestRoundData() external view returns (
-        uint80 roundId,
-        int256 answer,
-        uint256 startedAt,
-        uint256 updatedAt,
-        uint80 answeredInRound
-    ) {
-        return (0, int256(MOCK_RATE), 0, block.timestamp, 0);
+    int256 public price = 1e8;
+    function latestAnswer() external view returns (int256) {
+        return price;
+    }
+    function setPrice(int256 _price) external {
+        price = _price;
     }
 } 

@@ -5,52 +5,52 @@ import "forge-std/Test.sol";
 import "../src/GreenTalesNFT.sol";
 
 /**
- * @title GreenTalesNFT 测试用例
- * @dev 覆盖NFT的铸造、销毁、权限等核心逻辑
+ * @title GreenTalesNFT Test Cases
+ * @dev Covers core logic of NFT minting, burning, permissions, etc.
  * 
- * 测试用例包括：
- * 1. 初始状态测试
- * 2. NFT铸造测试
- * 3. NFT销毁测试
- * 4. 权限控制测试
- * 5. 元数据管理测试
- * 6. 错误处理测试
- * 7. 价格更新测试
- * 8. 测试环境检测测试
+ * Test cases include:
+ * 1. Initial state tests
+ * 2. NFT minting tests
+ * 3. NFT burning tests
+ * 4. Permission control tests
+ * 5. Metadata management tests
+ * 6. Error handling tests
+ * 7. Price update tests
+ * 8. Test environment detection tests
  */
 contract GreenTalesNFTTest is Test {
-    GreenTalesNFT public nft;      // NFT合约实例
-    address public owner;          // 合约所有者
-    address public user1;          // 测试用户1
-    address public user2;          // 测试用户2
-    address public greenTrace;     // GreenTrace合约地址
+    GreenTalesNFT public nft;      // NFT contract instance
+    address public owner;          // Contract owner
+    address public user1;          // Test user 1
+    address public user2;          // Test user 2
+    address public greenTrace;     // GreenTrace contract address
 
     /**
-     * @dev 测试环境设置
-     * @notice 在每个测试用例执行前运行
+     * @dev Test environment setup
+     * @notice Runs before each test case
      */
     function setUp() public {
         owner = address(this);
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
         greenTrace = makeAddr("greenTrace");
-        nft = new GreenTalesNFT(greenTrace);  // 使用模拟的 GreenTrace 地址
+        nft = new GreenTalesNFT(greenTrace);  // Use mock GreenTrace address
     }
 
     /**
-     * @dev 测试初始状态
-     * @notice 验证合约部署后的初始状态是否正确
+     * @dev Test initial state
+     * @notice Verify initial state after contract deployment
      */
     function test_InitialState() public view {
         assertEq(nft.owner(), owner);
         assertEq(nft.nextTokenId(), 0);
         assertEq(nft.greenTrace(), greenTrace);
-        assertTrue(nft.isTestEnvironment());  // 在测试网络中应该为 true
+        assertTrue(nft.isTestEnvironment());  // Should be true in test network
     }
 
     /**
-     * @dev 测试NFT铸造
-     * @notice 验证授权铸造者是否可以正确铸造NFT
+     * @dev Test NFT minting
+     * @notice Verify authorized minter can mint NFTs correctly
      */
     function test_Mint() public {
         string memory title = "Green Story";
@@ -76,8 +76,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试NFT销毁
-     * @notice 验证NFT所有者是否可以正确销毁NFT
+     * @dev Test NFT burning
+     * @notice Verify NFT owner can burn NFTs correctly
      */
     function test_Burn() public {
         vm.prank(greenTrace);
@@ -91,8 +91,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试价格更新
-     * @notice 验证GreenTrace合约是否可以正确更新NFT价格
+     * @dev Test price update
+     * @notice Verify GreenTrace contract can update NFT prices correctly
      */
     function test_UpdatePrice() public {
         vm.prank(greenTrace);
@@ -104,12 +104,12 @@ contract GreenTalesNFTTest is Test {
 
         GreenTalesNFT.StoryMeta memory meta = nft.getStoryMeta(tokenId);
         assertEq(meta.lastPrice, newPrice);
-        assertEq(meta.initialPrice, 100 ether);  // 初始价格不应改变
+        assertEq(meta.initialPrice, 100 ether);  // Initial price should not change
     }
 
     /**
-     * @dev 测试设置GreenTrace地址
-     * @notice 验证合约所有者是否可以正确更新GreenTrace地址
+     * @dev Test setting GreenTrace address
+     * @notice Verify contract owner can update GreenTrace address correctly
      */
     function test_SetGreenTrace() public {
         address newGreenTrace = makeAddr("newGreenTrace");
@@ -118,8 +118,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试非铸造者铸造失败
-     * @notice 验证非授权铸造者无法铸造NFT
+     * @dev Test unauthorized minting fails
+     * @notice Verify unauthorized minter cannot mint NFTs
      */
     function test_RevertWhen_MintNotAuthorized() public {
         vm.prank(user1);
@@ -128,8 +128,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试非所有者销毁失败
-     * @notice 验证非NFT所有者无法销毁NFT
+     * @dev Test non-owner burning fails
+     * @notice Verify non-NFT owner cannot burn NFTs
      */
     function test_RevertWhen_BurnNotOwner() public {
         vm.prank(greenTrace);
@@ -141,8 +141,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试非GreenTrace更新价格失败
-     * @notice 验证非GreenTrace合约无法更新NFT价格
+     * @dev Test non-GreenTrace price update fails
+     * @notice Verify non-GreenTrace contract cannot update NFT prices
      */
     function test_RevertWhen_UpdatePriceNotGreenTrace() public {
         vm.prank(greenTrace);
@@ -154,8 +154,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试非所有者设置GreenTrace失败
-     * @notice 验证非合约所有者无法更新GreenTrace地址
+     * @dev Test non-owner setting GreenTrace fails
+     * @notice Verify non-contract owner cannot update GreenTrace address
      */
     function test_RevertWhen_SetGreenTraceNotOwner() public {
         vm.prank(user1);
@@ -164,8 +164,8 @@ contract GreenTalesNFTTest is Test {
     }
 
     /**
-     * @dev 测试获取不存在的NFT元数据失败
-     * @notice 验证获取不存在的NFT元数据会抛出异常
+     * @dev Test getting non-existent NFT metadata fails
+     * @notice Verify getting non-existent NFT metadata throws exception
      */
     function test_RevertWhen_GetStoryMetaNotExist() public {
         vm.expectRevert("Token does not exist");

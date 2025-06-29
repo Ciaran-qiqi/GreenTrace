@@ -373,7 +373,24 @@
     "noSimulatedSellOrders": "暂无模拟卖单",
     "blockchainDataPrefix": "区块链数据",
     "klinesUnit": "根K线",
-    "simulatedDataLabel": "模拟数据"
+    "simulatedDataLabel": "模拟数据",
+    "index": {
+      "title": "碳价指数",
+      "subtitle": "EEX 欧洲碳排放交易所指数",
+      "dataSource": "数据源",
+      "loadError": "获取数据失败"
+    },
+    "currencies": {
+      "eur": "欧元",
+      "usd": "美元",
+      "cny": "人民币"
+    },
+    "changes": {
+      "daily": "日涨跌",
+      "monthly": "月涨跌",
+      "yearly": "年涨跌"
+    },
+    "lastUpdated": "最后更新"
   },
   "orderBook": {
     "marketOrders": "市场订单",
@@ -1137,7 +1154,8 @@
       "exchange": {
         "title": "碳代币兑换",
         "description": "将审核通过的NFT兑换为有价值的碳代币，参与碳信用交易，实现环保价值变现。",
-        "subtitle": "环保行为的经济激励"
+        "subtitle": "环保行为的经济激励",
+        "getUsdtButton": "获得USDT"
       }
     },
     "stats": {

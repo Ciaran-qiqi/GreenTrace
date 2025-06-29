@@ -448,6 +448,7 @@
     "index": {
       "title": "Carbon Price Index",
       "subtitle": "EEX European Carbon Exchange Index",
+      "dataSource": "Data Source",
       "loadError": "Failed to load data"
     },
     "currencies": {
@@ -1186,7 +1187,8 @@
       "exchange": {
         "title": "Carbon Credit DeFi",
         "description": "Trade verified green NFTs for carbon tokens in our decentralized marketplace. Participate in carbon credit liquidity pools and yield farming while driving environmental impact.",
-        "subtitle": "DeFi-powered green economy"
+        "subtitle": "DeFi-powered green economy",
+        "getUsdtButton": "Get USDT"
       }
     },
     "stats": {

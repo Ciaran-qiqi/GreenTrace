@@ -12,76 +12,76 @@ import "./interfaces/ICarbonPriceOracle.sol";
 
 /**
  * @title CarbonPriceOracle
- * @dev 碳价预言机合约，使用Chainlink Functions获取API碳价并转换为美元价格
- * @notice 通过Chainlink Functions调用API获取碳价(欧元计价)，并通过EUR/USD价格预言机转换为美元价格
+ * @dev Carbon price oracle contract, uses Chainlink Functions to fetch API carbon price and convert to USD price
+ * @notice Uses Chainlink Functions to call API for carbon price (EUR denominated) and converts to USD price via EUR/USD price oracle
  */
 contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
     using FunctionsRequest for FunctionsRequest.Request;
     
-    // ============ 状态变量 ============
-    uint256 public carbonPriceEUR;      // 欧元碳价（8位精度，例如：500000000 = 5.00 EUR）
-    uint256 public carbonPriceUSD;      // 美元碳价（8位精度，例如：550000000 = 5.50 USD）
+    // ============ State Variables ============
+    uint256 public carbonPriceEUR;      // EUR carbon price (8 decimals, e.g.: 500000000 = 5.00 EUR)
+    uint256 public carbonPriceUSD;      // USD carbon price (8 decimals, e.g.: 550000000 = 5.50 USD)
     
-    // ============ Chainlink Functions 配置 ============
-    bytes32 public donId;               // DON ID：指定使用哪个去中心化预言机网络
-    uint64 public subscriptionId;       // 订阅ID：关联付费账户，用于支付Functions调用费用
-    uint32 public gasLimit;             // Gas限制：限制JavaScript代码执行的最大gas消耗
-    bytes32 public secretsLocation;     // 密钥位置：用于存储API密钥等敏感信息（当前未使用）
+    // ============ Chainlink Functions Configuration ============
+    bytes32 public donId;               // DON ID: specifies which decentralized oracle network to use
+    uint64 public subscriptionId;       // Subscription ID: associated paid account for Functions call fees
+    uint32 public gasLimit;             // Gas limit: limits maximum gas consumption for JavaScript code execution
+    bytes32 public secretsLocation;     // Secrets location: for storing API keys and sensitive info (currently unused)
     
-    // ============ 外部依赖 ============
-    AggregatorV3Interface public eurUsdPriceFeed;  // EUR/USD价格预言机合约地址
-    IERC20 public linkToken;                       // LINK代币合约地址，用于支付Functions费用
+    // ============ External Dependencies ============
+    AggregatorV3Interface public eurUsdPriceFeed;  // EUR/USD price oracle contract address
+    IERC20 public linkToken;                       // LINK token contract address for Functions fee payment
     
-    // ============ 权限管理 ============
-    mapping(address => bool) public authorizedOperators;  // 授权操作员映射，允许非所有者调用requestCarbonPrice
+    // ============ Permission Management ============
+    mapping(address => bool) public authorizedOperators;  // Authorized operator mapping, allows non-owners to call requestCarbonPrice
     
-    // ============ 事件定义 ============
-    // 价格更新事件
+    // ============ Event Definitions ============
+    // Price update events
     event PriceUpdated(uint256 eurPrice, uint256 usdPrice, uint256 timestamp);
     
-    // 操作员管理事件
+    // Operator management events
     event OperatorAdded(address indexed operator);
     event OperatorRemoved(address indexed operator);
     
-    // Functions请求相关事件
+    // Functions request related events
     event FunctionsRequestSent(bytes32 indexed requestId, string source);
     event RequestProcessed(bytes32 indexed requestId, bool success, string errorMessage);
     event RequestInitiated(address indexed caller, uint64 subscriptionId, uint32 gasLimit, bytes32 donId);
     event RequestValidationFailed(string reason);
     event RequestSent(bytes32 indexed requestId, uint64 subscriptionId, uint32 gasLimit, bytes32 donId);
     
-    // JavaScript代码构建事件
+    // JavaScript code building events
     event JavaScriptSourceBuilt(string source);
     event RequestObjectCreated();
     event RequestEncoded(bytes encodedRequest);
     
-    // 回调处理事件
+    // Callback handling events
     event FulfillRequestStarted(bytes32 indexed requestId, uint256 responseLength, uint256 errorLength);
     event ResponseDecoded(uint256 priceEUR);
     event EurUsdPriceFetched(int256 eurUsdPrice);
     event UsdPriceCalculated(uint256 usdPrice);
     event FulfillRequestCompleted(bytes32 indexed requestId);
     
-    // 价格计算事件
+    // Price calculation events
     event PriceCalculation(uint256 eurPrice, uint256 eurUsdRate, uint256 usdPrice);
     
     /**
-     * @dev 构造函数 - 初始化预言机合约
-     * @param router Chainlink Functions Router地址 - 负责路由Functions请求到正确的DON
-     * @param _donId DON ID - 指定使用哪个去中心化预言机网络（例如：fun-ethereum-sepolia-1）
-     * @param _eurUsdPriceFeed EUR/USD价格预言机地址 - 用于获取实时汇率
-     * @param _linkToken LINK代币地址 - 用于支付Functions调用费用
+     * @dev Constructor - Initialize oracle contract
+     * @param router Chainlink Functions Router address - responsible for routing Functions requests to correct DON
+     * @param _donId DON ID - specifies which decentralized oracle network to use (e.g.: fun-ethereum-sepolia-1)
+     * @param _eurUsdPriceFeed EUR/USD price oracle address - for getting real-time exchange rate
+     * @param _linkToken LINK token address - for Functions call fee payment
      * 
-     * 初始化说明：
-     * - 继承FunctionsClient以获取Functions调用能力
-     * - 继承Ownable以获取权限管理功能
-     * - 设置初始gas限制为1,000,000（足够执行复杂的JavaScript代码）
-     * - 验证所有地址参数的有效性
+     * Initialization notes:
+     * - Inherits FunctionsClient for Functions call capability
+     * - Inherits Ownable for permission management
+     * - Sets initial gas limit to 1,000,000 (sufficient for complex JavaScript code execution)
+     * - Validates all address parameters
      * 
-     * 技术细节：
-     * - gasLimit设置为1,000,000确保JavaScript代码有足够gas执行
-     * - 使用AggregatorV3Interface接口与Chainlink价格预言机交互
-     * - 初始化LINK代币合约引用用于费用支付
+     * Technical details:
+     * - gasLimit set to 1,000,000 ensures JavaScript code has sufficient gas to execute
+     * - Uses AggregatorV3Interface interface to interact with Chainlink price oracle
+     * - Initializes LINK token contract reference for fee payment
      */
     constructor(
         address router,
@@ -91,32 +91,32 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
     ) FunctionsClient(router) Ownable() {
         donId = _donId;
         eurUsdPriceFeed = AggregatorV3Interface(_eurUsdPriceFeed);
-        gasLimit = 1000000; // 设置更高的初始gas限制
+        gasLimit = 1000000; // Set higher initial gas limit
         linkToken = IERC20(_linkToken);
     }
     
     /**
-     * @dev 设置订阅ID-订阅ID关联了你的付费账户
-     * @param _subscriptionId 订阅ID
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Set subscription ID - subscription ID associates your paid account
+     * @param _subscriptionId Subscription ID
+     * @notice Only contract owner can call this function
      */
     function setSubscriptionId(uint64 _subscriptionId) external onlyOwner {
         subscriptionId = _subscriptionId;
     }
     
     /**
-     * @dev 设置Gas限制
-     * @param _gasLimit Gas限制
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Set gas limit
+     * @param _gasLimit Gas limit
+     * @notice Only contract owner can call this function
      */
     function setGasLimit(uint32 _gasLimit) external onlyOwner {
         gasLimit = _gasLimit;
     }
     
     /**
-     * @dev 添加授权操作员-操作员可以调用requestCarbonPrice函数
-     * @param _operator 操作员地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Add authorized operator - operators can call requestCarbonPrice function
+     * @param _operator Operator address
+     * @notice Only contract owner can call this function
      */
     function addOperator(address _operator) external onlyOwner {
         require(_operator != address(0), "Invalid operator address");
@@ -125,9 +125,9 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
     }
     
     /**
-     * @dev 移除授权操作员
-     * @param _operator 操作员地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Remove authorized operator
+     * @param _operator Operator address
+     * @notice Only contract owner can call this function
      */
     function removeOperator(address _operator) external onlyOwner {
         authorizedOperators[_operator] = false;
@@ -135,8 +135,8 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
     }
     
     /**
-     * @dev 权限检查修饰器
-     * @notice 只有合约所有者或授权操作员可以调用
+     * @dev Permission check modifier
+     * @notice Only contract owner or authorized operators can call
      */
     modifier onlyAuthorized() {
         require(owner() == msg.sender || authorizedOperators[msg.sender], "Not authorized");
@@ -144,52 +144,52 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
     }
     
     /**
-     * @dev 请求更新碳价 - 核心功能函数
-     * @notice 使用Chainlink Functions调用API获取最新碳价
-     * @notice 需要确保有足够的订阅余额支付费用
-     * @notice 只有合约所有者或授权操作员可以调用此函数
+     * @dev Request carbon price update - core functionality function
+     * @notice Uses Chainlink Functions to call API for latest carbon price
+     * @notice Must ensure sufficient subscription balance for fee payment
+     * @notice Only contract owner or authorized operators can call this function
      * 
-     * 执行流程：
-     * 1. 验证配置参数（订阅ID、gas限制、DON ID）
-     * 2. 构建JavaScript源代码（调用API并返回8位精度价格）
-     * 3. 创建FunctionsRequest对象并编码为CBOR格式
-     * 4. 发送请求到Chainlink Functions网络
-     * 5. 记录请求ID和相关信息
+     * Execution flow:
+     * 1. Validate configuration parameters (subscription ID, gas limit, DON ID)
+     * 2. Build JavaScript source code (call API and return 8-decimal price)
+     * 3. Create FunctionsRequest object and encode to CBOR format
+     * 4. Send request to Chainlink Functions network
+     * 5. Record request ID and related information
      * 
-     * JavaScript代码说明：
-     * - 调用https://greentrace-api.onrender.com/api/carbon-price获取碳价
-     * - 验证响应格式和数据类型
-     * - 将价格乘以1e8转换为8位精度
-     * - 使用Functions.encodeUint256编码返回数据
+     * JavaScript code description:
+     * - Calls https://greentrace-api.onrender.com/api/carbon-price for carbon price
+     * - Validates response format and data type
+     * - Multiplies price by 1e8 to convert to 8-decimal precision
+     * - Uses Functions.encodeUint256 to encode return data
      * 
-     * 安全考虑：
-     * - 参数验证防止无效请求
-     * - 权限检查确保只有授权用户可调用
-     * - 完整的事件记录便于调试和监控
+     * Security considerations:
+     * - Parameter validation prevents invalid requests
+     * - Permission checks ensure only authorized users can call
+     * - Complete event logging for debugging and monitoring
      */
     function requestCarbonPrice() public onlyAuthorized {
-        // 验证订阅ID
+        // Validate subscription ID
         if (subscriptionId == 0) {
             emit RequestValidationFailed("Subscription ID not set");
             revert("Subscription ID not set");
         }
         
-        // 验证gas限制
+        // Validate gas limit
         if (gasLimit == 0) {
             emit RequestValidationFailed("Gas limit not set");
             revert("Gas limit not set");
         }
         
-        // 验证DON ID
+        // Validate DON ID
         if (donId == bytes32(0)) {
             emit RequestValidationFailed("DON ID not set");
             revert("DON ID not set");
         }
         
-        // 记录请求开始
+        // Record request start
         emit RequestInitiated(msg.sender, subscriptionId, gasLimit, donId);
         
-        // 构建JavaScript源代码
+        // Build JavaScript source code
         string memory source = string(
             abi.encodePacked(
                 "const response = await Functions.makeHttpRequest({",
@@ -203,21 +203,21 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
             )
         );
         
-        // 记录JavaScript源代码构建完成
+        // Record JavaScript source code built
         emit JavaScriptSourceBuilt(source);
         
-        // 构建请求
+        // Build request
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
         
-        // 记录请求对象创建完成
+        // Record request object created
         emit RequestObjectCreated();
         
-        // 编码请求
+        // Encode request
         bytes memory encodedRequest = req.encodeCBOR();
         emit RequestEncoded(encodedRequest);
         
-        // 发送请求
+        // Send request
         bytes32 requestId = _sendRequest(
             encodedRequest,
             subscriptionId,
@@ -225,95 +225,95 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
             donId
         );
         
-        // 记录请求发送完成
+        // Record request sent
         emit RequestSent(requestId, subscriptionId, gasLimit, donId);
         emit FunctionsRequestSent(requestId, source);
     }
     
     /**
-     * @dev fulfillRequest - Chainlink Functions回调处理函数
-     * @param requestId 请求ID - 用于标识特定的Functions请求
-     * @param response 响应数据 - JavaScript代码返回的编码数据
-     * @param err 错误信息 - 如果JavaScript执行失败，包含错误详情
+     * @dev fulfillRequest - Chainlink Functions callback handling function
+     * @param requestId Request ID - used to identify specific Functions request
+     * @param response Response data - encoded data returned by JavaScript code
+     * @param err Error information - if JavaScript execution fails, contains error details
      * 
-     * 处理流程：
-     * 1. 检查是否有错误发生
-     * 2. 解码JavaScript返回的欧元价格（8位精度）
-     * 3. 从EUR/USD价格预言机获取实时汇率
-     * 4. 计算美元价格：USD = EUR * (EUR/USD汇率)
-     * 5. 更新状态变量并发出事件
+     * Processing flow:
+     * 1. Check if any errors occurred
+     * 2. Decode EUR price returned by JavaScript (8-decimal precision)
+     * 3. Get real-time exchange rate from EUR/USD price oracle
+     * 4. Calculate USD price: USD = EUR * (EUR/USD rate)
+     * 5. Update state variables and emit events
      * 
-     * 精度处理：
-     * - 欧元价格：8位精度（例如：500000000 = 5.00 EUR）
-     * - EUR/USD汇率：8位精度（例如：110000000 = 1.10）
-     * - 美元价格：8位精度（例如：550000000 = 5.50 USD）
-     * - 计算公式：(eurPrice * eurUsdRate) / 1e8
+     * Precision handling:
+     * - EUR price: 8-decimal precision (e.g.: 500000000 = 5.00 EUR)
+     * - EUR/USD rate: 8-decimal precision (e.g.: 110000000 = 1.10)
+     * - USD price: 8-decimal precision (e.g.: 550000000 = 5.50 USD)
+     * - Calculation formula: (eurPrice * eurUsdRate) / 1e8
      * 
-     * 安全验证：
-     * - 检查响应数据不为空
-     * - 验证EUR/USD价格大于0
-     * - 完整的错误处理和事件记录
+     * Security validation:
+     * - Check response data is not empty
+     * - Validate EUR/USD price is greater than 0
+     * - Complete error handling and event logging
      */
     function fulfillRequest(
         bytes32 requestId,
         bytes memory response,
         bytes memory err
     ) internal override {
-        // 记录回调开始
+        // Record callback start
         emit FulfillRequestStarted(requestId, response.length, err.length);
         
         if (err.length > 0) {
-            // 处理错误 - 记录错误信息
+            // Handle error - record error information
             string memory errorMessage = string(err);
             emit RequestProcessed(requestId, false, errorMessage);
             return;
         }
         
-        // 检查响应数据是否为空
+        // Check if response data is empty
         require(response.length > 0, "Empty response from Functions");
         
-        // 解码价格数据
-        uint256 priceEUR = abi.decode(response, (uint256)); // 8位精度
+        // Decode price data
+        uint256 priceEUR = abi.decode(response, (uint256)); // 8-decimal precision
         carbonPriceEUR = priceEUR;
         
-        // 记录价格解码完成
+        // Record price decoded
         emit ResponseDecoded(priceEUR);
         
-        // 获取EUR/USD价格（8位精度）
+        // Get EUR/USD price (8-decimal precision)
         (, int256 eurUsdPrice,,,) = eurUsdPriceFeed.latestRoundData();
         require(eurUsdPrice > 0, "Invalid EUR/USD price");
         
-        // 记录EUR/USD价格获取完成
+        // Record EUR/USD price fetched
         emit EurUsdPriceFetched(eurUsdPrice);
         
-        // 计算USD价格：两个8位精度相乘，除以1e8得到8位精度结果
+        // Calculate USD price: two 8-decimal precisions multiplied, divided by 1e8 for 8-decimal precision result
         carbonPriceUSD = (priceEUR * uint256(eurUsdPrice)) / 1e8;
         
-        // 记录USD价格计算完成
+        // Record USD price calculated
         emit UsdPriceCalculated(carbonPriceUSD);
         
-        // 发出价格计算事件
+        // Emit price calculation event
         emit PriceCalculation(priceEUR, uint256(eurUsdPrice), carbonPriceUSD);
         emit RequestProcessed(requestId, true, "");
         
         emit PriceUpdated(carbonPriceEUR, carbonPriceUSD, block.timestamp);
         
-        // 记录回调完成
+        // Record callback completed
         emit FulfillRequestCompleted(requestId);
     }
     
     /**
-     * @dev 提取合约中的LINK代币（管理合约中link币数量）
-     * @param _to 接收地址
-     * @param _amount 提取数量
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Withdraw LINK tokens from contract (manage contract LINK balance)
+     * @param _to Receiver address
+     * @param _amount Amount to withdraw
+     * @notice Only contract owner can call this function
      */
     function withdrawLink(address _to, uint256 _amount) external onlyOwner {
         require(_to != address(0), "Invalid address");
         uint256 contractBalance = linkToken.balanceOf(address(this));
         require(_amount <= contractBalance, "Insufficient LINK balance");
         
-        // 检查提取后是否还有足够余额支付费用
+        // Check if withdrawal leaves enough balance to pay fees
         uint256 remainingBalance = contractBalance - _amount;
         require(remainingBalance >= 0.1 * 1e18, "Insufficient balance after withdrawal");
         
@@ -321,29 +321,29 @@ contract CarbonPriceOracle is FunctionsClient, ICarbonPriceOracle, Ownable {
     }
     
     /**
-     * @dev 获取最新碳价（美元）
-     * @return 碳价（美元）
+     * @dev Get latest carbon price (USD)
+     * @return Carbon price (USD)
      */
     function getLatestCarbonPriceUSD() external view override returns (uint256) {
         return carbonPriceUSD;
     }
     
     /**
-     * @dev 获取最新碳价（欧元）
-     * @return 碳价（欧元）
+     * @dev Get latest carbon price (EUR)
+     * @return Carbon price (EUR)
      */
     function getLatestCarbonPriceEUR() external view override returns (uint256) {
         return carbonPriceEUR;
     }
     
     /**
-     * @dev 仅测试用：设置碳价（欧元）
+     * @dev Only for testing: Set carbon price (EUR)
      */
     function setTestCarbonPriceEUR(uint256 value) external {
         carbonPriceEUR = value;
     }
     /**
-     * @dev 仅测试用：设置碳价（美元）
+     * @dev Only for testing: Set carbon price (USD)
      */
     function setTestCarbonPriceUSD(uint256 value) external {
         carbonPriceUSD = value;

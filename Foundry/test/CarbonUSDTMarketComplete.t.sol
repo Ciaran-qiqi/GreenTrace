@@ -8,30 +8,30 @@ import "../src/interfaces/ICarbonPriceOracle.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 /**
- * @title CarbonUSDTMarket 全面测试合约
- * @dev 测试碳币USDT市场的所有功能
+ * @title CarbonUSDTMarket Complete Test Contract
+ * @dev Tests all functionality of the carbon token USDT market
  */
 contract CarbonUSDTMarketCompleteTest is Test {
-    // 合约实例
+    // Contract instances
     CarbonUSDTMarket public market;
     CarbonToken public carbonToken;
     MockUSDT public usdtToken;
     MockLiquidityPool public ammPool;
     MockPriceOracle public priceOracle;
     
-    // 测试账户
+    // Test accounts
     address public owner;
     address public feeCollector;
     address public user1;
     address public user2;
     address public user3;
     
-    // 测试常量
+    // Test constants
     uint256 constant INITIAL_CARBON_SUPPLY = 1_000_000 * 1e18;
-    uint256 constant INITIAL_USDT_SUPPLY = 100_000_000 * 1e18; // USDT是18位精度，1亿USDT
-    uint256 constant CARBON_PRICE = 88; // 88 USDT per carbon（基础单位，不需要1e18）
+    uint256 constant INITIAL_USDT_SUPPLY = 100_000_000 * 1e18; // USDT is 18 decimals, 100M USDT
+    uint256 constant CARBON_PRICE = 88; // 88 USDT per carbon (base unit, no 1e18 needed)
     
-    // 事件声明（用于测试）
+    // Event declarations (for testing)
     event OrderCreated(
         uint256 indexed orderId,
         address indexed user,
@@ -72,23 +72,23 @@ contract CarbonUSDTMarketCompleteTest is Test {
     );
 
     function setUp() public {
-        // 设置测试账户
+        // Setup test accounts
         owner = address(this);
         feeCollector = makeAddr("feeCollector");
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
         user3 = makeAddr("user3");
         
-        // 部署Mock合约
+        // Deploy Mock contracts
         usdtToken = new MockUSDT();
         priceOracle = new MockPriceOracle();
         ammPool = new MockLiquidityPool();
         
-        // 部署碳币合约
+        // Deploy carbon token contract
         CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](0);
         carbonToken = new CarbonToken(initialBalances);
         
-        // 部署市场合约
+        // Deploy market contract
         market = new CarbonUSDTMarket(
             address(carbonToken),
             address(usdtToken),
@@ -97,30 +97,30 @@ contract CarbonUSDTMarketCompleteTest is Test {
             feeCollector
         );
         
-        // 设置价格预言机
-        priceOracle.setPrice(CARBON_PRICE * 1e8); // 设置为8位精度 (88 * 1e8)
-        ammPool.setPrice(CARBON_PRICE * 1e18); // AMM池使用18位精度 (88 * 1e18)
+        // Setup price oracle
+        priceOracle.setPrice(CARBON_PRICE * 1e8); // Set to 8 decimals (88 * 1e8)
+        ammPool.setPrice(CARBON_PRICE * 1e18); // AMM pool uses 18 decimals (88 * 1e18)
         
-        // 为用户分配代币
+        // Allocate tokens to users
         _setupUserBalances();
     }
     
     function _setupUserBalances() internal {
-        // 设置GreenTrace地址以便mint
+        // Set GreenTrace address for minting
         carbonToken.setGreenTrace(address(this));
         
-        // 为用户分配碳币
+        // Allocate carbon tokens to users
         carbonToken.mint(user1, 10_000 * 1e18);
         carbonToken.mint(user2, 10_000 * 1e18);
         carbonToken.mint(user3, 10_000 * 1e18);
         
-        // 为用户分配USDT (注意：USDT 是 18 位精度)
-        usdtToken.mint(user1, 10_000_000 * 1e18); // 1000万USDT，18位精度
-        usdtToken.mint(user2, 10_000_000 * 1e18); // 1000万USDT
-        usdtToken.mint(user3, 10_000_000 * 1e18); // 1000万USDT
+        // Allocate USDT to users (Note: USDT is 18 decimals)
+        usdtToken.mint(user1, 10_000_000 * 1e18); // 10M USDT, 18 decimals
+        usdtToken.mint(user2, 10_000_000 * 1e18); // 10M USDT
+        usdtToken.mint(user3, 10_000_000 * 1e18); // 10M USDT
     }
 
-    // ============ 基础功能测试 ============
+    // ============ Basic Function Tests ============
     
     function test_Setup() public {
         assertEq(address(market.carbonToken()), address(carbonToken));
@@ -132,7 +132,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
     
     function test_CreateBuyOrder() public {
         uint256 amount = 100 * 1e18; // 100 carbon
-        uint256 price = 90;   // 90 USDT per carbon (基础单位)
+        uint256 price = 90;   // 90 USDT per carbon (base unit)
         uint256 totalCost = amount * price; // 100 * 1e18 * 90 = 9000 * 1e18
         uint256 orderFee = totalCost * 50 / 10000; // 0.5%
         uint256 totalRequired = totalCost + orderFee;
@@ -146,7 +146,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createBuyOrder(amount, price);
         vm.stopPrank();
         
-        // 验证订单信息
+        // Verify order information
         CarbonUSDTMarket.Order memory order = market.getOrder(1);
         assertEq(order.user, user1);
         assertEq(uint256(order.orderType), uint256(CarbonUSDTMarket.OrderType.Buy));
@@ -155,17 +155,17 @@ contract CarbonUSDTMarketCompleteTest is Test {
         assertEq(order.price, price);
         assertEq(uint256(order.status), uint256(CarbonUSDTMarket.OrderStatus.Active));
         
-        // 验证用户余额变化
+        // Verify user balance changes
         assertEq(usdtToken.balanceOf(user1), 10_000_000 * 1e18 - totalRequired);
         
-        // 验证市场统计
+        // Verify market statistics
         (uint256 totalOrdersCreated,,,,,,,) = market.getMarketStats();
         assertEq(totalOrdersCreated, 1);
     }
     
     function test_CreateSellOrder() public {
         uint256 amount = 100 * 1e18; // 100 carbon
-        uint256 price = 85;   // 85 USDT per carbon (基础单位)
+        uint256 price = 85;   // 85 USDT per carbon (base unit)
         uint256 expectedIncome = amount * price; // 100 * 1e18 * 85
         uint256 orderFee = expectedIncome * 50 / 10000; // 0.5%
         
@@ -179,7 +179,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createSellOrder(amount, price);
         vm.stopPrank();
         
-        // 验证订单信息
+        // Verify order information
         CarbonUSDTMarket.Order memory order = market.getOrder(1);
         assertEq(order.user, user1);
         assertEq(uint256(order.orderType), uint256(CarbonUSDTMarket.OrderType.Sell));
@@ -187,15 +187,15 @@ contract CarbonUSDTMarketCompleteTest is Test {
         assertEq(order.remainingAmount, amount);
         assertEq(order.price, price);
         
-        // 验证余额变化
+        // Verify balance changes
         assertEq(carbonToken.balanceOf(user1), 10_000 * 1e18 - amount);
         assertEq(usdtToken.balanceOf(user1), 10_000_000 * 1e18 - orderFee);
     }
     
     function test_FillBuyOrder() public {
-        // 创建买单
+        // Create buy order
         uint256 amount = 100 * 1e18;
-        uint256 price = 90; // 基础单位
+        uint256 price = 90; // base unit
         uint256 totalCost = amount * price;
         uint256 orderFee = totalCost * 50 / 10000;
         
@@ -204,8 +204,8 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createBuyOrder(amount, price);
         vm.stopPrank();
         
-        // 成交买单 - 修正数量
-        uint256 fillAmount = 100 * 1e18; // 应该使用订单的amount，而不是remainingAmount
+        // Fill buy order - corrected amount
+        uint256 fillAmount = 100 * 1e18; // Should use order's amount, not remainingAmount
         uint256 takerFee = fillAmount * price * 30 / 10000; // 0.3%
         
         vm.startPrank(user2);
@@ -218,23 +218,23 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.fillOrder(1);
         vm.stopPrank();
         
-        // 验证交易结果
+        // Verify trade results
         CarbonUSDTMarket.Order memory order = market.getOrder(1);
         assertEq(uint256(order.status), uint256(CarbonUSDTMarket.OrderStatus.Filled));
         
-        // 验证余额变化
-        // 修正：买家应为初始余额+成交获得的碳币
-        assertEq(carbonToken.balanceOf(user1), 10_000 * 1e18 + fillAmount); // 买家应为初始+成交碳币
-        // 用户2原来有1000万USDT，卖出碳币得到9000 USDT（总成本），减去手续费
-        assertEq(usdtToken.balanceOf(user2), 10_000_000 * 1e18 - takerFee + totalCost); // 卖家得到USDT-手续费
+        // Verify balance changes
+        // Corrected: buyer should be initial balance + carbon tokens from trade
+        assertEq(carbonToken.balanceOf(user1), 10_000 * 1e18 + fillAmount); // Buyer should be initial + traded carbon tokens
+        // User2 originally had 10M USDT, sold carbon tokens for 9000 USDT (total cost), minus fees
+        assertEq(usdtToken.balanceOf(user2), 10_000_000 * 1e18 - takerFee + totalCost); // Seller gets USDT - fees
     }
 
-    // ============ 自动撮合测试 ============
+    // ============ Auto-matching Tests ============
     
     function test_AutoMatching_BuyOrderMatchSellOrder() public {
-        // 创建卖单 (85 USDT)
+        // Create sell order (85 USDT)
         uint256 sellAmount = 100 * 1e18;
-        uint256 sellPrice = 85; // USDT基础单位
+        uint256 sellPrice = 85; // USDT base unit
         uint256 sellOrderFee = sellAmount * sellPrice * 50 / 10000;
         
         vm.startPrank(user1);
@@ -243,11 +243,11 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createSellOrder(sellAmount, sellPrice);
         vm.stopPrank();
         
-        // 创建买单 (90 USDT) - 应该自动撮合
-        uint256 buyAmount = 50 * 1e18; // 只买50个，部分成交
-        uint256 buyPrice = 90; // USDT基础单位
+        // Create buy order (90 USDT) - should auto-match
+        uint256 buyAmount = 50 * 1e18; // Only buy 50, partial fill
+        uint256 buyPrice = 90; // USDT base unit
         uint256 buyOrderFee = buyAmount * buyPrice * 50 / 10000;
-        uint256 matchFee = buyAmount * sellPrice * 30 / 10000; // 按卖单价格成交的手续费
+        uint256 matchFee = buyAmount * sellPrice * 30 / 10000; // Execution fee at sell order price
         
         vm.startPrank(user2);
         usdtToken.approve(address(market), buyAmount * buyPrice + buyOrderFee + matchFee);
@@ -255,23 +255,23 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createBuyOrder(buyAmount, buyPrice);
         vm.stopPrank();
         
-        // 验证撮合结果
+        // Verify matching results
         CarbonUSDTMarket.Order memory sellOrder = market.getOrder(1);
-        assertEq(sellOrder.remainingAmount, sellAmount - buyAmount); // 卖单部分成交
+        assertEq(sellOrder.remainingAmount, sellAmount - buyAmount); // Sell order partially filled
         
-        // 应该没有买单被创建（完全撮合）
+        // Should not have created buy order (fully matched)
         uint256[] memory activeOrders = market.getActiveOrders();
-        assertEq(activeOrders.length, 1); // 只有部分成交的卖单
+        assertEq(activeOrders.length, 1); // Only partially filled sell order
         
-        // 验证余额
-        assertEq(carbonToken.balanceOf(user2), 10_000 * 1e18 + buyAmount); // 买家得到碳币
-        assertEq(usdtToken.balanceOf(user1), 10_000_000 * 1e18 - sellOrderFee + buyAmount * sellPrice); // 卖家得到USDT
+        // Verify balances
+        assertEq(carbonToken.balanceOf(user2), 10_000 * 1e18 + buyAmount); // Buyer gets carbon tokens
+        assertEq(usdtToken.balanceOf(user1), 10_000_000 * 1e18 - sellOrderFee + buyAmount * sellPrice); // Seller gets USDT
     }
 
-    // ============ 查询功能测试 ============
+    // ============ Query Function Tests ============
     
     function test_GetOrderBook() public {
-        // 创建多个订单
+        // Create multiple orders
         _createTestOrders();
         
         (CarbonUSDTMarket.Order[] memory buyOrders, CarbonUSDTMarket.Order[] memory sellOrders) = market.getOrderBook();
@@ -279,7 +279,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         assertTrue(buyOrders.length > 0);
         assertTrue(sellOrders.length > 0);
         
-        // 验证订单类型正确
+        // Verify correct order types
         for (uint i = 0; i < buyOrders.length; i++) {
             assertEq(uint256(buyOrders[i].orderType), uint256(CarbonUSDTMarket.OrderType.Buy));
         }
@@ -291,24 +291,24 @@ contract CarbonUSDTMarketCompleteTest is Test {
     function test_GetOrderBookPaginated() public {
         _createTestOrders();
         
-        // 测试分页获取买单
+        // Test paginated buy orders
         (CarbonUSDTMarket.Order[] memory orders, bool hasMore) = market.getOrderBookPaginated(0, 2, 0);
-        assertGe(orders.length, 0); // 可能因为撮合而没有买单
+        assertGe(orders.length, 0); // May have no buy orders due to matching
         
-        // 测试获取卖单
+        // Test get sell orders
         (orders, hasMore) = market.getOrderBookPaginated(0, 10, 1);
-        assertGe(orders.length, 0); // 可能因为撮合而没有卖单
+        assertGe(orders.length, 0); // May have no sell orders due to matching
         
-        // 测试获取所有订单
+        // Test get all orders
         (orders, hasMore) = market.getOrderBookPaginated(0, 10, 2);
-        // 应该至少有一些订单
+        // Should have at least some orders
     }
 
-    // ============ 价格偏离测试 ============
+    // ============ Price Deviation Tests ============
     
     function test_PriceDeviationCheck_TooLow() public {
         uint256 amount = 100 * 1e18;
-        uint256 lowPrice = 50; // 50 USDT, 低于参考价88的30%
+        uint256 lowPrice = 50; // 50 USDT, below 30% of reference price 88
         
         vm.startPrank(user1);
         usdtToken.approve(address(market), type(uint256).max);
@@ -320,12 +320,12 @@ contract CarbonUSDTMarketCompleteTest is Test {
     
     function test_PriceDeviationCheck_HighPriceAllowed() public {
         uint256 amount = 100 * 1e18;
-        uint256 highPrice = 200; // 200 USDT, 远高于参考价88，但应该被允许（炒作机制）
+        uint256 highPrice = 200; // 200 USDT, far above reference price 88, but should be allowed (speculation mechanism)
         
         vm.startPrank(user1);
         usdtToken.approve(address(market), type(uint256).max);
         
-        // 应该成功创建订单
+        // Should successfully create order
         market.createBuyOrder(amount, highPrice);
         vm.stopPrank();
         
@@ -333,7 +333,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         assertEq(order.price, highPrice);
     }
 
-    // ============ 管理员功能测试 ============
+    // ============ Admin Function Tests ============
     
     function test_UpdateFeeRates() public {
         uint256 newLimitFee = 60; // 0.6%
@@ -349,19 +349,19 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.setPaused(true);
         assertTrue(market.paused());
         
-        // 暂停后不能创建订单
+        // Cannot create orders when paused
         vm.startPrank(user1);
         usdtToken.approve(address(market), type(uint256).max);
         
         vm.expectRevert("Contract is paused");
-        market.createBuyOrder(100 * 1e18, 90); // 基础单位
+        market.createBuyOrder(100 * 1e18, 90); // base unit
         vm.stopPrank();
     }
 
     function test_FillSellOrder() public {
-        // 创建卖单
+        // Create sell order
         uint256 amount = 100 * 1e18;
-        uint256 price = 85; // USDT基础单位
+        uint256 price = 85; // USDT base unit
         uint256 expectedIncome = amount * price;
         uint256 orderFee = expectedIncome * 50 / 10000;
         
@@ -371,7 +371,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createSellOrder(amount, price);
         vm.stopPrank();
         
-        // 成交卖单
+        // Fill sell order
         uint256 takerFee = expectedIncome * 30 / 10000;
         
         vm.startPrank(user2);
@@ -383,47 +383,47 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.fillOrder(1);
         vm.stopPrank();
         
-        // 验证交易结果
+        // Verify trade results
         CarbonUSDTMarket.Order memory order = market.getOrder(1);
         assertEq(uint256(order.status), uint256(CarbonUSDTMarket.OrderStatus.Filled));
         
-        // 验证余额变化
-        assertEq(carbonToken.balanceOf(user2), 10_000 * 1e18 + amount); // 买家得到碳币
-        assertEq(usdtToken.balanceOf(user1), 10_000_000 * 1e18 - orderFee + expectedIncome); // 卖家得到USDT
+        // Verify balance changes
+        assertEq(carbonToken.balanceOf(user2), 10_000 * 1e18 + amount); // Buyer gets carbon tokens
+        assertEq(usdtToken.balanceOf(user1), 10_000_000 * 1e18 - orderFee + expectedIncome); // Seller gets USDT
     }
     
     function test_CancelOrder() public {
         uint256 amount = 100 * 1e18;
-        uint256 price = 90; // USDT基础单位
+        uint256 price = 90; // USDT base unit
         uint256 totalCost = amount * price;
         uint256 orderFee = totalCost * 50 / 10000;
         
-        // 创建买单
+        // Create buy order
         vm.startPrank(user1);
         usdtToken.approve(address(market), totalCost + orderFee);
         market.createBuyOrder(amount, price);
         
         uint256 balanceBefore = usdtToken.balanceOf(user1);
         
-        // 取消订单
+        // Cancel order
         vm.expectEmit(true, true, false, true);
         emit OrderCancelled(1, user1, block.timestamp);
         
         market.cancelOrder(1);
         vm.stopPrank();
         
-        // 验证订单状态
+        // Verify order status
         CarbonUSDTMarket.Order memory order = market.getOrder(1);
         assertEq(uint256(order.status), uint256(CarbonUSDTMarket.OrderStatus.Cancelled));
         
-        // 验证USDT退还
+        // Verify USDT refund
         assertEq(usdtToken.balanceOf(user1), balanceBefore + totalCost);
     }
     
     function test_AutoMatching_SellOrderMatchBuyOrder() public {
-        // 创建买单 (90 USDT)
+        // Create buy order (90 USDT)
         uint256 buyAmount = 100 * 1e18;
-        uint256 buyPrice = 90; // USDT基础单位
+        uint256 buyPrice = 90; // USDT base unit
         uint256 buyOrderFee = buyAmount * buyPrice * 50 / 10000;
         
         vm.startPrank(user1);
@@ -431,11 +431,11 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createBuyOrder(buyAmount, buyPrice);
         vm.stopPrank();
         
-        // 创建卖单 (85 USDT) - 应该自动撮合
-        uint256 sellAmount = 60 * 1e18; // 只卖60个，部分成交
-        uint256 sellPrice = 85; // USDT基础单位
+        // Create sell order (85 USDT) - should auto-match
+        uint256 sellAmount = 60 * 1e18; // Only sell 60, partial fill
+        uint256 sellPrice = 85; // USDT base unit
         uint256 sellOrderFee = sellAmount * sellPrice * 50 / 10000;
-        uint256 matchFee = sellAmount * buyPrice * 30 / 10000; // 按买单价格成交
+        uint256 matchFee = sellAmount * buyPrice * 30 / 10000; // Execution fee at buy order price
         
         vm.startPrank(user2);
         carbonToken.approve(address(market), sellAmount);
@@ -444,17 +444,17 @@ contract CarbonUSDTMarketCompleteTest is Test {
         market.createSellOrder(sellAmount, sellPrice);
         vm.stopPrank();
         
-        // 验证撮合结果
+        // Verify matching results
         CarbonUSDTMarket.Order memory buyOrder = market.getOrder(1);
-        assertEq(buyOrder.remainingAmount, buyAmount - sellAmount); // 买单部分成交
+        assertEq(buyOrder.remainingAmount, buyAmount - sellAmount); // Buy order partially filled
         
-        // 验证余额
-        // 修正：买家应为初始余额+成交获得的碳币
-        assertEq(carbonToken.balanceOf(user1), 10_000 * 1e18 + sellAmount); // 买家应为初始+成交碳币
-        assertEq(usdtToken.balanceOf(user2), 10_000_000 * 1e18 - sellOrderFee - matchFee + sellAmount * buyPrice); // 卖家得到USDT
+        // Verify balances
+        // Corrected: buyer should be initial balance + carbon tokens from trade
+        assertEq(carbonToken.balanceOf(user1), 10_000 * 1e18 + sellAmount); // Buyer should be initial + traded carbon tokens
+        assertEq(usdtToken.balanceOf(user2), 10_000_000 * 1e18 - sellOrderFee - matchFee + sellAmount * buyPrice); // Seller gets USDT
     }
 
-    // ============ 查询功能增强测试 ============
+    // ============ Enhanced Query Function Tests ============
     
     function test_GetUserOrders() public {
         _createTestOrders();
@@ -462,7 +462,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         uint256[] memory userOrderIds = market.getUserOrders(user1);
         assertTrue(userOrderIds.length > 0);
         
-        // 验证订单确实属于user1
+        // Verify orders indeed belong to user1
         for (uint i = 0; i < userOrderIds.length; i++) {
             CarbonUSDTMarket.Order memory order = market.getOrder(userOrderIds[i]);
             assertEq(order.user, user1);
@@ -491,15 +491,15 @@ contract CarbonUSDTMarketCompleteTest is Test {
     function test_GetFeeRates() public {
         (uint256 platformFee, uint256 limitOrderFee, uint256 fillOrderFee) = market.getFeeRates();
         
-        assertEq(platformFee, 0); // 限价单市场没有平台费
+        assertEq(platformFee, 0); // Limit order market has no platform fee
         assertEq(limitOrderFee, 50); // 0.5%
         assertEq(fillOrderFee, 30);  // 0.3%
     }
     
     function test_GetUserFeeStats() public {
-        // 创建订单产生费用
+        // Create order to generate fees
         uint256 amount = 100 * 1e18;
-        uint256 price = 90; // USDT基础单位
+        uint256 price = 90; // USDT base unit
         uint256 orderFee = amount * price * 50 / 10000;
         
         vm.startPrank(user1);
@@ -511,10 +511,10 @@ contract CarbonUSDTMarketCompleteTest is Test {
         
         assertEq(totalFee, orderFee);
         assertEq(limitOrderFee, orderFee);
-        assertEq(fillOrderFee, 0); // 还没有成交费用
+        assertEq(fillOrderFee, 0); // No execution fees yet
     }
 
-    // ============ 管理员功能增强测试 ============
+    // ============ Enhanced Admin Function Tests ============
     
     function test_UpdateFeeCollector() public {
         address newCollector = makeAddr("newCollector");
@@ -532,7 +532,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         assertEq(market.priceDeviationThreshold(), newThreshold);
     }
 
-    // ============ 边界情况测试 ============
+    // ============ Edge Case Tests ============
     
     function test_RevertOnZeroAmount() public {
         vm.startPrank(user1);
@@ -553,8 +553,8 @@ contract CarbonUSDTMarketCompleteTest is Test {
     }
     
     function test_RevertOnInsufficientBalance() public {
-        uint256 amount = 1_000_000 * 1e18; // 超出用户余额
-        uint256 price = 90; // USDT基础单位
+        uint256 amount = 1_000_000 * 1e18; // Exceeds user balance
+        uint256 price = 90; // USDT base unit
         
         vm.startPrank(user1);
         usdtToken.approve(address(market), type(uint256).max);
@@ -566,10 +566,10 @@ contract CarbonUSDTMarketCompleteTest is Test {
     
     function test_RevertOnInsufficientAllowance() public {
         uint256 amount = 100 * 1e18;
-        uint256 price = 90; // USDT基础单位
+        uint256 price = 90; // USDT base unit
         
         vm.startPrank(user1);
-        // 不授权或授权不足
+        // No approval or insufficient approval
         
         vm.expectRevert("Insufficient USDT allowance");
         market.createBuyOrder(amount, price);
@@ -578,7 +578,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
     
     function test_CannotFillOwnOrder() public {
         uint256 amount = 100 * 1e18;
-        uint256 price = 90; // USDT基础单位
+        uint256 price = 90; // USDT base unit
         uint256 totalCost = amount * price;
         uint256 orderFee = totalCost * 50 / 10000;
         
@@ -586,7 +586,7 @@ contract CarbonUSDTMarketCompleteTest is Test {
         usdtToken.approve(address(market), totalCost + orderFee);
         market.createBuyOrder(amount, price);
         
-        // 尝试成交自己的订单
+        // Try to fill own order
         carbonToken.approve(address(market), amount);
         
         vm.expectRevert("Cannot fill your own order");
@@ -596,58 +596,58 @@ contract CarbonUSDTMarketCompleteTest is Test {
     
     function test_CannotCancelNotOwnOrder() public {
         uint256 amount = 100 * 1e18;
-        uint256 price = 90; // USDT基础单位
+        uint256 price = 90; // USDT base unit
         uint256 totalCost = amount * price;
         uint256 orderFee = totalCost * 50 / 10000;
         
-        // user1创建订单
+        // user1 creates order
         vm.startPrank(user1);
         usdtToken.approve(address(market), totalCost + orderFee);
         market.createBuyOrder(amount, price);
         vm.stopPrank();
         
-        // user2尝试取消user1的订单
+        // user2 tries to cancel user1's order
         vm.startPrank(user2);
         vm.expectRevert("Not order owner");
         market.cancelOrder(1);
         vm.stopPrank();
     }
 
-    // ============ 辅助函数 ============
+    // ============ Helper Functions ============
     
     function _createTestOrders() internal {
-        // User1 创建买单
+        // User1 creates buy orders
         vm.startPrank(user1);
         usdtToken.approve(address(market), type(uint256).max);
-        market.createBuyOrder(100 * 1e18, 89); // 基础单位
-        market.createBuyOrder(200 * 1e18, 91); // 基础单位
+        market.createBuyOrder(100 * 1e18, 89); // base unit
+        market.createBuyOrder(200 * 1e18, 91); // base unit
         vm.stopPrank();
         
-        // User2 创建卖单
+        // User2 creates sell orders
         vm.startPrank(user2);
         carbonToken.approve(address(market), type(uint256).max);
         usdtToken.approve(address(market), type(uint256).max);
-        market.createSellOrder(120 * 1e18, 87); // 基础单位
-        market.createSellOrder(180 * 1e18, 86); // 基础单位
+        market.createSellOrder(120 * 1e18, 87); // base unit
+        market.createSellOrder(180 * 1e18, 86); // base unit
         vm.stopPrank();
         
-        // User3 创建混合订单
+        // User3 creates mixed orders
         vm.startPrank(user3);
         carbonToken.approve(address(market), type(uint256).max);
         usdtToken.approve(address(market), type(uint256).max);
-        market.createBuyOrder(80 * 1e18, 92); // 基础单位
-        market.createSellOrder(90 * 1e18, 85); // 基础单位
+        market.createBuyOrder(80 * 1e18, 92); // base unit
+        market.createSellOrder(90 * 1e18, 85); // base unit
         vm.stopPrank();
     }
 }
 
-// ============ Mock 合约 ============
+// ============ Mock Contracts ============
 
 contract MockUSDT is ERC20 {
     constructor() ERC20("Mock USDT", "USDT") {}
     
     function decimals() public pure override returns (uint8) {
-        return 18; // USDT是18位精度
+        return 18; // USDT is 18 decimals
     }
     
     function mint(address to, uint256 amount) external {
@@ -663,7 +663,7 @@ contract MockPriceOracle {
     }
     
     function getLatestCarbonPriceUSD() external view returns (uint256) {
-        return price; // 直接返回设置的价格（8位精度）
+        return price; // Directly return set price (8 decimals)
     }
 }
 

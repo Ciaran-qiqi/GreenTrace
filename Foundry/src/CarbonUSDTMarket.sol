@@ -11,86 +11,86 @@ import "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title CarbonUSDTMarket
- * @dev 碳币和USDT的限价单交易市场合约
- * @notice 专门处理限价单订单簿功能，市价单请直接使用GreenTalesLiquidityPool
+ * @dev Carbon token and USDT limit order trading market contract
+ * @notice Handles limit order book functionality, for market orders use GreenTalesLiquidityPool directly
  * 
- * 主要功能：
- * 1. 限价单创建：用户可以创建买单和卖单
- * 2. 订单成交：用户可以成交其他用户的订单
- * 3. 订单取消：用户可以取消自己的订单
- * 4. 价格保护：集成预言机进行价格偏离检查
- * 5. 手续费收取：收取挂单费和成交费
+ * Main features:
+ * 1. Limit order creation: Users can create buy and sell orders
+ * 2. Order execution: Users can fill other users' orders
+ * 3. Order cancellation: Users can cancel their own orders
+ * 4. Price protection: Oracle integration for price deviation checks
+ * 5. Fee collection: Order placement and execution fees
  */
 contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     using SafeERC20 for CarbonToken;
     using SafeERC20 for IERC20;
 
-    // 常量定义
+    // Constants
     uint256 private constant BASIS_POINTS = 10000;
     uint256 private constant MAX_FEE_RATE = 1000; // 10%
     uint256 private constant PRICE_PRECISION = 1e18;
 
-    // 合约状态变量
+    // Contract state variables
     CarbonToken public immutable carbonToken;
     IERC20 public immutable usdtToken;
     GreenTalesLiquidityPool public immutable ammPool;
     ICarbonPriceOracle public immutable priceOracle;
     
-    // 手续费配置
-    uint256 public limitOrderFeeRate = 50;  // 限价单挂单手续费率（基点）0.5%
-    uint256 public fillOrderFeeRate = 30;   // 限价单成交手续费率（基点）0.3%
+    // Fee configuration
+    uint256 public limitOrderFeeRate = 50;  // Limit order placement fee rate (basis points) 0.5%
+    uint256 public fillOrderFeeRate = 30;   // Limit order execution fee rate (basis points) 0.3%
     address public feeCollector;
 
-    // 价格偏离阈值的配置（炒作友好机制）
-    uint256 public priceDeviationThreshold = 3000; // 30%下限阈值（不允许低于参考价30%，上限无限制）
+    // Price deviation threshold configuration (speculation-friendly mechanism)
+    uint256 public priceDeviationThreshold = 3000; // 30% lower threshold (no limit on upper bound)
     
-    // 紧急暂停状态
+    // Emergency pause state
     bool public paused;
 
-    // 统计信息
+    // Statistics
     struct MarketStats {
         uint256 totalOrdersCreated;
         uint256 totalOrdersFilled;
         uint256 totalOrdersCancelled;
         uint256 totalVolumeTraded;
-        uint256 totalFeesCollected;      // 总手续费（保持向后兼容）
-        uint256 totalLimitOrderFees;     // 总挂单手续费
-        uint256 totalFillOrderFees;      // 总成交手续费
+        uint256 totalFeesCollected;      // Total fees (backward compatibility)
+        uint256 totalLimitOrderFees;     // Total placement fees
+        uint256 totalFillOrderFees;      // Total execution fees
         uint256 nextOrderId;
     }
     MarketStats public marketStats;
 
-    // 手续费记录映射
-    mapping(address => uint256) public userTotalFeePaid;        // 用户总支付手续费
-    mapping(address => uint256) public userLimitOrderFeePaid;   // 用户挂单手续费
-    mapping(address => uint256) public userFillOrderFeePaid;    // 用户成交手续费
+    // Fee record mappings
+    mapping(address => uint256) public userTotalFeePaid;        // User total fees paid
+    mapping(address => uint256) public userLimitOrderFeePaid;   // User placement fees
+    mapping(address => uint256) public userFillOrderFeePaid;    // User execution fees
     
-    // 每日手续费统计（可选：按天统计）
-    mapping(uint256 => uint256) public dailyFeesCollected;     // 日期 => 当日手续费总额
+    // Daily fee statistics (optional: daily tracking)
+    mapping(uint256 => uint256) public dailyFeesCollected;     // Date => daily fee total
 
-    // 订单类型枚举
+    // Order type enums
     enum OrderType { Buy, Sell }
     enum OrderStatus { Active, Filled, Cancelled }
 
-    // 订单结构体
+    // Order struct
     struct Order {
-        address user;           // 订单创建者
-        OrderType orderType;    // 订单类型：买单/卖单
-        uint256 amount;         // 碳币数量（原始总量）
-        uint256 remainingAmount; // 剩余未成交数量
-        uint256 price;          // 价格（USDT，基础单位）
-        uint256 timestamp;      // 创建时间
-        OrderStatus status;     // 订单状态
-        uint256 orderFee;       // 挂单手续费
+        address user;           // Order creator
+        OrderType orderType;    // Order type: buy/sell
+        uint256 amount;         // Carbon token amount (original total)
+        uint256 remainingAmount; // Remaining unfilled amount
+        uint256 price;          // Price (USDT, base unit)
+        uint256 timestamp;      // Creation time
+        OrderStatus status;     // Order status
+        uint256 orderFee;       // Placement fee
     }
 
-    // 映射关系
-    mapping(uint256 => Order) public orders;           // 订单ID => 订单信息
-    mapping(address => uint256[]) public userOrders;   // 用户 => 订单ID列表
-    uint256[] public activeOrderIds;                   // 活跃订单ID列表
-    mapping(uint256 => uint256) public orderIndex;     // 订单ID => 在活跃列表中的索引
+    // Mappings
+    mapping(uint256 => Order) public orders;           // Order ID => Order info
+    mapping(address => uint256[]) public userOrders;   // User => Order ID list
+    uint256[] public activeOrderIds;                   // Active order ID list
+    mapping(uint256 => uint256) public orderIndex;     // Order ID => Index in active list
 
-    // 事件定义
+    // Events
     event OrderCreated(
         uint256 indexed orderId,
         address indexed user,
@@ -148,12 +148,12 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     event PriceDeviationThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
 
     /**
-     * @dev 构造函数
-     * @param _carbonToken 碳币合约地址
-     * @param _usdtToken USDT合约地址
-     * @param _ammPool AMM流动性池地址（用于获取市场价格）
-     * @param _priceOracle 价格预言机地址
-     * @param _feeCollector 手续费收集者地址
+     * @dev Constructor
+     * @param _carbonToken Carbon token contract address
+     * @param _usdtToken USDT contract address
+     * @param _ammPool AMM liquidity pool address (for market price)
+     * @param _priceOracle Price oracle address
+     * @param _feeCollector Fee collector address
      */
     constructor(
         address _carbonToken,
@@ -174,46 +174,46 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         priceOracle = ICarbonPriceOracle(_priceOracle);
         feeCollector = _feeCollector;
         
-        // 初始化统计信息
+        // Initialize statistics
         marketStats.nextOrderId = 1;
     }
 
     /**
-     * @dev 创建买单（支持自动撮合）
-     * @param _amount 要购买的碳币数量（18位精度）
-     * @param _price 出价（USDT基础单位，例如：88表示88 USDT）
+     * @dev Create buy order (with auto-matching)
+     * @param _amount Carbon token amount to buy (18 decimals)
+     * @param _price Bid price (USDT base unit, e.g., 88 means 88 USDT)
      */
     function createBuyOrder(uint256 _amount, uint256 _price) external whenNotPaused nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
         require(_price > 0, "Price must be greater than 0");
         
-        // 价格偏离检查
+        // Price deviation check
         _checkPriceDeviation(_price);
         
-        // 计算所需的USDT总量
+        // Calculate required USDT total
         uint256 totalUSDT = _amount * _price;
         uint256 orderFee = (totalUSDT * limitOrderFeeRate) / BASIS_POINTS;
         uint256 totalRequired = totalUSDT + orderFee;
         
-        // 检查用户USDT余额和授权
+        // Check user USDT balance and allowance
         require(usdtToken.balanceOf(msg.sender) >= totalRequired, "Insufficient USDT balance");
         require(usdtToken.allowance(msg.sender, address(this)) >= totalRequired, "Insufficient USDT allowance");
         
-        // 转移USDT到合约（包括手续费）
+        // Transfer USDT to contract (including fees)
         usdtToken.safeTransferFrom(msg.sender, address(this), totalUSDT);
         usdtToken.safeTransferFrom(msg.sender, feeCollector, orderFee);
         
-        // 【核心功能】：自动撮合现有卖单
+        // Core functionality: Auto-match existing sell orders
         (uint256 remainingAmount, uint256 usdtSpent) = _tryMatchSellOrders(_amount, _price, msg.sender);
         
-        // 返还多余的USDT（如果撮合成交的价格低于买单价格）
+        // Refund excess USDT (if matching price is lower than buy order price)
         uint256 expectedUsdtCost = (_amount - remainingAmount) * _price;
         if (expectedUsdtCost > usdtSpent) {
             uint256 refund = expectedUsdtCost - usdtSpent;
             usdtToken.safeTransfer(msg.sender, refund);
         }
         
-        // 如果还有剩余数量，创建买单
+        // If there's remaining amount, create buy order
         if (remainingAmount > 0) {
             uint256 orderId = marketStats.nextOrderId;
             orders[orderId] = Order({
@@ -227,7 +227,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
                 orderFee: orderFee
             });
             
-            // 更新索引
+            // Update indices
             userOrders[msg.sender].push(orderId);
             activeOrderIds.push(orderId);
             orderIndex[orderId] = activeOrderIds.length - 1;
@@ -235,54 +235,54 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
             emit OrderCreated(orderId, msg.sender, OrderType.Buy, _amount, _price, orderFee, block.timestamp);
         }
         
-        // 更新统计
+        // Update statistics
         marketStats.nextOrderId++;
         marketStats.totalOrdersCreated++;
         marketStats.totalFeesCollected += orderFee;
         marketStats.totalLimitOrderFees += orderFee;
         
-        // 更新用户手续费记录
+        // Update user fee records
         userTotalFeePaid[msg.sender] += orderFee;
         userLimitOrderFeePaid[msg.sender] += orderFee;
         
-        // 更新每日手续费统计
+        // Update daily fee statistics
         uint256 today = block.timestamp / 86400;
         dailyFeesCollected[today] += orderFee;
     }
 
     /**
-     * @dev 创建卖单（支持自动撮合）
-     * @param _amount 要出售的碳币数量（18位精度）
-     * @param _price 出价（USDT基础单位，例如：88表示88 USDT）
+     * @dev Create sell order (with auto-matching)
+     * @param _amount Carbon token amount to sell (18 decimals)
+     * @param _price Ask price (USDT base unit, e.g., 88 means 88 USDT)
      */
     function createSellOrder(uint256 _amount, uint256 _price) external whenNotPaused nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
         require(_price > 0, "Price must be greater than 0");
         
-        // 价格偏离检查
+        // Price deviation check
         _checkPriceDeviation(_price);
         
-        // 检查用户碳币余额和授权
+        // Check user carbon token balance and allowance
         require(carbonToken.balanceOf(msg.sender) >= _amount, "Insufficient carbon token balance");
         require(carbonToken.allowance(msg.sender, address(this)) >= _amount, "Insufficient carbon token allowance");
         
-        // 计算挂单手续费（基于预期收入）
+        // Calculate placement fee (based on expected income)
         uint256 expectedUSDT = _amount * _price;
         uint256 orderFee = (expectedUSDT * limitOrderFeeRate) / BASIS_POINTS;
         
-        // 检查用户USDT余额和授权用于支付手续费
+        // Check user USDT balance and allowance for fee payment
         require(usdtToken.balanceOf(msg.sender) >= orderFee, "Insufficient USDT for order fee");
         require(usdtToken.allowance(msg.sender, address(this)) >= orderFee, "Insufficient USDT allowance for order fee");
         
-        // 转移碳币到合约
+        // Transfer carbon tokens to contract
         carbonToken.safeTransferFrom(msg.sender, address(this), _amount);
-        // 收取挂单手续费
+        // Collect placement fee
         usdtToken.safeTransferFrom(msg.sender, feeCollector, orderFee);
         
-        // 【核心功能】：自动撮合现有买单
+        // Core functionality: Auto-match existing buy orders
         uint256 remainingAmount = _tryMatchBuyOrders(_amount, _price, msg.sender);
         
-        // 如果还有剩余数量，创建卖单
+        // If there's remaining amount, create sell order
         if (remainingAmount > 0) {
             uint256 orderId = marketStats.nextOrderId;
             orders[orderId] = Order({
@@ -296,7 +296,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
                 orderFee: orderFee
             });
             
-            // 更新索引
+            // Update indices
             userOrders[msg.sender].push(orderId);
             activeOrderIds.push(orderId);
             orderIndex[orderId] = activeOrderIds.length - 1;
@@ -304,24 +304,24 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
             emit OrderCreated(orderId, msg.sender, OrderType.Sell, _amount, _price, orderFee, block.timestamp);
         }
         
-        // 更新统计
+        // Update statistics
         marketStats.nextOrderId++;
         marketStats.totalOrdersCreated++;
         marketStats.totalFeesCollected += orderFee;
         marketStats.totalLimitOrderFees += orderFee;
         
-        // 更新用户手续费记录
+        // Update user fee records
         userTotalFeePaid[msg.sender] += orderFee;
         userLimitOrderFeePaid[msg.sender] += orderFee;
         
-        // 更新每日手续费统计
+        // Update daily fee statistics
         uint256 today = block.timestamp / 86400;
         dailyFeesCollected[today] += orderFee;
     }
 
     /**
-     * @dev 成交订单
-     * @param _orderId 要成交的订单ID
+     * @dev Fill order
+     * @param _orderId Order ID to fill
      */
     function fillOrder(uint256 _orderId) external whenNotPaused nonReentrant {
         Order storage order = orders[_orderId];
@@ -332,48 +332,48 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         uint256 price = order.price;
         uint256 totalUSDT = amount * price;
         
-        // 计算成交手续费
+        // Calculate execution fee
         uint256 takerFee = (totalUSDT * fillOrderFeeRate) / BASIS_POINTS;
         
         if (order.orderType == OrderType.Buy) {
-            // 成交买单：taker卖出碳币，获得USDT
+            // Fill buy order: taker sells carbon tokens, receives USDT
             require(carbonToken.balanceOf(msg.sender) >= amount, "Insufficient carbon tokens");
             require(carbonToken.allowance(msg.sender, address(this)) >= amount, "Insufficient carbon token allowance");
             require(usdtToken.balanceOf(msg.sender) >= takerFee, "Insufficient USDT for taker fee");
             require(usdtToken.allowance(msg.sender, address(this)) >= takerFee, "Insufficient USDT allowance for taker fee");
             
-            // 转移资产
-            carbonToken.safeTransferFrom(msg.sender, order.user, amount);  // 碳币给买家
-            usdtToken.safeTransfer(msg.sender, totalUSDT);                 // USDT给卖家
-            usdtToken.safeTransferFrom(msg.sender, feeCollector, takerFee); // 成交手续费
+            // Transfer assets
+            carbonToken.safeTransferFrom(msg.sender, order.user, amount);  // Carbon tokens to buyer
+            usdtToken.safeTransfer(msg.sender, totalUSDT);                 // USDT to seller
+            usdtToken.safeTransferFrom(msg.sender, feeCollector, takerFee); // Execution fee
             
         } else {
-            // 成交卖单：taker买入碳币，支付USDT
+            // Fill sell order: taker buys carbon tokens, pays USDT
             uint256 totalRequired = totalUSDT + takerFee;
             require(usdtToken.balanceOf(msg.sender) >= totalRequired, "Insufficient USDT");
             require(usdtToken.allowance(msg.sender, address(this)) >= totalRequired, "Insufficient USDT allowance");
             
-            // 转移资产
-            usdtToken.safeTransferFrom(msg.sender, order.user, totalUSDT);  // USDT给卖家
-            usdtToken.safeTransferFrom(msg.sender, feeCollector, takerFee); // 成交手续费
-            carbonToken.safeTransfer(msg.sender, amount);                   // 碳币给买家
+            // Transfer assets
+            usdtToken.safeTransferFrom(msg.sender, order.user, totalUSDT);  // USDT to seller
+            usdtToken.safeTransferFrom(msg.sender, feeCollector, takerFee); // Execution fee
+            carbonToken.safeTransfer(msg.sender, amount);                   // Carbon tokens to buyer
         }
         
-        // 更新订单状态
+        // Update order status
         order.status = OrderStatus.Filled;
         _removeFromActiveOrders(_orderId);
         
-        // 更新统计
+        // Update statistics
         marketStats.totalOrdersFilled++;
         marketStats.totalVolumeTraded += totalUSDT;
         marketStats.totalFeesCollected += takerFee;
         marketStats.totalFillOrderFees += takerFee;
         
-        // 更新taker手续费记录
+        // Update taker fee records
         userTotalFeePaid[msg.sender] += takerFee;
         userFillOrderFeePaid[msg.sender] += takerFee;
         
-        // 更新每日手续费统计
+        // Update daily fee statistics
         uint256 today = block.timestamp / 86400;
         dailyFeesCollected[today] += takerFee;
         
@@ -390,110 +390,110 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 取消订单（支持部分成交后取消）
-     * @param _orderId 要取消的订单ID
+     * @dev Cancel order (supports partial fill cancellation)
+     * @param _orderId Order ID to cancel
      */
     function cancelOrder(uint256 _orderId) external whenNotPaused nonReentrant {
         Order storage order = orders[_orderId];
         require(order.status == OrderStatus.Active, "Order not active");
         require(order.user == msg.sender, "Not order owner");
         
-        // 返还锁定的剩余资产
+        // Return locked remaining assets
         if (order.orderType == OrderType.Buy) {
-            // 返还剩余的USDT（基于剩余数量计算）
+            // Return remaining USDT (calculated based on remaining amount)
             uint256 remainingUSDT = order.remainingAmount * order.price;
             usdtToken.safeTransfer(msg.sender, remainingUSDT);
         } else {
-            // 返还剩余的碳币
+            // Return remaining carbon tokens
             carbonToken.safeTransfer(msg.sender, order.remainingAmount);
         }
         
-        // 更新订单状态
+        // Update order status
         order.status = OrderStatus.Cancelled;
         _removeFromActiveOrders(_orderId);
         
-        // 更新统计
+        // Update statistics
         marketStats.totalOrdersCancelled++;
         
         emit OrderCancelled(_orderId, msg.sender, block.timestamp);
     }
 
     /**
-     * @dev 价格偏离检查 - 支持炒作机制
-     * @param _price 订单价格（基础单位）
-     * @notice 只检查下限（防止价格过低），上限不限制（允许炒作）
+     * @dev Price deviation check - speculation-friendly mechanism
+     * @param _price Order price (base unit)
+     * @notice Only checks lower bound (prevents too low prices), no upper limit (allows speculation)
      */
     function _checkPriceDeviation(uint256 _price) internal {
-        // 优先使用Chainlink预言机价格作为参考
-        uint256 oraclePrice = priceOracle.getLatestCarbonPriceUSD(); // 8位精度，USD/碳币
+        // Prioritize Chainlink oracle price as reference
+        uint256 oraclePrice = priceOracle.getLatestCarbonPriceUSD(); // 8 decimals, USD/carbon
         
-        // 如果预言机价格不可用，使用AMM池价格作为备选
+        // If oracle price unavailable, use AMM pool price as fallback
         uint256 referencePrice;
         if (oraclePrice > 0) {
-            // 将预言机价格从8位精度转换为18位精度
-            referencePrice = oraclePrice * 1e10; // 8位 -> 18位
+            // Convert oracle price from 8 decimals to 18 decimals
+            referencePrice = oraclePrice * 1e10; // 8 -> 18
         } else {
-            // 备选：使用AMM池当前价格（18位精度）
+            // Fallback: use AMM pool current price (18 decimals)
             referencePrice = ammPool.getCarbonPrice();
-            if (referencePrice == 0) return; // 如果都不可用，跳过检查
+            if (referencePrice == 0) return; // If both unavailable, skip check
         }
         
-        // 将订单价格转换为18位精度进行比较
+        // Convert order price to 18 decimals for comparison
         uint256 orderPriceWei = _price * 1e18;
         
-        // 【炒作机制】：只检查下限，不检查上限
-        // 计算价格是否过低（低于参考价的一定百分比）
+        // Speculation mechanism: only check lower bound, no upper limit
+        // Calculate if price is too low (below reference price by certain percentage)
         if (orderPriceWei < referencePrice) {
             uint256 downwardDeviation = ((referencePrice - orderPriceWei) * BASIS_POINTS) / referencePrice;
             
-            // 检查是否低于下限阈值
+            // Check if below lower threshold
             if (downwardDeviation > priceDeviationThreshold) {
                 emit PriceDeviationBlocked(0, orderPriceWei, referencePrice, downwardDeviation);
                 revert("Price too low - below minimum threshold");
             }
         }
         
-        // 【重要】：价格高于参考价时，无限制！允许炒作到任意高价
-        // 这里不做任何检查，允许用户炒作价格
+        // Important: No limit when price is above reference price! Allow speculation to any high price
+        // No check here, allowing users to speculate on price
     }
 
     /**
-     * @dev 尝试撮合现有卖单（买单创建时调用）
-     * @param _amount 买单数量
-     * @param _price 买单价格
-     * @param _buyer 买家地址
-     * @return remainingAmount 剩余未成交数量
-     * @return usdtSpent 已花费的USDT数量（用于返还多余部分）
+     * @dev Try to match existing sell orders (called when creating buy order)
+     * @param _amount Buy order amount
+     * @param _price Buy order price
+     * @param _buyer Buyer address
+     * @return remainingAmount Remaining unfilled amount
+     * @return usdtSpent USDT spent (for refunding excess)
      */
     function _tryMatchSellOrders(uint256 _amount, uint256 _price, address _buyer) internal returns (uint256 remainingAmount, uint256 usdtSpent) {
         remainingAmount = _amount;
         usdtSpent = 0;
         
-        // 遍历活跃订单，寻找可成交的卖单
+        // Iterate through active orders, find fillable sell orders
         for (uint256 i = 0; i < activeOrderIds.length && remainingAmount > 0; ) {
             uint256 orderId = activeOrderIds[i];
             Order storage sellOrder = orders[orderId];
             
-            // 检查是否为可成交的卖单
+            // Check if it's a fillable sell order
             if (sellOrder.orderType == OrderType.Sell && 
                 sellOrder.status == OrderStatus.Active && 
                 sellOrder.price <= _price &&
                 sellOrder.user != _buyer) {
                 
-                // 计算本次成交数量
+                // Calculate this trade amount
                 uint256 tradeAmount = remainingAmount <= sellOrder.remainingAmount ? 
                     remainingAmount : sellOrder.remainingAmount;
                 
-                // 执行买家撮合卖单的成交
+                // Execute buyer matching sell order
                 uint256 tradeCost = _executeBuyerMatchSell(orderId, _buyer, tradeAmount);
                 usdtSpent += tradeCost;
                 
-                // 更新剩余数量
+                // Update remaining amount
                 remainingAmount -= tradeAmount;
                 
-                // 如果卖单完全成交，继续下一个；否则当前订单还有剩余
+                // If sell order fully filled, continue to next; otherwise current order still has remaining
                 if (sellOrder.remainingAmount == 0) {
-                    // 不增加i，因为数组会被压缩
+                    // Don't increment i, as array will be compressed
                     continue;
                 }
             }
@@ -505,39 +505,39 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 尝试撮合现有买单（卖单创建时调用）
-     * @param _amount 卖单数量
-     * @param _price 卖单价格
-     * @param _seller 卖家地址
-     * @return remainingAmount 剩余未成交数量
+     * @dev Try to match existing buy orders (called when creating sell order)
+     * @param _amount Sell order amount
+     * @param _price Sell order price
+     * @param _seller Seller address
+     * @return remainingAmount Remaining unfilled amount
      */
     function _tryMatchBuyOrders(uint256 _amount, uint256 _price, address _seller) internal returns (uint256 remainingAmount) {
         remainingAmount = _amount;
         
-        // 遍历活跃订单，寻找可成交的买单
+        // Iterate through active orders, find fillable buy orders
         for (uint256 i = 0; i < activeOrderIds.length && remainingAmount > 0; ) {
             uint256 orderId = activeOrderIds[i];
             Order storage buyOrder = orders[orderId];
             
-            // 检查是否为可成交的买单
+            // Check if it's a fillable buy order
             if (buyOrder.orderType == OrderType.Buy && 
                 buyOrder.status == OrderStatus.Active && 
                 buyOrder.price >= _price &&
                 buyOrder.user != _seller) {
                 
-                // 计算本次成交数量
+                // Calculate this trade amount
                 uint256 tradeAmount = remainingAmount <= buyOrder.remainingAmount ? 
                     remainingAmount : buyOrder.remainingAmount;
                 
-                // 执行卖家撮合买单的成交
+                // Execute seller matching buy order
                 _executeSellerMatchBuy(orderId, _seller, tradeAmount);
                 
-                // 更新剩余数量
+                // Update remaining amount
                 remainingAmount -= tradeAmount;
                 
-                // 如果买单完全成交，继续下一个；否则当前订单还有剩余
+                // If buy order fully filled, continue to next; otherwise current order still has remaining
                 if (buyOrder.remainingAmount == 0) {
-                    // 不增加i，因为数组会被压缩
+                    // Don't increment i, as array will be compressed
                     continue;
                 }
             }
@@ -549,46 +549,46 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 执行买家撮合卖单的成交（买单创建时自动撮合）
-     * @param _orderId 被成交的卖单ID
-     * @param _buyer 买家地址
-     * @param _tradeAmount 成交数量
-     * @return tradeCost 本次交易花费的USDT
+     * @dev Execute buyer matching sell order (auto-matching when creating buy order)
+     * @param _orderId Sell order ID being filled
+     * @param _buyer Buyer address
+     * @param _tradeAmount Trade amount
+     * @return tradeCost USDT cost for this trade
      */
     function _executeBuyerMatchSell(uint256 _orderId, address _buyer, uint256 _tradeAmount) internal returns (uint256 tradeCost) {
         Order storage sellOrder = orders[_orderId];
         uint256 totalUSDT = _tradeAmount * sellOrder.price;
         
-        // 计算买家的成交手续费
+        // Calculate buyer execution fee
         uint256 buyerFee = (totalUSDT * fillOrderFeeRate) / BASIS_POINTS;
         tradeCost = totalUSDT + buyerFee;
         
-        // 检查买家是否有足够的USDT支付手续费（交易本身的USDT已在createBuyOrder中收取）
+        // Check if buyer has enough USDT for fee (trade USDT already collected in createBuyOrder)
         require(usdtToken.balanceOf(_buyer) >= buyerFee, "Insufficient USDT for buyer fee");
         require(usdtToken.allowance(_buyer, address(this)) >= buyerFee, "Insufficient USDT allowance for buyer fee");
         
-        // 转移资产
-        usdtToken.safeTransfer(sellOrder.user, totalUSDT);                    // 从合约给卖家USDT
-        usdtToken.safeTransferFrom(_buyer, feeCollector, buyerFee);           // 买家支付成交手续费
-        carbonToken.safeTransfer(_buyer, _tradeAmount);                       // 从合约给买家碳币
+        // Transfer assets
+        usdtToken.safeTransfer(sellOrder.user, totalUSDT);                    // USDT from contract to seller
+        usdtToken.safeTransferFrom(_buyer, feeCollector, buyerFee);           // Buyer pays execution fee
+        carbonToken.safeTransfer(_buyer, _tradeAmount);                       // Carbon tokens from contract to buyer
         
-        // 更新卖单剩余数量
+        // Update sell order remaining amount
         sellOrder.remainingAmount -= _tradeAmount;
         
-        // 更新统计
+        // Update statistics
         marketStats.totalVolumeTraded += totalUSDT;
         marketStats.totalFeesCollected += buyerFee;
         marketStats.totalFillOrderFees += buyerFee;
         
-        // 更新买家手续费记录
+        // Update buyer fee records
         userTotalFeePaid[_buyer] += buyerFee;
         userFillOrderFeePaid[_buyer] += buyerFee;
         
-        // 更新每日手续费统计
+        // Update daily fee statistics
         uint256 today = block.timestamp / 86400;
         dailyFeesCollected[today] += buyerFee;
         
-        // 检查卖单是否完全成交
+        // Check if sell order fully filled
         if (sellOrder.remainingAmount == 0) {
             sellOrder.status = OrderStatus.Filled;
             _removeFromActiveOrders(_orderId);
@@ -605,7 +605,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
                 block.timestamp
             );
         } else {
-            // 部分成交事件
+            // Partial fill event
             emit PartialOrderFilled(
                 _orderId,
                 sellOrder.user,
@@ -623,44 +623,44 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 执行卖家撮合买单的成交（卖单创建时自动撮合）
-     * @param _orderId 被成交的买单ID
-     * @param _seller 卖家地址
-     * @param _tradeAmount 成交数量
+     * @dev Execute seller matching buy order (auto-matching when creating sell order)
+     * @param _orderId Buy order ID being filled
+     * @param _seller Seller address
+     * @param _tradeAmount Trade amount
      */
     function _executeSellerMatchBuy(uint256 _orderId, address _seller, uint256 _tradeAmount) internal {
         Order storage buyOrder = orders[_orderId];
         uint256 totalUSDT = _tradeAmount * buyOrder.price;
         
-        // 计算卖家的成交手续费
+        // Calculate seller execution fee
         uint256 sellerFee = (totalUSDT * fillOrderFeeRate) / BASIS_POINTS;
         
-        // 检查卖家是否有足够的USDT支付手续费
+        // Check if seller has enough USDT for fee
         require(usdtToken.balanceOf(_seller) >= sellerFee, "Insufficient USDT for seller fee");
         require(usdtToken.allowance(_seller, address(this)) >= sellerFee, "Insufficient USDT allowance for seller fee");
         
-        // 转移资产
-        usdtToken.safeTransfer(_seller, totalUSDT);                           // 从合约给卖家USDT
-        usdtToken.safeTransferFrom(_seller, feeCollector, sellerFee);         // 卖家支付成交手续费
-        carbonToken.safeTransfer(buyOrder.user, _tradeAmount);                // 从合约给买家碳币
+        // Transfer assets
+        usdtToken.safeTransfer(_seller, totalUSDT);                           // USDT from contract to seller
+        usdtToken.safeTransferFrom(_seller, feeCollector, sellerFee);         // Seller pays execution fee
+        carbonToken.safeTransfer(buyOrder.user, _tradeAmount);                // Carbon tokens from contract to buyer
         
-        // 更新买单剩余数量
+        // Update buy order remaining amount
         buyOrder.remainingAmount -= _tradeAmount;
         
-        // 更新统计
+        // Update statistics
         marketStats.totalVolumeTraded += totalUSDT;
         marketStats.totalFeesCollected += sellerFee;
         marketStats.totalFillOrderFees += sellerFee;
         
-        // 更新卖家手续费记录
+        // Update seller fee records
         userTotalFeePaid[_seller] += sellerFee;
         userFillOrderFeePaid[_seller] += sellerFee;
         
-        // 更新每日手续费统计
+        // Update daily fee statistics
         uint256 today = block.timestamp / 86400;
         dailyFeesCollected[today] += sellerFee;
         
-        // 检查买单是否完全成交
+        // Check if buy order fully filled
         if (buyOrder.remainingAmount == 0) {
             buyOrder.status = OrderStatus.Filled;
             _removeFromActiveOrders(_orderId);
@@ -677,7 +677,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
                 block.timestamp
             );
         } else {
-            // 部分成交事件
+            // Partial fill event
             emit PartialOrderFilled(
                 _orderId,
                 buyOrder.user,
@@ -693,8 +693,8 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 从活跃订单列表中移除订单
-     * @param _orderId 订单ID
+     * @dev Remove order from active order list
+     * @param _orderId Order ID
      */
     function _removeFromActiveOrders(uint256 _orderId) internal {
         uint256 index = orderIndex[_orderId];
@@ -710,12 +710,12 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         delete orderIndex[_orderId];
     }
 
-    // ========== 管理员函数 ==========
+    // ========== Admin functions ==========
 
     /**
-     * @dev 更新手续费率
-     * @param _limitOrderFeeRate 新的挂单手续费率
-     * @param _fillOrderFeeRate 新的成交手续费率
+     * @dev Update fee rates
+     * @param _limitOrderFeeRate New placement fee rate
+     * @param _fillOrderFeeRate New execution fee rate
      */
     function updateFeeRates(uint256 _limitOrderFeeRate, uint256 _fillOrderFeeRate) external onlyOwner {
         require(_limitOrderFeeRate <= MAX_FEE_RATE, "Limit order fee too high");
@@ -731,8 +731,8 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 更新手续费收集者
-     * @param _newCollector 新的手续费收集者地址
+     * @dev Update fee collector
+     * @param _newCollector New fee collector address
      */
     function updateFeeCollector(address _newCollector) external onlyOwner {
         require(_newCollector != address(0), "Invalid fee collector");
@@ -742,9 +742,9 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 更新价格偏离阈值
-     * @param _newThreshold 新的价格偏离阈值（基点）
-     * @notice 没有最大限制，你可以设置任意的下限阈值
+     * @dev Update price deviation threshold
+     * @param _newThreshold New price deviation threshold (basis points)
+     * @notice No maximum limit, you can set any lower threshold
      */
     function updatePriceDeviationThreshold(uint256 _newThreshold) external onlyOwner {
         uint256 oldThreshold = priceDeviationThreshold;
@@ -753,47 +753,47 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 紧急暂停/恢复合约
-     * @param _paused 是否暂停
+     * @dev Emergency pause/resume contract
+     * @param _paused Whether to pause
      */
     function setPaused(bool _paused) external onlyOwner {
         paused = _paused;
     }
 
-    // ========== 查询函数 ==========
+    // ========== Query functions ==========
 
     /**
-     * @dev 获取订单信息
-     * @param _orderId 订单ID
-     * @return 订单详细信息
+     * @dev Get order information
+     * @param _orderId Order ID
+     * @return Order detailed information
      */
     function getOrder(uint256 _orderId) external view returns (Order memory) {
         return orders[_orderId];
     }
 
     /**
-     * @dev 获取用户订单列表
-     * @param _user 用户地址
-     * @return 用户的订单ID数组
+     * @dev Get user order list
+     * @param _user User address
+     * @return User's order ID array
      */
     function getUserOrders(address _user) external view returns (uint256[] memory) {
         return userOrders[_user];
     }
 
     /**
-     * @dev 获取活跃订单列表
-     * @return 活跃订单ID数组
+     * @dev Get active order list
+     * @return Active order ID array
      */
     function getActiveOrders() external view returns (uint256[] memory) {
         return activeOrderIds;
     }
 
     /**
-     * @dev 分页获取活跃订单
-     * @param _offset 起始位置
-     * @param _limit 数量限制
-     * @return orderIds 订单ID数组
-     * @return orderInfos 订单信息数组
+     * @dev Get paginated active orders
+     * @param _offset Starting position
+     * @param _limit Quantity limit
+     * @return orderIds Order ID array
+     * @return orderInfos Order information array
      */
     function getActiveOrdersPaginated(uint256 _offset, uint256 _limit) 
         external 
@@ -818,15 +818,15 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 获取市场统计信息
-     * @return totalOrdersCreated 总创建订单数
-     * @return totalOrdersFilled 总完成订单数
-     * @return totalOrdersCancelled 总取消订单数
-     * @return totalVolumeTraded 总交易量
-     * @return totalFeesCollected 总手续费收入
-     * @return totalLimitOrderFees 总挂单手续费
-     * @return totalFillOrderFees 总成交手续费
-     * @return nextOrderId 下一个订单ID
+     * @dev Get market statistics
+     * @return totalOrdersCreated Total orders created
+     * @return totalOrdersFilled Total orders completed
+     * @return totalOrdersCancelled Total orders cancelled
+     * @return totalVolumeTraded Total trading volume
+     * @return totalFeesCollected Total fee income
+     * @return totalLimitOrderFees Total placement fees
+     * @return totalFillOrderFees Total execution fees
+     * @return nextOrderId Next order ID
      */
     function getMarketStats() external view returns (
         uint256 totalOrdersCreated,
@@ -851,10 +851,10 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 获取手续费率信息
-     * @return platformFee 平台手续费（这里返回0，因为只有限价单手续费）
-     * @return limitOrderFee 限价单挂单手续费率
-     * @return fillOrderFee 限价单成交手续费率
+     * @dev Get fee rate information
+     * @return platformFee Platform fee (returns 0 here, as only limit order fees)
+     * @return limitOrderFee Limit order placement fee rate
+     * @return fillOrderFee Limit order execution fee rate
      */
     function getFeeRates() external view returns (
         uint256 platformFee,
@@ -865,12 +865,12 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 获取订单簿信息（原始数据，不排序）
-     * @return buyOrders 买单数组（未排序，前端可根据需要排序）
-     * @return sellOrders 卖单数组（未排序，前端可根据需要排序）
-     * @notice 为节省gas费用，此函数不进行排序。前端可根据price字段自行排序：
-     *         - 买单通常按价格从高到低排序 (price DESC)
-     *         - 卖单通常按价格从低到高排序 (price ASC)
+     * @dev Get order book information (raw data, not sorted)
+     * @return buyOrders Buy order array (not sorted, frontend can sort as needed)
+     * @return sellOrders Sell order array (not sorted, frontend can sort as needed)
+     * @notice To save gas, this function doesn't sort. Frontend can sort by price field:
+     *         - Buy orders usually sorted by price high to low (price DESC)
+     *         - Sell orders usually sorted by price low to high (price ASC)
      */
     function getOrderBook() external view returns (
         Order[] memory buyOrders,
@@ -880,7 +880,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         uint256 buyCount = 0;
         uint256 sellCount = 0;
         
-        // 统计买单和卖单数量
+        // Count buy and sell orders
         for (uint256 i = 0; i < totalActive; i++) {
             uint256 orderId = activeOrderIds[i];
             if (orders[orderId].orderType == OrderType.Buy) {
@@ -890,14 +890,14 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
             }
         }
         
-        // 创建数组
+        // Create arrays
         buyOrders = new Order[](buyCount);
         sellOrders = new Order[](sellCount);
         
         uint256 buyIndex = 0;
         uint256 sellIndex = 0;
         
-        // 填充数组（不排序，由前端处理）
+        // Fill arrays (not sorted, handled by frontend)
         for (uint256 i = 0; i < totalActive; i++) {
             uint256 orderId = activeOrderIds[i];
             Order memory order = orders[orderId];
@@ -911,17 +911,17 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
             }
         }
         
-        // 🚀 排序逻辑已移除 - 前端负责排序，大幅节省gas费用
+        // Sorting logic removed - frontend responsible for sorting, significantly saves gas
     }
 
     /**
-     * @dev 获取订单簿信息（分页版本，更节省gas）
-     * @param _offset 起始位置
-     * @param _limit 数量限制
-     * @param _orderType 订单类型过滤（0=买单，1=卖单，2=全部）
-     * @return orderList 订单数组（未排序）
-     * @return hasMore 是否还有更多数据
-     * @notice 推荐使用此函数替代getOrderBook()，特别是订单量大时
+     * @dev Get order book information (paginated version, more gas efficient)
+     * @param _offset Starting position
+     * @param _limit Quantity limit
+     * @param _orderType Order type filter (0=Buy, 1=Sell, 2=All)
+     * @return orderList Order array (not sorted)
+     * @return hasMore Whether there's more data
+     * @notice Recommended to use this function instead of getOrderBook(), especially when order volume is large
      */
     function getOrderBookPaginated(
         uint256 _offset, 
@@ -937,7 +937,7 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         uint256 matchedCount = 0;
         uint256 currentIndex = 0;
         
-        // 第一遍：计算匹配的订单数量并找到起始位置
+        // First pass: count matching orders and find starting position
         for (uint256 i = 0; i < totalActive; i++) {
             uint256 orderId = activeOrderIds[i];
             Order memory order = orders[orderId];
@@ -955,12 +955,12 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
             }
         }
         
-        // 创建结果数组
+        // Create result array
         orderList = new Order[](matchedCount);
         uint256 resultIndex = 0;
         currentIndex = 0;
         
-        // 第二遍：填充结果
+        // Second pass: fill results
         for (uint256 i = 0; i < totalActive && resultIndex < matchedCount; i++) {
             uint256 orderId = activeOrderIds[i];
             Order memory order = orders[orderId];
@@ -978,16 +978,16 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
             }
         }
         
-        // 检查是否还有更多数据
+        // Check if there's more data
         hasMore = (currentIndex > _offset + matchedCount);
     }
 
     /**
-     * @dev 获取用户手续费统计
-     * @param _user 用户地址
-     * @return totalFee 用户支付的总手续费
-     * @return limitOrderFee 用户支付的挂单手续费
-     * @return fillOrderFee 用户支付的成交手续费
+     * @dev Get user fee statistics
+     * @param _user User address
+     * @return totalFee User's total fees paid
+     * @return limitOrderFee User's placement fees paid
+     * @return fillOrderFee User's execution fees paid
      */
     function getUserFeeStats(address _user) external view returns (
         uint256 totalFee,
@@ -1002,18 +1002,18 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 获取每日手续费统计
-     * @param _day 日期（时间戳/86400）
-     * @return dayFees 当日手续费总额
+     * @dev Get daily fee statistics
+     * @param _day Date (timestamp/86400)
+     * @return dayFees Daily fee total
      */
     function getDailyFeeStats(uint256 _day) external view returns (uint256 dayFees) {
         return dailyFeesCollected[_day];
     }
 
     /**
-     * @dev 获取当前日期的每日手续费
-     * @return todayFees 今日手续费总额
-     * @return today 今日日期标识
+     * @dev Get current date's daily fees
+     * @return todayFees Today's fee total
+     * @return today Today's date identifier
      */
     function getTodayFeeStats() external view returns (uint256 todayFees, uint256 today) {
         today = block.timestamp / 86400;
@@ -1022,15 +1022,15 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 获取详细市场统计（包含手续费分类）
-     * @return totalOrdersCreated 总创建订单数
-     * @return totalOrdersFilled 总完成订单数
-     * @return totalOrdersCancelled 总取消订单数
-     * @return totalVolumeTraded 总交易量
-     * @return totalFeesCollected 总手续费收入
-     * @return totalLimitOrderFees 总挂单手续费
-     * @return totalFillOrderFees 总成交手续费
-     * @return nextOrderId 下一个订单ID
+     * @dev Get detailed market statistics (including fee categories)
+     * @return totalOrdersCreated Total orders created
+     * @return totalOrdersFilled Total orders completed
+     * @return totalOrdersCancelled Total orders cancelled
+     * @return totalVolumeTraded Total trading volume
+     * @return totalFeesCollected Total fee income
+     * @return totalLimitOrderFees Total placement fees
+     * @return totalFillOrderFees Total execution fees
+     * @return nextOrderId Next order ID
      */
     function getDetailedMarketStats() external view returns (
         uint256 totalOrdersCreated,
@@ -1055,25 +1055,25 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev 检查价格是否会被偏离保护阻止（炒作友好版本）
-     * @param _price 要检查的价格
-     * @return isBlocked 是否会被阻止
-     * @return deviation 偏离百分比（只计算下行偏离）
-     * @return referencePrice 参考价格
+     * @dev Check if price would be blocked by deviation protection (speculation-friendly version)
+     * @param _price Price to check
+     * @return isBlocked Whether it would be blocked
+     * @return deviation Deviation percentage (only calculates downward deviation)
+     * @return referencePrice Reference price
      */
     function checkPriceDeviation(uint256 _price) external view returns (
         bool isBlocked,
         uint256 deviation,
         uint256 referencePrice
     ) {
-        // 优先使用Chainlink预言机价格作为参考
-        uint256 oraclePrice = priceOracle.getLatestCarbonPriceUSD(); // 8位精度，USD/碳币
+        // Prioritize Chainlink oracle price as reference
+        uint256 oraclePrice = priceOracle.getLatestCarbonPriceUSD(); // 8 decimals, USD/carbon
         
         if (oraclePrice > 0) {
-            // 将预言机价格从8位精度转换为18位精度
-            referencePrice = oraclePrice * 1e10; // 8位 -> 18位
+            // Convert oracle price from 8 decimals to 18 decimals
+            referencePrice = oraclePrice * 1e10; // 8 -> 18
         } else {
-            // 备选：使用AMM池当前价格（18位精度）
+            // Fallback: use AMM pool current price (18 decimals)
             referencePrice = ammPool.getCarbonPrice();
             if (referencePrice == 0) {
                 return (false, 0, 0);
@@ -1082,22 +1082,22 @@ contract CarbonUSDTMarket is Ownable, ReentrancyGuard {
         
         uint256 orderPriceWei = _price * 1e18;
         
-        // 【炒作机制】：只检查下行偏离，上行无限制
+        // Speculation mechanism: only check downward deviation, no upper limit
         if (orderPriceWei < referencePrice) {
-            // 计算下行偏离百分比
+            // Calculate downward deviation percentage
             deviation = ((referencePrice - orderPriceWei) * BASIS_POINTS) / referencePrice;
             isBlocked = deviation > priceDeviationThreshold;
         } else {
-            // 价格高于或等于参考价：允许，不阻止
-            deviation = 0; // 上行偏离不计算/显示
+            // Price above or equal to reference price: allowed, not blocked
+            deviation = 0; // Upward deviation not calculated/displayed
             isBlocked = false;
         }
     }
 
-    // ========== 修饰器 ==========
+    // ========== Modifiers ==========
 
     /**
-     * @dev 未暂停修饰器
+     * @dev Not paused modifier
      */
     modifier whenNotPaused() {
         require(!paused, "Contract is paused");

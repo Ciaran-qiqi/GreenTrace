@@ -12,80 +12,80 @@ import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
 /**
  * @title GreenTrace
- * @dev 绿迹项目主合约，管理NFT和代币的铸造、销毁和分发
- * @notice 负责碳减排项目的审计、NFT兑换和费用分配
+ * @dev Main contract for the GreenTrace project, managing minting, burning, and distribution of NFTs and tokens
+ * @notice Responsible for audit of carbon reduction projects, NFT redemption, and fee distribution
  * 
- * 主要功能：
- * 1. 审计管理：添加/移除审计人员，提交和完成审计
- * 2. NFT兑换：将审核通过的NFT兑换为碳币，并分配相关费用
- * 3. 费用计算：计算系统手续费和审计费用
- * 4. 权限控制：管理审计人员白名单
- * 5. 业务合约管理：管理授权的业务合约（如交易市场）
+ * Main functions:
+ * 1. Audit management: add/remove auditors, submit and complete audits
+ * 2. NFT redemption: redeem approved NFTs for carbon tokens and distribute related fees
+ * 3. Fee calculation: calculate system and audit fees
+ * 4. Permission control: manage auditor whitelist
+ * 5. Business contract management: manage authorized business contracts (e.g., trading market)
  * 
- * ID系统设计：
- * 1. 铸造申请ID系统：用于铸造申请和审计流程跟踪（nextRequestId自增）
- * 2. 兑换申请ID系统：用于兑换申请和审计流程跟踪（nextCashId自增）
- * 3. NFT ID系统：真实的ERC721 tokenId（只有铸造成功时才分配）
+ * ID System Design:
+ * 1. Mint request ID system: for tracking mint requests and audit process (auto-increment nextRequestId)
+ * 2. Exchange request ID system: for tracking exchange requests and audit process (auto-increment nextCashId)
+ * 3. NFT ID system: real ERC721 tokenId (assigned only after successful mint)
  */
 contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for CarbonToken;
     
-    // 合约状态变量
-    CarbonToken public carbonToken;    // 碳币合约
-    GreenTalesNFT public greenTalesNFT;  // NFT合约
-    bool public initialized;           // 初始化状态
-    bool public isTestEnvironment;     // 是否为测试环境
+    // Contract state variables
+    CarbonToken public carbonToken;    // Carbon token contract
+    GreenTalesNFT public greenTalesNFT;  // NFT contract
+    bool public initialized;           // Initialization state
+    bool public isTestEnvironment;     // Whether it is a test environment
     
-    // 申请ID系统（独立于NFT ID）
-    uint256 public nextRequestId;      // 下一个铸造申请ID（自增，不销毁）
-    uint256 public nextCashId;         // 下一个兑换申请ID（自增，不销毁）
+    // Request ID system (independent of NFT ID)
+    uint256 public nextRequestId;      // Next mint request ID (auto-increment, never destroyed)
+    uint256 public nextCashId;         // Next exchange request ID (auto-increment, never destroyed)
     
-    // 费用比例常量
+    // Fee rate constants
     uint256 public constant SYSTEM_FEE_RATE = 100;  // 1%
     uint256 public constant AUDIT_FEE_RATE = 400;   // 4%
     uint256 public constant BASE_RATE = 10000;      // 100%
     
-    // 审计状态枚举
-    enum AuditStatus { Pending, Approved, Rejected }  // 待审核、已批准、已拒绝
+    // Audit status enum
+    enum AuditStatus { Pending, Approved, Rejected }  // Pending, Approved, Rejected
     
-    // 审计类型枚举
-    enum AuditType { Mint, Exchange }  // 铸造审计、兑现审计
+    // Audit type enum
+    enum AuditType { Mint, Exchange }  // Mint audit, Exchange audit
     
     /**
-     * @dev 申请/审计结构体
-     * @param requester 申请人地址
-     * @param auditor 审计人员地址
-     * @param requestId 申请ID（独立的ID系统）
-     * @param nftTokenId NFT ID（只有铸造成功后才有值，失败时为0）
-     * @param carbonValue 碳价值
-     * @param status 审计状态
-     * @param auditType 审计类型
-     * @param requestTimestamp 申请时间
-     * @param auditTimestamp 审计时间
-     * @param auditComment 审计意见/备注
-     * @param requestData 申请相关数据
+     * @dev Request/Audit struct
+     * @param requester Requester address
+     * @param auditor Auditor address
+     * @param requestId Request ID (independent ID system)
+     * @param nftTokenId NFT ID (only set after successful mint, 0 if failed)
+     * @param carbonValue Carbon value
+     * @param status Audit status
+     * @param auditType Audit type
+     * @param requestTimestamp Request timestamp
+     * @param auditTimestamp Audit timestamp
+     * @param auditComment Audit comment/remark
+     * @param requestData Request related data
      */
     struct Audit {
-        address requester;         // 申请人地址
-        address auditor;           // 审计人员地址
-        uint256 requestId;         // 申请ID（独立的ID系统）
-        uint256 nftTokenId;        // NFT ID（只有铸造成功后才有值）
-        uint256 carbonValue;       // 碳价值
-        AuditStatus status;        // 审计状态
-        AuditType auditType;       // 审计类型
-        uint256 requestTimestamp;  // 申请时间
-        uint256 auditTimestamp;    // 审计时间
-        string auditComment;       // 审计意见/备注
-        RequestData requestData;   // 申请相关数据
+        address requester;         // Requester address
+        address auditor;           // Auditor address
+        uint256 requestId;         // Request ID (independent ID system)
+        uint256 nftTokenId;        // NFT ID (only set after successful mint)
+        uint256 carbonValue;       // Carbon value
+        AuditStatus status;        // Audit status
+        AuditType auditType;       // Audit type
+        uint256 requestTimestamp;  // Request timestamp
+        uint256 auditTimestamp;    // Audit timestamp
+        string auditComment;       // Audit comment/remark
+        RequestData requestData;   // Request related data
     }
     
     /**
-     * @dev 申请数据结构体
-     * @param title 故事标题
-     * @param storyDetails 故事详情
-     * @param carbonReduction 碳减排量
-     * @param tokenURI NFT元数据URI
-     * @param requestFee 申请手续费
+     * @dev Request data struct
+     * @param title Story title
+     * @param storyDetails Story details
+     * @param carbonReduction Carbon reduction amount
+     * @param tokenURI NFT metadata URI
+     * @param requestFee Request fee
      */
     struct RequestData {
         string title;
@@ -95,13 +95,13 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         uint256 requestFee;
     }
     
-    // 映射关系
-    mapping(uint256 => Audit) public audits;  // 铸造申请ID => 审计信息
-    mapping(uint256 => Audit) public cashAudits;  // 兑换申请ID => 审计信息
-    mapping(address => bool) public auditors; // 审计人员白名单
-    mapping(address => bool) public businessContracts; // 业务合约白名单
+    // Mappings
+    mapping(uint256 => Audit) public audits;  // Mint request ID => Audit info
+    mapping(uint256 => Audit) public cashAudits;  // Exchange request ID => Audit info
+    mapping(address => bool) public auditors; // Auditor whitelist
+    mapping(address => bool) public businessContracts; // Business contract whitelist
     
-    // 事件定义
+    // Event definitions
     event AuditSubmitted(uint256 indexed requestId, address indexed auditor, uint256 carbonValue, AuditType auditType);
     event AuditCompleted(uint256 indexed requestId, AuditStatus status, AuditType auditType);
     event NFTExchanged(uint256 indexed tokenId, address indexed owner, uint256 carbonAmount);
@@ -144,27 +144,27 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     event AuditRejected(uint256 indexed requestId, address indexed auditor, string reason);
     
     /**
-     * @dev 构造函数
-     * @param _carbonToken 碳币合约地址
-     * @param _greenTalesNFT NFT合约地址（可以为0地址，后续设置）
+     * @dev Constructor
+     * @param _carbonToken Carbon token contract address
+     * @param _greenTalesNFT NFT contract address (can be zero address, set later)
      */
     constructor(address _carbonToken, address _greenTalesNFT) Ownable() {
         carbonToken = CarbonToken(_carbonToken);
         if (_greenTalesNFT != address(0)) {
             greenTalesNFT = GreenTalesNFT(_greenTalesNFT);
         }
-        // 根据链 ID 判断是否为测试环境
+        // Determine if test environment by chain ID
         // 1: Ethereum Mainnet, 5: Goerli, 11155111: Sepolia, 31337: Hardhat/Foundry
         uint256 chainId = block.chainid;
         isTestEnvironment = (chainId == 5 || chainId == 11155111 || chainId == 31337);
-        nextRequestId = 1; // 铸造申请ID从1开始
-        nextCashId = 1;    // 兑换申请ID从1开始
+        nextRequestId = 1; // Mint request ID starts from 1
+        nextCashId = 1;    // Exchange request ID starts from 1
     }
 
     /**
-     * @dev 设置NFT合约地址
-     * @param _greenTalesNFT NFT合约地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Set NFT contract address
+     * @param _greenTalesNFT NFT contract address
+     * @notice Only contract owner can call this function
      */
     function setNFTContract(address _greenTalesNFT) external onlyOwner {
         require(_greenTalesNFT != address(0), "Invalid NFT contract address");
@@ -172,9 +172,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 初始化函数
-     * @notice 必须在部署后调用此函数完成初始化
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Initialization function
+     * @notice Must be called after deployment to complete initialization
+     * @notice Only contract owner can call this function
      */
     function initialize() external onlyOwner {
         require(!initialized, "Already initialized");
@@ -186,8 +186,8 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 初始化检查修饰器
-     * @notice 确保合约已经完成初始化
+     * @dev Initialization check modifier
+     * @notice Ensure contract is initialized
      */
     modifier whenInitialized() {
         require(initialized, "Not initialized");
@@ -195,9 +195,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
     
     /**
-     * @dev 添加审计人员
-     * @param _auditor 审计人员地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Add auditor
+     * @param _auditor Auditor address
+     * @notice Only contract owner can call this function
      */
     function addAuditor(address _auditor) external onlyOwner whenInitialized {
         auditors[_auditor] = true;
@@ -205,9 +205,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
     
     /**
-     * @dev 移除审计人员
-     * @param _auditor 审计人员地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Remove auditor
+     * @param _auditor Auditor address
+     * @notice Only contract owner can call this function
      */
     function removeAuditor(address _auditor) external onlyOwner whenInitialized {
         auditors[_auditor] = false;
@@ -215,25 +215,25 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
     
     /**
-     * @dev 计算申请铸造的手续费
-     * @param _carbonReduction 碳减排量
-     * @return 手续费金额（取碳减排量1%和1个碳币中的较大值）
+     * @dev Calculate request fee for minting
+     * @param _carbonReduction Carbon reduction amount
+     * @return Fee amount (larger of 1% of carbon reduction or 1 carbon token)
      */
     function calculateRequestFee(uint256 _carbonReduction) public pure returns (uint256) {
-        uint256 percentageFee = _carbonReduction / 100;  // 碳减排量的1%
-        uint256 minFee = 1 * 10**18;  // 1个碳币（假设18位小数）
+        uint256 percentageFee = _carbonReduction / 100;  // 1% of carbon reduction
+        uint256 minFee = 1 * 10**18;  // 1 carbon token (assuming 18 decimal places)
         return percentageFee > minFee ? percentageFee : minFee;
     }
 
     /**
-     * @dev 申请铸造NFT
-     * @param _title 故事标题
-     * @param _storyDetails 故事详情
-     * @param _carbonReduction 碳减排量
-     * @param _tokenURI NFT元数据URI
-     * @return requestId 申请ID（注意：不是NFT ID）
-     * @notice 需要支付申请手续费（碳减排量1%或1个碳币中的较大值）
-     * @notice 返回的是申请ID，NFT只有在审计通过并支付费用后才会铸造
+     * @dev Request minting NFT
+     * @param _title Story title
+     * @param _storyDetails Story details
+     * @param _carbonReduction Carbon reduction amount
+     * @param _tokenURI NFT metadata URI
+     * @return requestId Request ID (note: not NFT ID)
+     * @notice Requires payment of request fee (larger of 1% of carbon reduction or 1 carbon token)
+     * @notice Returns request ID, NFT will only be minted after audit and fee payment
      */
     function requestMintNFT(
         string memory _title,
@@ -241,27 +241,27 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         uint256 _carbonReduction,
         string memory _tokenURI
     ) external whenInitialized returns (uint256) {
-        // 计算申请手续费
+        // Calculate request fee
         uint256 requestFee = calculateRequestFee(_carbonReduction);
 
-        // 检查用户余额
+        // Check user balance
         require(carbonToken.balanceOf(msg.sender) >= requestFee, "Insufficient balance for request fee");
         
-        // 转移手续费
+        // Transfer fee
         carbonToken.safeTransferFrom(msg.sender, address(this), requestFee);
         
-        // 分配手续费给合约所有者
+        // Allocate fee to contract owner
         carbonToken.safeTransfer(owner(), requestFee);
         
-        // 使用独立的申请ID系统
+        // Use independent request ID system
         uint256 requestId = nextRequestId++;
         
-        // 创建铸造审计记录
+        // Create mint audit record
         audits[requestId] = Audit({
             requester: msg.sender,
             auditor: address(0),
             requestId: requestId,
-            nftTokenId: 0,  // 申请阶段NFT ID为0，只有铸造成功后才设置
+            nftTokenId: 0,  // Request stage NFT ID is 0, only set after successful mint
             carbonValue: 0,
             status: AuditStatus.Pending,
             auditType: AuditType.Mint,
@@ -277,9 +277,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
             })
         });
 
-        // 记录铸造请求事件
+        // Record mint request event
         emit MintRequested(
-            requestId,  // 使用申请ID而不是NFT ID
+            requestId,  // Use request ID instead of NFT ID
             msg.sender,
             _title,
             _storyDetails,
@@ -288,16 +288,16 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
             requestFee
         );
         
-        return requestId;  // 返回申请ID
+        return requestId;  // Return request ID
     }
 
     /**
-     * @dev 提交铸造审计结果
-     * @param _requestId 申请ID（不是NFT ID）
-     * @param _carbonValue 碳价值（0表示拒绝）
-     * @param _comment 审计意见/备注（拒绝时必填，通过时可选）
-     * @notice 只有授权的审计人员可以调用此函数
-     * @notice 如果碳价值为0，表示拒绝该申请，此时必须提供拒绝原因
+     * @dev Submit mint audit result
+     * @param _requestId Request ID (not NFT ID)
+     * @param _carbonValue Carbon value (0 indicates rejection)
+     * @param _comment Audit comment/remark (required if rejected, optional if approved)
+     * @notice Only authorized auditors can call this function
+     * @notice If carbon value is 0, it indicates rejection of the request, and a rejection reason must be provided
      */
     function submitMintAudit(
         uint256 _requestId,
@@ -309,7 +309,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         require(audits[_requestId].auditType == AuditType.Mint, "Not a mint audit");
         require(audits[_requestId].requestId != 0, "Request does not exist");
         
-        // 如果是拒绝申请，必须提供拒绝原因
+        // If rejecting the request, a rejection reason must be provided
         if (_carbonValue == 0) {
             require(bytes(_comment).length > 0, "Rejection reason is required");
         }
@@ -317,14 +317,14 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         audits[_requestId].auditor = msg.sender;
         audits[_requestId].carbonValue = _carbonValue;
         audits[_requestId].auditTimestamp = block.timestamp;
-        audits[_requestId].auditComment = _comment;  // 存储审计意见（拒绝时为必填，通过时可选）
+        audits[_requestId].auditComment = _comment;  // Store audit comment (required if rejected, optional if approved)
 
         if (_carbonValue == 0) {
-            // 拒绝申请
+            // Reject request
             audits[_requestId].status = AuditStatus.Rejected;
             emit AuditRejected(_requestId, msg.sender, _comment);
         } else {
-            // 通过申请
+            // Approve request
             audits[_requestId].status = AuditStatus.Approved;
             emit AuditSubmitted(_requestId, msg.sender, _carbonValue, AuditType.Mint);
         }
@@ -333,11 +333,11 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 支付铸造费用并铸造NFT
-     * @param _requestId 申请ID（审计通过的申请）
-     * @return nftTokenId 真实的NFT ID
-     * @notice 只有铸造审计通过后才能调用此函数
-     * @notice 支付费用后，会铸造真实的NFT并返回NFT ID
+     * @dev Pay mint fee and mint NFT
+     * @param _requestId Request ID (approved mint request)
+     * @return nftTokenId Real NFT ID
+     * @notice Only call this function after mint audit is approved
+     * @notice After paying fees, real NFT will be minted and NFT ID returned
      */
     function payAndMintNFT(
         uint256 _requestId
@@ -347,35 +347,35 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         require(audits[_requestId].carbonValue > 0, "Carbon value not set");
         require(audits[_requestId].requester == msg.sender, "Not the requester");
         
-        // 计算手续费
+        // Calculate fees
         uint256 systemFee = calculateSystemFee(audits[_requestId].carbonValue);
         uint256 auditFee = calculateAuditFee(audits[_requestId].carbonValue);
         uint256 totalFee = systemFee + auditFee;
 
-        // 检查用户余额
+        // Check user balance
         require(carbonToken.balanceOf(msg.sender) >= totalFee, "Insufficient balance for fees");
         
-        // 转移费用
+        // Transfer fees
         carbonToken.safeTransferFrom(msg.sender, address(this), totalFee);
         
-        // 分配费用
-        carbonToken.safeTransfer(owner(), systemFee);  // 系统手续费给合约所有者
-        carbonToken.safeTransfer(audits[_requestId].auditor, auditFee);  // 审计费用给审计员
+        // Allocate fees
+        carbonToken.safeTransfer(owner(), systemFee);  // System fee to contract owner
+        carbonToken.safeTransfer(audits[_requestId].auditor, auditFee);  // Audit fee to auditor
         
-        // 铸造NFT（现在才真正铸造NFT）
+        // Mint NFT (now actually mint NFT)
         uint256 nftTokenId = greenTalesNFT.mint(
             audits[_requestId].requester,
             audits[_requestId].requestData.title,
             audits[_requestId].requestData.storyDetails,
             audits[_requestId].requestData.carbonReduction,
-            audits[_requestId].carbonValue,  // 使用审计后的碳价值作为初始价格
+            audits[_requestId].carbonValue,  // Use audit-adjusted carbon value as initial price
             audits[_requestId].requestData.tokenURI
         );
         
-        // 更新审计记录中的NFT ID
+        // Update NFT ID in audit record
         audits[_requestId].nftTokenId = nftTokenId;
         
-        // 发出费用分配事件
+        // Emit fee distribution event
         emit FeeDistribution(
             _requestId,
             audits[_requestId].carbonValue,
@@ -387,42 +387,42 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         
         emit NFTMintedAfterAudit(_requestId, nftTokenId, audits[_requestId].requester, audits[_requestId].requestData.title, audits[_requestId].carbonValue);
         
-        return nftTokenId;  // 返回真实的NFT ID
+        return nftTokenId;  // Return real NFT ID
     }
 
     /**
-     * @dev 申请兑换NFT
-     * @param _nftTokenId NFT ID（真实的NFT ID）
-     * @return requestId 兑换申请ID
-     * @notice NFT持有者申请将NFT兑换为碳币
+     * @dev Request exchange NFT
+     * @param _nftTokenId NFT ID (real NFT ID)
+     * @return requestId Exchange request ID
+     * @notice NFT holder requests to exchange NFT for carbon tokens
      */
     function requestExchangeNFT(uint256 _nftTokenId) external whenInitialized returns (uint256) {
-        // 检查调用者是否为NFT持有者
+        // Check if caller is NFT holder
         require(greenTalesNFT.ownerOf(_nftTokenId) == msg.sender, "Not NFT owner");
         
-        // 获取NFT的价格信息
+        // Get NFT price information
         GreenTalesNFT.StoryMeta memory storyMeta = greenTalesNFT.getStoryMeta(_nftTokenId);
         uint256 basePrice = storyMeta.lastPrice > 0 ? storyMeta.lastPrice : storyMeta.initialPrice;
         
-        // 计算申请手续费
+        // Calculate request fee
         uint256 requestFee = calculateRequestFee(basePrice);
         
-        // 检查用户余额
+        // Check user balance
         require(carbonToken.balanceOf(msg.sender) >= requestFee, "Insufficient balance for request fee");
         
-        // 转移手续费
+        // Transfer fee
         carbonToken.safeTransferFrom(msg.sender, address(this), requestFee);
         carbonToken.safeTransfer(owner(), requestFee);
         
-        // 创建兑换申请ID（使用独立的兑换ID系统）
+        // Create exchange request ID (use independent exchange ID system)
         uint256 cashId = nextCashId++;
         
-        // 创建兑换审计记录
+        // Create exchange audit record
         cashAudits[cashId] = Audit({
             requester: msg.sender,
             auditor: address(0),
-            requestId: cashId,        // 在兑换审计中，requestId字段存储cashId
-            nftTokenId: _nftTokenId,  // 这次直接使用真实的NFT ID
+            requestId: cashId,        // In exchange audit, requestId field stores cashId
+            nftTokenId: _nftTokenId,  // This directly uses real NFT ID
             carbonValue: 0,
             status: AuditStatus.Pending,
             auditType: AuditType.Exchange,
@@ -444,10 +444,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 提交兑换审计结果
-     * @param _cashId 兑换申请ID
-     * @param _carbonValue 碳价值（兑换可得的碳币数量）
-     * @param _comment 审计意见/备注（拒绝时必填，通过时可选）
+     * @dev Submit exchange audit result
+     * @param _cashId Exchange request ID
+     * @param _carbonValue Carbon value (carbon tokens to be obtained)
+     * @param _comment Audit comment/remark (required if rejected, optional if approved)
      */
     function submitExchangeAudit(
         uint256 _cashId,
@@ -459,7 +459,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         require(cashAudits[_cashId].auditType == AuditType.Exchange, "Not an exchange audit");
         require(cashAudits[_cashId].requestId != 0, "Request does not exist");
         
-        // 如果是拒绝申请，必须提供拒绝原因
+        // If rejecting the request, a rejection reason must be provided
         if (_carbonValue == 0) {
             require(bytes(_comment).length > 0, "Rejection reason is required");
         }
@@ -467,14 +467,14 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         cashAudits[_cashId].auditor = msg.sender;
         cashAudits[_cashId].carbonValue = _carbonValue;
         cashAudits[_cashId].auditTimestamp = block.timestamp;
-        cashAudits[_cashId].auditComment = _comment;  // 存储审计意见（拒绝时为必填，通过时可选）
+        cashAudits[_cashId].auditComment = _comment;  // Store audit comment (required if rejected, optional if approved)
 
         if (_carbonValue == 0) {
-            // 拒绝申请
+            // Reject request
             cashAudits[_cashId].status = AuditStatus.Rejected;
             emit AuditRejected(_cashId, msg.sender, _comment);
         } else {
-            // 通过申请
+            // Approve request
             cashAudits[_cashId].status = AuditStatus.Approved;
             emit AuditSubmitted(_cashId, msg.sender, _carbonValue, AuditType.Exchange);
         }
@@ -483,9 +483,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 兑现NFT（通过审计后）
-     * @param _cashId 兑换申请ID
-     * @notice 兑换申请审计通过后，销毁NFT并铸造对应数量的碳币
+     * @dev Redeem NFT (after audit)
+     * @param _cashId Exchange request ID
+     * @notice After exchange audit is approved, burn NFT and mint corresponding amount of carbon tokens
      */
     function exchangeNFT(uint256 _cashId) external nonReentrant whenInitialized {
         require(cashAudits[_cashId].status == AuditStatus.Approved, "Exchange audit not approved");
@@ -495,44 +495,44 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         
         uint256 nftTokenId = cashAudits[_cashId].nftTokenId;
         
-        // 检查调用者是否为NFT持有者
+        // Check if caller is NFT holder
         require(greenTalesNFT.ownerOf(nftTokenId) == msg.sender, "Not NFT owner");
         
-        // 检查合约是否已被授权操作该NFT
+        // Check if contract is authorized to operate this NFT
         require(greenTalesNFT.getApproved(nftTokenId) == address(this) || 
                 greenTalesNFT.isApprovedForAll(msg.sender, address(this)), 
                 "Contract not approved");
 
-        // 获取NFT的价格信息
+        // Get NFT price information
         GreenTalesNFT.StoryMeta memory storyMeta = greenTalesNFT.getStoryMeta(nftTokenId);
         uint256 carbonValue = cashAudits[_cashId].carbonValue;
         
-        // 检查审计结果的碳币价格是否合法
+        // Check if audit-adjusted carbon value is legal
         require(carbonValue <= storyMeta.initialPrice && carbonValue <= storyMeta.lastPrice, 
                 "Carbon value exceeds NFT prices");
 
-        // 合约主动转移NFT到自己名下，确保后续销毁安全
+        // Contract actively transfers NFT to itself, ensuring subsequent burn safety
         greenTalesNFT.safeTransferFrom(msg.sender, address(this), nftTokenId);
 
-        // 再次检查NFT所有权
+        // Check NFT ownership again
         require(greenTalesNFT.ownerOf(nftTokenId) == address(this), "NFT transfer failed");
 
-        // 销毁NFT
+        // Burn NFT
         greenTalesNFT.burn(nftTokenId);
 
-        // 计算实际返还金额（扣除已收取的费用）
+        // Calculate actual return amount (deducting already collected fees)
         uint256 returnAmount = calculateReturnAmount(carbonValue);
 
-        // 铸造碳币给NFT持有者（扣除已收取的费用）
+        // Mint carbon tokens to NFT holder (deducting already collected fees)
         carbonToken.mint(msg.sender, returnAmount);
 
         emit NFTExchanged(nftTokenId, msg.sender, returnAmount);
     }
 
     /**
-     * @dev 实现 IERC721Receiver 接口，允许本合约安全接收 NFT
-     * @notice 这样 NFT safeTransferFrom 到本合约不会 revert
-     * @return 返回 IERC721Receiver 接口的 selector，表示接收成功
+     * @dev Implement IERC721Receiver interface, allowing this contract to safely receive NFTs
+     * @notice This way, NFT safeTransferFrom to this contract will not revert
+     * @return Returns IERC721Receiver interface selector, indicating successful reception
      */
     function onERC721Received(
         address,
@@ -540,14 +540,14 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         uint256,
         bytes calldata
     ) external pure override returns (bytes4) {
-        // 返回 IERC721Receiver 接口的 selector，表示接收成功
+        // Return IERC721Receiver interface selector, indicating successful reception
         return IERC721Receiver.onERC721Received.selector;
     }
 
     /**
-     * @dev 添加业务合约
-     * @param _contract 业务合约地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Add business contract
+     * @param _contract Business contract address
+     * @notice Only contract owner can call this function
      */
     function addBusinessContract(address _contract) external onlyOwner whenInitialized {
         require(_contract != address(0), "Invalid contract address");
@@ -556,9 +556,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 移除业务合约
-     * @param _contract 业务合约地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Remove business contract
+     * @param _contract Business contract address
+     * @notice Only contract owner can call this function
      */
     function removeBusinessContract(address _contract) external onlyOwner whenInitialized {
         businessContracts[_contract] = false;
@@ -566,18 +566,18 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 业务合约铸造 NFT（仅测试环境建议使用）
-     * @param _recipient NFT 接收者地址
-     * @param _title 故事标题
-     * @param _storyDetails 故事详情
-     * @param _carbonReduction 碳减排量
-     * @param _initialPrice 初始价格
-     * @param _tokenURI NFT 元数据 URI
-     * @return tokenId 新铸造的NFT ID
+     * @dev Business contract mint NFT (only recommended for test environment)
+     * @param _recipient NFT receiver address
+     * @param _title Story title
+     * @param _storyDetails Story details
+     * @param _carbonReduction Carbon reduction amount
+     * @param _initialPrice Initial price
+     * @param _tokenURI NFT metadata URI
+     * @return tokenId New minted NFT ID
      *
-     * @notice ⚠️ 本函数主要用于测试环境（如Foundry/Hardhat链）快速铸造NFT，便于测试用例编写。
-     * @notice 生产环境下，业务合约不应调用此函数，实际业务流程应通过"申请-审计-支付"完整流程铸造NFT。
-     * @notice 只有在测试环境（isTestEnvironment为true）或白名单业务合约（暂无）才可调用。
+     * @notice ⚠️ This function is primarily for test environment (e.g., Foundry/Hardhat chain) quick minting NFTs, for easy test case writing.
+     * @notice In production environment, business contracts should not call this function, actual business process should mint NFT through "request-audit-pay" complete process.
+     * @notice This function can only be called in test environment (isTestEnvironment is true) or white list business contracts (currently no).
      */
     function mintNFTByBusiness(
         address _recipient,
@@ -588,13 +588,13 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         string memory _tokenURI
     ) external whenInitialized returns (uint256) {
         uint256 tokenId;
-        // 测试环境下允许直接铸造NFT，便于测试
+        // Test environment allows direct minting of NFTs, for easy testing
         if (isTestEnvironment) {
             tokenId = greenTalesNFT.mint(_recipient, _title, _storyDetails, _carbonReduction, _initialPrice, _tokenURI);
             emit NFTMintedByBusiness(tokenId, _recipient, _title, _carbonReduction);
             return tokenId;
         }
-        // 生产环境下，仅白名单业务合约可调用，目前没有该业务需求
+        // In production environment, only white list business contracts can call, currently no such business demand
         require(businessContracts[msg.sender], "Not authorized business contract");
         tokenId = greenTalesNFT.mint(_recipient, _title, _storyDetails, _carbonReduction, _initialPrice, _tokenURI);
         emit NFTMintedByBusiness(tokenId, _recipient, _title, _carbonReduction);
@@ -602,79 +602,79 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 业务合约更新 NFT 价格
+     * @dev Business contract update NFT price
      * @param _tokenId NFT ID
-     * @param _newPrice 新价格
-     * @notice 只有授权的业务合约可以调用此函数
-     * @notice 在测试环境中，允许测试合约直接调用
+     * @param _newPrice New price
+     * @notice Only authorized business contracts can call this function
+     * @notice In test environment, allowed test contract to directly call
      */
     function updateNFTPriceByBusiness(uint256 _tokenId, uint256 _newPrice) external whenInitialized {
-        // 在测试环境中，允许测试合约直接调用
+        // In test environment, allowed test contract to directly call
         if (isTestEnvironment) {
             greenTalesNFT.updateLastPrice(_tokenId, _newPrice);
             emit NFTPriceUpdatedByBusiness(_tokenId, _newPrice);
             return;
         }
         
-        // 生产环境中，只允许白名单中的业务合约调用
+        // In production environment, only allowed white list business contracts to call
         require(businessContracts[msg.sender], "Not authorized business contract");
         greenTalesNFT.updateLastPrice(_tokenId, _newPrice);
         emit NFTPriceUpdatedByBusiness(_tokenId, _newPrice);
     }
 
     /**
-     * @dev 计算系统手续费
-     * @param amount 总金额
-     * @return 手续费金额
-     * @notice 系统手续费为总金额的1%
+     * @dev Calculate system fee
+     * @param amount Total amount
+     * @return Fee amount
+     * @notice System fee is 1% of total amount
      */
     function calculateSystemFee(uint256 amount) public pure returns (uint256) {
         return (amount * SYSTEM_FEE_RATE) / BASE_RATE;
     }
 
     /**
-     * @dev 计算审计费用
-     * @param amount 总金额
-     * @return 审计费用金额
-     * @notice 审计费用为总金额的4%
+     * @dev Calculate audit fee
+     * @param amount Total amount
+     * @return Audit fee amount
+     * @notice Audit fee is 4% of total amount
      */
     function calculateAuditFee(uint256 amount) public pure returns (uint256) {
         return (amount * AUDIT_FEE_RATE) / BASE_RATE;
     }
 
     /**
-     * @dev 计算实际返还金额
-     * @param amount 总金额
-     * @return 实际返还金额
-     * @notice 实际返还金额 = 总金额 - 系统手续费 - 审计费用
+     * @dev Calculate actual return amount
+     * @param amount Total amount
+     * @return Actual return amount
+     * @notice Actual return amount = Total amount - System fee - Audit fee
      */
     function calculateReturnAmount(uint256 amount) public pure returns (uint256) {
         return amount - calculateSystemFee(amount) - calculateAuditFee(amount);
     }
 
     /**
-     * @dev 根据铸造申请ID查询申请详情
-     * @param _requestId 铸造申请ID
-     * @return audit 完整的审计记录
+     * @dev Query request details by mint request ID
+     * @param _requestId Mint request ID
+     * @return audit Complete audit record
      */
     function getRequestById(uint256 _requestId) external view returns (Audit memory) {
         return audits[_requestId];
     }
 
     /**
-     * @dev 根据兑换申请ID查询申请详情
-     * @param _cashId 兑换申请ID
-     * @return audit 完整的审计记录
+     * @dev Query request details by exchange request ID
+     * @param _cashId Exchange request ID
+     * @return audit Complete audit record
      */
     function getCashById(uint256 _cashId) external view returns (Audit memory) {
         return cashAudits[_cashId];
     }
 
     /**
-     * @dev 获取申请的审计意见
-     * @param _requestId 铸造申请ID
-     * @return comment 审计意见/备注
-     * @notice 获取审计员对特定铸造申请的审计意见
+     * @dev Get audit comment for mint request
+     * @param _requestId Mint request ID
+     * @return comment Audit comment/remark
+     * @notice Get audit comment for specific mint request
      */
     function getMintAuditComment(uint256 _requestId) external view returns (string memory) {
         require(audits[_requestId].requestId != 0, "Request does not exist");
@@ -682,10 +682,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取兑换申请的审计意见
-     * @param _cashId 兑换申请ID
-     * @return comment 审计意见/备注
-     * @notice 获取审计员对特定兑换申请的审计意见
+     * @dev Get audit comment for exchange request
+     * @param _cashId Exchange request ID
+     * @return comment Audit comment/remark
+     * @notice Get audit comment for specific exchange request
      */
     function getCashAuditComment(uint256 _cashId) external view returns (string memory) {
         require(cashAudits[_cashId].requestId != 0, "Request does not exist");
@@ -693,12 +693,12 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 根据NFT ID查询关联的铸造申请记录
+     * @dev Query related mint request records by NFT ID
      * @param _nftTokenId NFT ID
-     * @return requestIds 关联的铸造申请ID数组
+     * @return requestIds Related mint request ID array
      */
     function getRequestsByNFTId(uint256 _nftTokenId) external view returns (uint256[] memory requestIds) {
-        // 遍历所有铸造申请，找到关联此NFT的记录
+        // Traverse all mint requests to find related records for this NFT
         uint256 count = 0;
         uint256[] memory tempIds = new uint256[](nextRequestId);
         
@@ -709,7 +709,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
             }
         }
         
-        // 创建正确大小的数组
+        // Create correct size array
         requestIds = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             requestIds[i] = tempIds[i];
@@ -719,12 +719,12 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 根据NFT ID查询关联的兑换申请记录
+     * @dev Query related exchange request records by NFT ID
      * @param _nftTokenId NFT ID
-     * @return cashIds 关联的兑换申请ID数组
+     * @return cashIds Related exchange request ID array
      */
     function getCashByNFTId(uint256 _nftTokenId) external view returns (uint256[] memory cashIds) {
-        // 遍历所有兑换申请，找到关联此NFT的记录
+        // Traverse all exchange requests to find related records for this NFT
         uint256 count = 0;
         uint256[] memory tempIds = new uint256[](nextCashId);
         
@@ -735,7 +735,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
             }
         }
         
-        // 创建正确大小的数组
+        // Create correct size array
         cashIds = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             cashIds[i] = tempIds[i];
@@ -745,10 +745,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取用户的所有铸造申请记录
-     * @param _user 用户地址
-     * @return requestIds 用户的铸造申请ID数组
-     * @notice 用于前端用户申请记录页面
+     * @dev Get all mint request records for a user
+     * @param _user User address
+     * @return requestIds User's mint request ID array
+     * @notice Used for front-end user request record page
      */
     function getUserMintRequests(address _user) external view returns (uint256[] memory requestIds) {
         uint256 count = 0;
@@ -770,10 +770,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取用户的所有兑换申请记录
-     * @param _user 用户地址
-     * @return cashIds 用户的兑换申请ID数组
-     * @notice 用于前端用户申请记录页面
+     * @dev Get all exchange request records for a user
+     * @param _user User address
+     * @return cashIds User's exchange request ID array
+     * @notice Used for front-end user request record page
      */
     function getUserCashRequests(address _user) external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -795,9 +795,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取所有待审计的铸造申请
-     * @return requestIds 待审计的铸造申请ID数组
-     * @notice 用于审计中心页面显示待处理申请
+     * @dev Get all pending mint request records
+     * @return requestIds Pending mint request ID array
+     * @notice Used for audit center page to display pending processing requests
      */
     function getPendingMintAudits() external view returns (uint256[] memory requestIds) {
         uint256 count = 0;
@@ -819,9 +819,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取所有待审计的兑换申请
-     * @return cashIds 待审计的兑换申请ID数组
-     * @notice 用于审计中心页面显示待处理申请
+     * @dev Get all pending exchange request records
+     * @return cashIds Pending exchange request ID array
+     * @notice Used for audit center page to display pending processing requests
      */
     function getPendingCashAudits() external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -843,14 +843,14 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取特定审计员处理的申请记录
-     * @param _auditor 审计员地址
-     * @return requestIds 该审计员处理的铸造申请ID数组
-     * @return cashIds 该审计员处理的兑换申请ID数组
-     * @notice 用于审计中心显示审计员的工作记录
+     * @dev Get specific auditor's processing request records
+     * @param _auditor Auditor address
+     * @return requestIds Auditor's mint request ID array
+     * @return cashIds Auditor's exchange request ID array
+     * @notice Used for audit center to display auditor's work records
      */
     function getAuditorHistory(address _auditor) external view returns (uint256[] memory requestIds, uint256[] memory cashIds) {
-        // 统计铸造申请
+        // Count mint requests
         uint256 mintCount = 0;
         uint256[] memory tempMintIds = new uint256[](nextRequestId);
         
@@ -866,7 +866,7 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
             requestIds[i] = tempMintIds[i];
         }
         
-        // 统计兑换申请
+        // Count exchange requests
         uint256 cashCount = 0;
         uint256[] memory tempCashIds = new uint256[](nextCashId);
         
@@ -886,10 +886,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取用户的所有已审计铸造申请记录（已完成审计，无论通过或拒绝）
-     * @param _user 用户地址
-     * @return requestIds 用户的已审计铸造申请ID数组
-     * @notice 用于查看用户的铸造申请历史记录
+     * @dev Get all mint request records for a user that have been audited (completed audit, regardless of approval)
+     * @param _user User address
+     * @return requestIds User's audited mint request ID array
+     * @notice Used to view user's mint request history
      */
     function getUserAuditedMintRequests(address _user) external view returns (uint256[] memory requestIds) {
         uint256 count = 0;
@@ -913,9 +913,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取所有用户的已审计铸造申请记录
-     * @return requestIds 所有已审计的铸造申请ID数组
-     * @notice 用于审计中心查看所有铸造申请的历史记录
+     * @dev Get all audited mint request records for all users
+     * @return requestIds All audited mint request ID array
+     * @notice Used for audit center to view all mint request history
      */
     function getAllAuditedMintRequests() external view returns (uint256[] memory requestIds) {
         uint256 count = 0;
@@ -938,10 +938,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取用户的所有兑换申请历史记录（包括待审计、已审计、已兑换）
-     * @param _user 用户地址
-     * @return cashIds 用户的所有兑换申请ID数组
-     * @notice 用于查看用户的完整兑换历史
+     * @dev Get all exchange request history records for a user (including pending audit, audited, and exchanged)
+     * @param _user User address
+     * @return cashIds User's all exchange request ID array
+     * @notice Used to view user's complete exchange history
      */
     function getUserCashHistory(address _user) external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -963,9 +963,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取所有用户的兑换申请历史记录
-     * @return cashIds 所有兑换申请ID数组
-     * @notice 用于审计中心查看所有兑换申请的历史记录
+     * @dev Get all exchange request history records for all users
+     * @return cashIds All exchange request ID array
+     * @notice Used for audit center to view all exchange request history
      */
     function getAllCashHistory() external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -987,10 +987,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取用户的已审计兑换申请记录（已完成审计，无论通过或拒绝）
-     * @param _user 用户地址
-     * @return cashIds 用户的已审计兑换申请ID数组
-     * @notice 用于查看用户的兑换审计历史
+     * @dev Get audited exchange request records for a user that have been audited (completed audit, regardless of approval)
+     * @param _user User address
+     * @return cashIds User's audited exchange request ID array
+     * @notice Used to view user's exchange audit history
      */
     function getUserAuditedCashRequests(address _user) external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -1014,9 +1014,9 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取所有用户的已审计兑换申请记录
-     * @return cashIds 所有已审计的兑换申请ID数组
-     * @notice 用于审计中心查看所有兑换申请的审计历史
+     * @dev Get all audited exchange request records for all users
+     * @return cashIds All audited exchange request ID array
+     * @notice Used for audit center to view all exchange request audit history
      */
     function getAllAuditedCashRequests() external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -1039,10 +1039,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 按状态获取铸造申请记录
-     * @param _status 申请状态 (0:待审核, 1:已批准, 2:已拒绝)
-     * @return requestIds 指定状态的铸造申请ID数组
-     * @notice 用于按状态筛选申请记录
+     * @dev Get mint request records by status
+     * @param _status Request status (0: pending, 1: approved, 2: rejected)
+     * @return requestIds Mint request ID array for specified status
+     * @notice Used for filtering request records by status
      */
     function getMintRequestsByStatus(AuditStatus _status) external view returns (uint256[] memory requestIds) {
         uint256 count = 0;
@@ -1064,10 +1064,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 按状态获取兑换申请记录
-     * @param _status 申请状态 (0:待审核, 1:已批准, 2:已拒绝)
-     * @return cashIds 指定状态的兑换申请ID数组
-     * @notice 用于按状态筛选申请记录
+     * @dev Get exchange request records by status
+     * @param _status Request status (0: pending, 1: approved, 2: rejected)
+     * @return cashIds Exchange request ID array for specified status
+     * @notice Used for filtering request records by status
      */
     function getCashRequestsByStatus(AuditStatus _status) external view returns (uint256[] memory cashIds) {
         uint256 count = 0;
@@ -1089,14 +1089,14 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /**
-     * @dev 获取系统统计信息
-     * @return totalMintRequests 总铸造申请数
-     * @return totalCashRequests 总兑换申请数
-     * @return pendingMintRequests 待审计铸造申请数
-     * @return pendingCashRequests 待审计兑换申请数
-     * @return approvedMintRequests 已批准铸造申请数
-     * @return approvedCashRequests 已批准兑换申请数
-     * @notice 用于仪表板显示系统概览
+     * @dev Get system statistics
+     * @return totalMintRequests Total mint request count
+     * @return totalCashRequests Total exchange request count
+     * @return pendingMintRequests Pending mint request count
+     * @return pendingCashRequests Pending exchange request count
+     * @return approvedMintRequests Approved mint request count
+     * @return approvedCashRequests Approved exchange request count
+     * @notice Used for dashboard to display system overview
      */
     function getSystemStats() external view returns (
         uint256 totalMintRequests,
@@ -1106,10 +1106,10 @@ contract GreenTrace is Ownable, ReentrancyGuard, IERC721Receiver {
         uint256 approvedMintRequests,
         uint256 approvedCashRequests
     ) {
-        totalMintRequests = nextRequestId - 1; // 减去初始值1
-        totalCashRequests = nextCashId - 1;    // 减去初始值1
+        totalMintRequests = nextRequestId - 1; // Subtract initial value 1
+        totalCashRequests = nextCashId - 1;    // Subtract initial value 1
         
-        // 统计各状态申请数量
+        // Count requests by status
         for (uint256 i = 1; i < nextRequestId; i++) {
             if (audits[i].requestId != 0 && audits[i].auditType == AuditType.Mint) {
                 if (audits[i].status == AuditStatus.Pending) {

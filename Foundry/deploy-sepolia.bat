@@ -1,6 +1,6 @@
-REM 先读取
+REM Read first
 source .env
-REM 然后执行部署命令
+REM Then execute deployment command
 forge script script/Deploy.s.sol:DeployScript ^
 --rpc-url %SEPOLIA_RPC_URL% 
 --private-key %PRIVATE_KEY% 
@@ -8,16 +8,16 @@ forge script script/Deploy.s.sol:DeployScript ^
 --verify 
 -vvvv 
 
-REM 成功部署的版本
+REM Successfully deployed version
 forge script script/Deploy.s.sol --rpc-url %SEPOLIA_RPC_URL%.--private-key %PRIVATE_KEY%--broadcast --verify -vvvv
 
 
-@REM 写死环境的版本
+@REM Hardcoded environment version
 forge script script/Deploy.s.sol --rpc-url "https://eth-sepolia.g.alchemy.com/v2/" --private-key "0x" --broadcast --verify -vvvv
 
 
 
-REM mac 版本(TOML配置)
+REM mac version (TOML configuration)
 forge script script/DeployRemainingContracts.s.sol:DeployRemainingContracts \
     --chain-id 11155111 \
     --rpc-url sepolia  \
@@ -27,7 +27,7 @@ forge script script/DeployRemainingContracts.s.sol:DeployRemainingContracts \
     --verify \
     -vvvv
 
-REM win bash 版本(TOML配置)
+REM win bash version (TOML configuration)
 dotenv -e .env -- forge script script/DeployRemainingContracts.s.sol:DeployRemainingContracts \
     --chain-id 11155111 \
     --rpc-url sepolia  \
@@ -37,11 +37,3 @@ dotenv -e .env -- forge script script/DeployRemainingContracts.s.sol:DeployRemai
     --verify \
     -vvvv
 
-dotenv -e .env -- forge script script/DeployCarbonUSDTMarket.s.sol\
-    --chain-id 11155111 \
-    --rpc-url sepolia  \
-    --etherscan-api-key sepolia \
-    --broadcast \
-    --slow \
-    --verify \
-    -vvvv

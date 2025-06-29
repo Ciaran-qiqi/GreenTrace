@@ -8,46 +8,46 @@ import "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /**
  * @title GreenTalesNFT
- * @dev 绿色故事NFT合约，实现ERC721标准，支持铸造、销毁、分发
- * @notice 用于记录和追踪碳减排项目的NFT，每个NFT代表一个环保故事
+ * @dev Green story NFT contract, implements ERC721 standard, supports minting, burning, distribution
+ * @notice Used to record and track carbon reduction project NFTs, each NFT represents an environmental story
  * 
- * 主要功能：
- * 1. NFT铸造：记录环保故事和碳减排量
- * 2. NFT销毁：支持销毁不再需要的NFT
- * 3. 元数据管理：存储故事标题、详情和碳减排量
- * 4. 权限控制：只有授权的铸造者可以创建NFT
- * 5. 价格记录：记录NFT的初次成交价格和最后成交价格
+ * Main features:
+ * 1. NFT minting: Records environmental stories and carbon reduction amounts
+ * 2. NFT burning: Supports burning NFTs that are no longer needed
+ * 3. Metadata management: Stores story title, details and carbon reduction amount
+ * 4. Permission control: Only authorized minters can create NFTs
+ * 5. Price recording: Records NFT's initial trade price and last trade price
  */
 contract GreenTalesNFT is ERC721URIStorage, Ownable {
-    // 下一个要铸造的NFT ID
+    // Next NFT ID to mint
     uint256 public nextTokenId;
-    // GreenTrace合约地址
+    // GreenTrace contract address
     address public greenTrace;
-    // 是否为测试环境
+    // Whether it's a test environment
     bool public isTestEnvironment;
 
     /**
-     * @dev 故事元数据结构
-     * @param storyTitle 故事标题
-     * @param storyDetail 故事详情
-     * @param carbonReduction 预期减少的碳排放量
-     * @param createTime 故事创建时间
-     * @param initialPrice 初次成交价格
-     * @param lastPrice 最后成交价格
+     * @dev Story metadata struct
+     * @param storyTitle Story title
+     * @param storyDetail Story details
+     * @param carbonReduction Expected carbon emission reduction amount
+     * @param createTime Story creation time
+     * @param initialPrice Initial trade price
+     * @param lastPrice Last trade price
      */
     struct StoryMeta {
-        string storyTitle;         // 故事标题
-        string storyDetail;        // 故事详情
-        uint256 carbonReduction;   // 预期减少的碳排放量
-        uint256 createTime;        // 故事创建时间
-        uint256 initialPrice;      // 初次成交价格
-        uint256 lastPrice;         // 最后成交价格
+        string storyTitle;         // Story title
+        string storyDetail;        // Story details
+        uint256 carbonReduction;   // Expected carbon emission reduction amount
+        uint256 createTime;        // Story creation time
+        uint256 initialPrice;      // Initial trade price
+        uint256 lastPrice;         // Last trade price
     }
 
-    // NFT ID => 故事元数据
+    // NFT ID => Story metadata
     mapping(uint256 => StoryMeta) public storyMetadata;
     
-    // 事件定义
+    // Events
     event Minted(address indexed to, uint256 indexed tokenId, string storyTitle);
     event Burned(uint256 indexed tokenId);
     event PriceUpdated(uint256 indexed tokenId, uint256 price, bool isInitial);
@@ -61,15 +61,15 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     event GreenTraceUpdated(address indexed oldAddress, address indexed newAddress);
 
     /**
-     * @dev 构造函数
-     * @param _greenTrace GreenTrace合约地址
-     * @notice 初始化NFT名称和符号，并设置GreenTrace为铸造者
-     * @notice 自动检测部署环境，在测试网络（Goerli/Sepolia/Local）上启用测试模式
+     * @dev Constructor
+     * @param _greenTrace GreenTrace contract address
+     * @notice Initializes NFT name and symbol, and sets GreenTrace as minter
+     * @notice Automatically detects deployment environment, enables test mode on test networks (Goerli/Sepolia/Local)
      */
     constructor(address _greenTrace) ERC721("GreenTales", "GT") {
         require(_greenTrace != address(0), "Invalid GreenTrace address");
         greenTrace = _greenTrace;
-        // 通过检查链ID来判断是否为测试环境
+        // Determine if it's a test environment by checking chain ID
         // 1: Ethereum Mainnet
         // 5: Goerli Testnet
         // 11155111: Sepolia Testnet
@@ -79,8 +79,8 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev 只有主合约（GreenTrace）可以调用的修饰符
-     * @notice 测试环境下允许测试合约直接调用
+     * @dev Modifier that only main contract (GreenTrace) can call
+     * @notice In test environment, allows test contracts to call directly
      */
     modifier onlyGreenTrace() {
         if (isTestEnvironment) {
@@ -92,15 +92,15 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev 铸造新的NFT
-     * @param to 接收地址
-     * @param storyTitle 故事标题
-     * @param storyDetail 故事详情
-     * @param carbonReduction 碳减排量
-     * @param initialPrice 初次成交价格
-     * @param tokenURI NFT元数据URI
-     * @return tokenId 新铸造的NFT ID
-     * @notice 只有主合约（GreenTrace）可以调用
+     * @dev Mint new NFT
+     * @param to Recipient address
+     * @param storyTitle Story title
+     * @param storyDetail Story details
+     * @param carbonReduction Carbon reduction amount
+     * @param initialPrice Initial trade price
+     * @param tokenURI NFT metadata URI
+     * @return tokenId Newly minted NFT ID
+     * @notice Only main contract (GreenTrace) can call
      */
     function mint(
         address to,
@@ -110,11 +110,11 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
         uint256 initialPrice,
         string memory tokenURI
     ) external onlyGreenTrace returns (uint256) {
-        // 检查初始价格是否满足最低要求（至少1个碳币）
+        // Check if initial price meets minimum requirement (at least 1 carbon token)
         require(initialPrice >= 1 * 10**18, "Initial price must be at least 1 carbon token");
         
         uint256 tokenId = nextTokenId++;
-        //自增
+        // Auto-increment
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
         storyMetadata[tokenId] = StoryMeta({
@@ -132,10 +132,10 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev 更新NFT的最后成交价格
+     * @dev Update NFT's last trade price
      * @param tokenId NFT ID
-     * @param newPrice 新的成交价格
-     * @notice 只有主合约（GreenTrace）可以调用
+     * @param newPrice New trade price
+     * @notice Only main contract (GreenTrace) can call
      */
     function updateLastPrice(uint256 tokenId, uint256 newPrice) external onlyGreenTrace {
         require(_exists(tokenId), "Token does not exist");
@@ -144,9 +144,9 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev 销毁NFT
-     * @param tokenId 要销毁的NFT ID
-     * @notice 只有NFT所有者或被授权者可以调用此函数
+     * @dev Burn NFT
+     * @param tokenId NFT ID to burn
+     * @notice Only NFT owner or authorized party can call this function
      */
     function burn(uint256 tokenId) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), "Not owner nor approved");
@@ -156,10 +156,10 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev 获取NFT的故事元数据
+     * @dev Get NFT's story metadata
      * @param tokenId NFT ID
-     * @return StoryMeta 包含故事标题、详情、碳减排量和创建时间的结构体
-     * @notice 如果NFT不存在会抛出异常
+     * @return StoryMeta Struct containing story title, details, carbon reduction amount and creation time
+     * @notice Throws exception if NFT doesn't exist
      */
     function getStoryMeta(uint256 tokenId) external view returns (StoryMeta memory) {
         require(_exists(tokenId), "Token does not exist");
@@ -167,9 +167,9 @@ contract GreenTalesNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev 设置 GreenTrace 合约地址
-     * @param _greenTrace 新的 GreenTrace 合约地址
-     * @notice 只有合约所有者可以调用此函数
+     * @dev Set GreenTrace contract address
+     * @param _greenTrace New GreenTrace contract address
+     * @notice Only contract owner can call this function
      */
     function setGreenTrace(address _greenTrace) external onlyOwner {
         require(_greenTrace != address(0), "Invalid GreenTrace address");

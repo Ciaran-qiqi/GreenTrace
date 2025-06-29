@@ -9,7 +9,7 @@ import "../src/interfaces/ICarbonPriceOracle.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-/// @dev 本地测试用Mock USDT合约，支持mint
+/// @dev Local test Mock USDT contract, supports minting
 contract MockERC20 is ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
     function mint(address to, uint256 amount) external {
@@ -19,35 +19,35 @@ contract MockERC20 is ERC20 {
 
 /**
  * @title GreenTalesLiquidityPoolTest
- * @dev 测试GreenTalesLiquidityPool合约的所有功能
- * @notice 包含流动性管理、价格预言、兑换功能、价格偏离检查等全面测试
+ * @dev Tests all functionality of GreenTalesLiquidityPool contract
+ * @notice Includes comprehensive tests for liquidity management, price oracle, swap functions, price deviation checks, etc.
  */
 contract GreenTalesLiquidityPoolTest is Test {
-    // 测试合约实例
+    // Test contract instances
     GreenTalesLiquidityPool public pool;
     CarbonToken public carbonToken;
     CarbonPriceOracle public oracle;
     IERC20 public usdtToken;
     
-    // 测试地址
+    // Test addresses
     address public owner;
     address public user1;
     address public user2;
     address public user3;
     
-    // Sepolia测试网地址
+    // Sepolia testnet addresses
     address constant SEPOLIA_USDT = 0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7;
     address constant SEPOLIA_EUR_USD_FEED = 0x1a81afB8146aeFfCFc5E50e8479e826E7D55b910;
     address constant SEPOLIA_CHAINLINK_TOKEN = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
     address constant SEPOLIA_FUNCTIONS_ROUTER = 0xb83E47C2bC239B3bf370bc41e1459A34b41238D0;
     bytes32 constant SEPOLIA_DON_ID = 0x66756e2d657468657265756d2d7365706f6c69612d3100000000000000000000;
     
-    // 测试参数
+    // Test parameters
     uint256 public constant INITIAL_CARBON_SUPPLY = 1_000_000 * 1e18;
-    uint256 public constant INITIAL_LIQUIDITY_CARBON = 1_000_000 * 1e18; // 100万碳币
-    uint256 public constant INITIAL_LIQUIDITY_USDT = 88_000_000 * 1e18;  // 8800万USDT
+    uint256 public constant INITIAL_LIQUIDITY_CARBON = 1_000_000 * 1e18; // 1M carbon tokens
+    uint256 public constant INITIAL_LIQUIDITY_USDT = 88_000_000 * 1e18;  // 88M USDT
     
-    // 测试事件
+    // Test events
     event LiquidityAdded(address indexed user, uint256 carbonAmount, uint256 usdtAmount, uint256 lpTokens);
     event LiquidityRemoved(address indexed user, uint256 carbonAmount, uint256 usdtAmount, uint256 lpTokens);
     event TokensSwapped(address indexed user, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut);
@@ -56,13 +56,13 @@ contract GreenTalesLiquidityPoolTest is Test {
     event EmergencyPaused(address indexed by, bool paused);
 
     function setUp() public {
-        // 设置测试地址
+        // Setup test addresses
         owner = address(this);
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
         user3 = makeAddr("user3");
         
-        // 部署碳币合约
+        // Deploy carbon token contract
         CarbonToken.InitialBalance[] memory initialBalances = new CarbonToken.InitialBalance[](1);
         initialBalances[0] = CarbonToken.InitialBalance({
             to: owner,
@@ -70,7 +70,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         });
         carbonToken = new CarbonToken(initialBalances);
         
-        // 部署Mock USDT合约并分配余额
+        // Deploy Mock USDT contract and allocate balances
         MockERC20 mockUsdt = new MockERC20("Mock USDT", "USDT");
         mockUsdt.mint(user1, 10_000_000 * 1e18);
         mockUsdt.mint(user2, 10_000_000 * 1e18);
@@ -78,24 +78,24 @@ contract GreenTalesLiquidityPoolTest is Test {
         mockUsdt.mint(owner, 100_000_000 * 1e18);
         usdtToken = IERC20(address(mockUsdt));
         
-        // 部署流动性池合约
+        // Deploy liquidity pool contract
         pool = new GreenTalesLiquidityPool(
             address(carbonToken),
             address(usdtToken)
         );
         
-        // 给测试用户分配碳币
+        // Allocate carbon tokens to test users
         carbonToken.transfer(user1, 100_000 * 1e18);
         carbonToken.transfer(user2, 100_000 * 1e18);
         carbonToken.transfer(user3, 100_000 * 1e18);
     }
     
-    // ============ 基础功能测试 ============
+    // ============ Basic Function Tests ============
     
     function test_Constructor() public {
         assertEq(address(pool.carbonToken()), address(carbonToken));
         assertEq(address(pool.usdtToken()), address(usdtToken));
-        assertEq(pool.priceDeviationThreshold(), 10); // 默认10%
+        assertEq(pool.priceDeviationThreshold(), 10); // Default 10%
         assertEq(pool.totalCarbonTokens(), 0);
         assertEq(pool.totalUsdtTokens(), 0);
         assertEq(pool.totalLPTokens(), 0);
@@ -112,7 +112,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertEq(pool.priceDeviationThreshold(), 15);
     }
     
-    // ============ 价格相关测试 ============
+    // ============ Price Related Tests ============
     
     function test_GetCarbonPrice_EmptyPool() public {
         uint256 price = pool.getCarbonPrice();
@@ -120,14 +120,14 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_GetCarbonPrice_WithLiquidity() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 检查价格
+        // Check price
         uint256 price = pool.getCarbonPrice();
         uint256 expectedPrice = (INITIAL_LIQUIDITY_USDT * 1e18) / INITIAL_LIQUIDITY_CARBON;
         assertEq(price, expectedPrice, "Price calculation error");
@@ -135,35 +135,35 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_GetOracleReferencePrice() public {
-        // 设置测试价格
-        oracle.setTestCarbonPriceUSD(550000000); // 5.50 USD (8位精度)
+        // Set test price
+        oracle.setTestCarbonPriceUSD(550000000); // 5.50 USD (8 decimals)
         
         uint256 referencePrice = pool.getOracleReferencePrice();
-        uint256 expectedPrice = 550000000 * 1e10; // 转换为18位精度
+        uint256 expectedPrice = 550000000 * 1e10; // Convert to 18 decimals
         assertEq(referencePrice, expectedPrice, "Oracle price conversion error");
     }
     
     function test_GetCarbonPriceUSD() public {
-        // 设置测试价格
-        oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD (8位精度)
+        // Set test price
+        oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD (8 decimals)
         
         uint256 usdPrice = pool.getCarbonPriceUSD();
-        uint256 expectedPrice = 880000000 * 1e10; // 转换为18位精度
+        uint256 expectedPrice = 880000000 * 1e10; // Convert to 18 decimals
         assertEq(usdPrice, expectedPrice, "USD price should match oracle price");
     }
     
     function test_PriceDeviationCheck() public {
-        // 设置预言机价格为88 USD
-        oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD (8位精度)
+        // Set oracle price to 88 USD
+        oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD (8 decimals)
         
-        // 添加流动性，设置池子价格为88 USDT
+        // Add liquidity, set pool price to 88 USDT
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 检查价格偏离
+        // Check price deviation
         (uint256 referencePrice, uint256 marketPrice, uint256 deviation, uint256 threshold, bool isDeviated) = 
             pool.getPriceDeviationDetails();
         
@@ -175,29 +175,29 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_PriceDeviationCheck_Deviated() public {
-        // 设置预言机价格为100 USD
-        oracle.setTestCarbonPriceUSD(1000000000); // 100.00 USD (8位精度)
+        // Set oracle price to 100 USD
+        oracle.setTestCarbonPriceUSD(1000000000); // 100.00 USD (8 decimals)
         
-        // 添加流动性，设置池子价格为88 USDT
+        // Add liquidity, set pool price to 88 USDT
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 检查价格偏离
+        // Check price deviation
         (,, uint256 deviation,, bool isDeviated) = pool.getPriceDeviationDetails();
         
-        // 偏离 = (100 - 88) / 100 * 100 = 12%
+        // Deviation = (100 - 88) / 100 * 100 = 12%
         assertGt(deviation, 10, "Price deviation should exceed 10%");
         assertEq(isDeviated, true, "Price should be deviated");
     }
     
     function test_IsPriceDeviated() public {
-        // 设置预言机价格为100 USD
+        // Set oracle price to 100 USD
         oracle.setTestCarbonPriceUSD(1000000000); // 100.00 USD
         
-        // 添加流动性，设置池子价格为88 USDT
+        // Add liquidity, set pool price to 88 USDT
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
@@ -210,7 +210,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertEq(isDeviated, true, "Price should be deviated");
     }
     
-    // ============ 流动性管理测试 ============
+    // ============ Liquidity Management Tests ============
     
     function test_AddLiquidity() public {
         uint256 carbonAmount = 10_000 * 1e18;
@@ -235,7 +235,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_AddLiquidity_SecondUser() public {
-        // 第一个用户添加流动性
+        // First user adds liquidity
         uint256 carbonAmount1 = 10_000 * 1e18;
         uint256 usdtAmount1 = 880_000 * 1e18;
         
@@ -245,7 +245,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         uint256 lpTokens1 = pool.addLiquidity(carbonAmount1, usdtAmount1);
         vm.stopPrank();
         
-        // 第二个用户添加流动性
+        // Second user adds liquidity
         uint256 carbonAmount2 = 5_000 * 1e18;
         uint256 usdtAmount2 = 440_000 * 1e18;
         
@@ -275,7 +275,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_RemoveLiquidity() public {
-        // 先添加流动性
+        // First add liquidity
         uint256 carbonAmount = 10_000 * 1e18;
         uint256 usdtAmount = 880_000 * 1e18;
         
@@ -284,7 +284,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         IERC20(address(usdtToken)).approve(address(pool), usdtAmount);
         uint256 lpTokens = pool.addLiquidity(carbonAmount, usdtAmount);
         
-        // 记录移除前的余额
+        // Record balance before removal
         uint256 carbonBalanceBefore = carbonToken.balanceOf(user1);
         uint256 usdtBalanceBefore = IERC20(address(usdtToken)).balanceOf(user1);
         
@@ -299,7 +299,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertEq(pool.userLPTokens(user1), 0, "User LP tokens should be 0");
         assertEq(pool.totalLiquidityProviders(), 0, "Liquidity provider count should be 0");
         
-        // 检查用户余额增加
+        // Check user balance increase
         uint256 carbonBalanceAfter = carbonToken.balanceOf(user1);
         uint256 usdtBalanceAfter = IERC20(address(usdtToken)).balanceOf(user1);
         assertEq(carbonBalanceAfter, carbonBalanceBefore + carbonReturned, "Carbon balance should increase");
@@ -313,20 +313,20 @@ contract GreenTalesLiquidityPoolTest is Test {
         vm.stopPrank();
     }
     
-    // ============ 兑换功能测试 ============
+    // ============ Swap Function Tests ============
     
     function test_SwapCarbonToUsdt() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 设置预言机价格（与池子价格一致）
+        // Set oracle price (same as pool price)
         oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD
         
-        uint256 swapAmount = 1_000 * 1e18; // 1000碳币
+        uint256 swapAmount = 1_000 * 1e18; // 1000 carbon tokens
         
         vm.startPrank(user1);
         carbonToken.approve(address(pool), swapAmount);
@@ -339,20 +339,20 @@ contract GreenTalesLiquidityPoolTest is Test {
         
         assertGt(usdtReceived, 0, "Should receive USDT");
         
-        // 检查池子状态变化
+        // Check pool state change
         assertEq(pool.totalCarbonTokens(), INITIAL_LIQUIDITY_CARBON + swapAmount, "Pool carbon tokens should increase");
         assertLt(pool.totalUsdtTokens(), INITIAL_LIQUIDITY_USDT, "Pool USDT should decrease");
     }
     
     function test_SwapUsdtToCarbon() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 设置预言机价格（与池子价格一致）
+        // Set oracle price (same as pool price)
         oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD
         
         uint256 swapAmount = 88_000 * 1e18; // 88000 USDT
@@ -368,20 +368,20 @@ contract GreenTalesLiquidityPoolTest is Test {
         
         assertGt(carbonReceived, 0, "Should receive carbon tokens");
         
-        // 检查池子状态变化
+        // Check pool state change
         assertEq(pool.totalUsdtTokens(), INITIAL_LIQUIDITY_USDT + swapAmount, "Pool USDT should increase");
         assertLt(pool.totalCarbonTokens(), INITIAL_LIQUIDITY_CARBON, "Pool carbon tokens should decrease");
     }
     
     function test_Swap_PriceDeviation() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 设置预言机价格为100 USD（偏离超过阈值）
+        // Set oracle price to 100 USD (deviation exceeds threshold)
         oracle.setTestCarbonPriceUSD(1000000000); // 100.00 USD
         
         uint256 swapAmount = 1_000 * 1e18;
@@ -410,10 +410,10 @@ contract GreenTalesLiquidityPoolTest is Test {
         vm.stopPrank();
     }
     
-    // ============ 估算功能测试 ============
+    // ============ Estimation Function Tests ============
     
     function test_GetSwapEstimate() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
@@ -422,7 +422,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         
         uint256 amountIn = 1_000 * 1e18;
         
-        // 碳币兑换USDT估算
+        // Carbon token to USDT swap estimate
         (uint256 amountOut, uint256 fee, uint256 priceImpact) = 
             pool.getSwapEstimate(amountIn, true);
         
@@ -430,7 +430,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertGt(fee, 0, "Estimated fee should be greater than 0");
         assertGt(priceImpact, 0, "Price impact should be greater than 0");
         
-        // USDT兑换碳币估算
+        // USDT to carbon token swap estimate
         (amountOut, fee, priceImpact) = 
             pool.getSwapEstimate(amountIn, false);
         
@@ -452,7 +452,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_GetRemoveLiquidityEstimate() public {
-        // 先添加流动性
+        // First add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
@@ -469,17 +469,17 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertGt(sharePercentage, 0, "Share percentage should be greater than 0");
     }
     
-    // ============ 统计信息测试 ============
+    // ============ Statistics Tests ============
     
     function test_GetPoolStats() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 进行兑换
+        // Perform swap
         vm.startPrank(user1);
         carbonToken.approve(address(pool), 1_000 * 1e18);
         pool.swapCarbonToUsdt(1_000 * 1e18);
@@ -499,7 +499,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_GetLiquidityProviderInfo() public {
-        // 添加流动性
+        // Add liquidity
         uint256 carbonAmount = 10_000 * 1e18;
         uint256 usdtAmount = 880_000 * 1e18;
         
@@ -519,14 +519,14 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_GetPoolInfo() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 设置预言机价格
+        // Set oracle price
         oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD
         
         (uint256 totalCarbon, uint256 totalUsdt, uint256 totalLP, uint256 currentPrice, uint256 oraclePrice, bool priceDeviated, uint256 deviationPercent, uint256 feeRate, bool isPaused) = 
@@ -543,23 +543,23 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertEq(isPaused, false, "Pool should not be paused");
     }
     
-    // ============ 手续费管理测试 ============
+    // ============ Fee Management Tests ============
     
     function test_WithdrawFees() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 进行兑换产生手续费
+        // Perform swap to generate fees
         vm.startPrank(user1);
         carbonToken.approve(address(pool), 1_000 * 1e18);
         pool.swapCarbonToUsdt(1_000 * 1e18);
         vm.stopPrank();
         
-        // 提取手续费
+        // Withdraw fees
         uint256 balanceBefore = IERC20(address(usdtToken)).balanceOf(owner);
         pool.withdrawPlatformFees(address(usdtToken), 1_000 * 1e18);
         uint256 balanceAfter = IERC20(address(usdtToken)).balanceOf(owner);
@@ -577,13 +577,13 @@ contract GreenTalesLiquidityPoolTest is Test {
         pool.withdrawPlatformFees(address(usdtToken), 0);
     }
     
-    // ============ 紧急功能测试 ============
+    // ============ Emergency Function Tests ============
     
     function test_EmergencyPause() public {
         pool.pause();
         assertEq(pool.paused(), true, "Pool should be paused");
         
-        // 暂停时不能添加流动性
+        // Cannot add liquidity when paused
         vm.startPrank(user1);
         carbonToken.approve(address(pool), 1_000 * 1e18);
         IERC20(address(usdtToken)).approve(address(pool), 88_000 * 1e18);
@@ -592,20 +592,20 @@ contract GreenTalesLiquidityPoolTest is Test {
         pool.addLiquidity(1_000 * 1e18, 88_000 * 1e18);
         vm.stopPrank();
         
-        // 恢复池子
+        // Resume pool
         pool.unpause();
         assertEq(pool.paused(), false, "Pool should be resumed");
     }
     
     function test_EmergencyWithdraw() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 紧急提取
+        // Emergency withdraw
         uint256 balanceBefore = carbonToken.balanceOf(owner);
         pool.emergencyWithdraw(address(carbonToken), owner, 1_000 * 1e18);
         uint256 balanceAfter = carbonToken.balanceOf(owner);
@@ -628,20 +628,20 @@ contract GreenTalesLiquidityPoolTest is Test {
         pool.emergencyWithdraw(address(0), owner, 1_000 * 1e18);
     }
     
-    // ============ 边界条件测试 ============
+    // ============ Boundary Condition Tests ============
     
     function test_AddLiquidity_InvalidRatio() public {
-        // 添加初始流动性
+        // Add initial liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 尝试以不同比例添加流动性
+        // Try to add liquidity with different ratio
         vm.startPrank(user1);
         carbonToken.approve(address(pool), 1_000 * 1e18);
-        IERC20(address(usdtToken)).approve(address(pool), 100_000 * 1e18); // 不同比例
+        IERC20(address(usdtToken)).approve(address(pool), 100_000 * 1e18); // Different ratio
         
         uint256 lpTokens = pool.addLiquidity(1_000 * 1e18, 100_000 * 1e18);
         vm.stopPrank();
@@ -650,18 +650,18 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_Swap_LargeAmount() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
         pool.addLiquidity(INITIAL_LIQUIDITY_CARBON, INITIAL_LIQUIDITY_USDT);
         vm.stopPrank();
         
-        // 设置预言机价格
+        // Set oracle price
         oracle.setTestCarbonPriceUSD(880000000); // 88.00 USD
         
-        // 大额兑换
-        uint256 largeAmount = 100_000 * 1e18; // 10万碳币
+        // Large amount swap
+        uint256 largeAmount = 100_000 * 1e18; // 100k carbon tokens
         
         vm.startPrank(user1);
         carbonToken.approve(address(pool), largeAmount);
@@ -671,13 +671,13 @@ contract GreenTalesLiquidityPoolTest is Test {
         
         assertGt(usdtReceived, 0, "Should receive USDT for large swap");
         
-        // 检查价格影响
+        // Check price impact
         uint256 newPrice = pool.getCarbonPrice();
         assertLt(newPrice, 88 * 1e18, "Price should decrease after large swap");
     }
     
     function test_GetDetailedSwapEstimate() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
@@ -686,7 +686,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         
         uint256 amountIn = 1_000 * 1e18;
         
-        // 详细兑换估算
+        // Detailed swap estimate
         (uint256 amountOut, uint256 fee, uint256 priceImpact, uint256 newPrice) = 
             pool.getDetailedSwapEstimate(amountIn, true);
         
@@ -711,7 +711,7 @@ contract GreenTalesLiquidityPoolTest is Test {
     }
     
     function test_CheckLiquiditySufficiency() public {
-        // 添加流动性
+        // Add liquidity
         vm.startPrank(owner);
         carbonToken.approve(address(pool), INITIAL_LIQUIDITY_CARBON);
         IERC20(address(usdtToken)).approve(address(pool), INITIAL_LIQUIDITY_USDT);
@@ -725,7 +725,7 @@ contract GreenTalesLiquidityPoolTest is Test {
         assertEq(currentLP, lpTokens, "Current LP should match");
         assertEq(requiredLP, lpTokens, "Required LP should match");
         
-        // 检查不足的情况
+        // Check insufficient case
         (hasEnough, currentLP, requiredLP) = 
             pool.checkLiquiditySufficiency(owner, lpTokens + 1);
         

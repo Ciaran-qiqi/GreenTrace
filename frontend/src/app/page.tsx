@@ -180,9 +180,16 @@ export default function Home() {
                 <p className="text-gray-600 mb-6 leading-relaxed">
                   {t('home.features.exchange.description', '将审核通过的NFT兑换为有价值的碳代币，参与碳信用交易，实现环保价值变现。')}
                 </p>
-                <div className="text-sm text-blue-600 font-medium bg-blue-50 px-4 py-2 rounded-full">
-                  {t('home.features.exchange.subtitle', '环保行为的经济激励')}
-                </div>
+                
+                {/* 获得USDT按钮 */}
+                <a 
+                  href="https://sepolia.etherscan.io/address/0xdcdc73413c6136c9abcc3e8d250af42947ac2fc7#writeContract"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-full hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  {t('home.features.exchange.getUsdtButton', '获得USDT')}
+                </a>
               </div>
             </div>
 
