@@ -39,9 +39,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# 不忽略所有依赖，因为我前端的依赖很容易下载出错，我要一起管理
-# node_modules
-
 
 # solidity-coverage files
 /coverage
@@ -66,31 +63,26 @@ Foundry/broadcast/Deploy.s.sol/
 
 
 
-# 不忽略 .gitignore 文件
+# do not ignore 
 !.gitignore
-
-# 不忽略 README.md
 !README.md
-
-
-# 不忽略 Foundry 配置文件
 !foundry.toml
 !remappings.txt
 
 
-# 忽略所有环境变量文件
+# ignore all environment variable files
 .env*
-# 不忽略示例环境变量文件
+# do not ignore example environment variable file
 !.env.example
 
-# 忽略所有 IDE 和编辑器文件
+# ignore all IDE and editor files
 .idea/
 .vscode/
 *.swp
 *.swo
 
 
-# 忽略特定文件夹
+# ignore specific folders
 .github/
 .wake/
 .vscode/
